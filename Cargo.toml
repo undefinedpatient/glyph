@@ -10,3 +10,4 @@ unused = {level = "allow"}
 ratatui = "0.30.0"
 crossterm = "0.29.0"
 color-eyre = "0.6.5"
+tui-big-text = "0.8.1"

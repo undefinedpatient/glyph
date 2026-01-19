@@ -2,7 +2,8 @@ use std::path::PathBuf;
 use std::string::String;
 
 pub enum Screen {
-    ExploreView,
+    Entrance,
+    ExplorerView,
 }
 
 // The State Object hold all the data in Navi
@@ -18,7 +19,7 @@ impl App {
     pub fn new(path: &PathBuf) -> App {
         App {
             current_path: path.clone(),
-            screen: Screen::ExploreView,
+            screen: Screen::Entrance,
             info_message: String::new(),
             should_quit: false,
         }

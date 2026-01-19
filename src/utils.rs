@@ -21,3 +21,7 @@ pub fn get_file_names(path: &Path) -> Result<Vec<String>> {
 
     Ok(file_names)
 }
+
+// 20260119 
+// - Add read/write json, set up basic structure of the Glyph e.g. a folder with correct toml file inside.
+// - Make main screen with menu like blender e.g. New Glyph / Open Glyph files
