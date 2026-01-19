@@ -4,7 +4,7 @@ use ratatui::symbols::block;
 use ratatui::{Frame, text};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Text};
-use ratatui::widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Padding, Paragraph, Widget, Wrap};
+use ratatui::widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Padding, Paragraph, StatefulWidget, Widget, Wrap};
 use ratatui::layout::{self, Alignment, Constraint, Direction, Flex, HorizontalAlignment, Layout, Rect};
 use tui_big_text::{BigText, PixelSize};
 
@@ -12,7 +12,7 @@ use crate::app::{App, Popup, PopupConfirmType, View};
 use crate::utils::get_dir_names;
 use crate::{utils::get_file_names};
 
-pub fn ui(frame: &mut Frame, app: &App) {
+pub fn ui(frame: &mut Frame, app: &mut App) {
     if let Some(view) = app.peek_view() {
         match view {
             View::Entrance => {
@@ -40,7 +40,7 @@ struct EntranceView<'a>{
     app: &'a App
 }
 impl<'a> EntranceView<'a>{
-    fn new(app: &'a App) -> Self {
+    fn new(app: &'a mut App) -> Self {
         EntranceView { 
             app: app
         }
@@ -61,9 +61,9 @@ impl<'a> Widget for EntranceView<'a>{
             .alignment(HorizontalAlignment::Center)
             .build();
         let text_actions: Text = Text::from(vec![
-            Line::from("Create (A)"),
-            Line::from("Open   (O)"),
-            Line::from("Quit   (Q)"),
+            Line::from("Create (a)"),
+            Line::from("Open   (o)"),
+            Line::from("Quit   (q)"),
         ]).centered();
         let block: Block = Block::default().borders(Borders::ALL);
         let area_inner: Rect = block.inner(area);
@@ -83,10 +83,10 @@ impl<'a> Widget for EntranceView<'a>{
 }
 
 struct CreateGlyphView<'a>{
-    app: &'a App
+    app: &'a mut App
 }
 impl<'a> CreateGlyphView<'a>{
-    fn new(app: &'a App) -> Self {
+    fn new(app: &'a mut App) -> Self {
         CreateGlyphView { 
             app: app
         }
@@ -103,15 +103,15 @@ impl<'a> Widget for CreateGlyphView<'a> {
             ]
         ).split(area);
 
-        let frame: Block = Block::default().borders(Borders::ALL);
+        let frame: Block = Block::default().borders(Borders::ALL).title(" Create Glyph ");
         let inner_area: Rect = frame.inner(areas[0]);
 
         frame.render(areas[0], buf);
 
         let file_explorer_area = inner_area
             .centered(Constraint::Max(42), Constraint::Percentage(50));
-        FileExplorerWidget::new(self.app).render(file_explorer_area, buf);
-        Paragraph::new("Create (Enter) Back (q)").render(areas[1], buf);
+        DirectoryWidget::new(self.app).render(file_explorer_area, buf);
+        Paragraph::new("Create (Enter) Back (q)").alignment(Alignment::Right).render(areas[1], buf);
     }
 }
 
@@ -156,60 +156,38 @@ impl<'a> Widget for PopupWidget<'a> {
     }
 }
 
-struct FileExplorerWidget<'a> {
-    app: &'a App
+struct DirectoryWidget<'a> {
+    app: &'a mut App
 }
-impl<'a> FileExplorerWidget<'a> {
-    fn new(app: &'a App) -> Self {
-        FileExplorerWidget {
+impl<'a> DirectoryWidget<'a> {
+    fn new(app: &'a mut App) -> Self {
+        DirectoryWidget {
             app: app
         }
     }
-    fn alternative_color(&self, index: usize) -> Style {
-        if index % 2 == 0 {
-            Style::new().on_dark_gray()
-        } else {
-            Style::new().on_black()
-        }
-    }
 }
-impl<'a> Widget for FileExplorerWidget<'a> {
+impl<'a> Widget for DirectoryWidget<'a> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
         where
             Self: Sized {
-        let list: Vec<ListItem> = get_dir_names(&self.app.current_path)
+        let list_items: Vec<ListItem> = get_dir_names(self.app.get_current_path())
             .unwrap_or(Vec::new())
             .iter()
             .enumerate()
             .map(
                 |(i, item)| {
-
-                    return ListItem::new(item.clone()).style(self.alternative_color(i));
+                    return ListItem::new(item.clone());
                 }
             )
             .collect();
-        List::new(list).block(
-            Block::bordered()
-        ).render(area, buf);
+
+
+        let current_path: String = self.app.get_current_path().clone().to_str().unwrap_or("Invalid Path").to_string();
+        let list = List::new(list_items)
+            .block(
+                Block::bordered().title(current_path)
+            )
+            .highlight_style(Style::new().bold());
+        StatefulWidget::render(list, area, buf, self.app.focused_list_state_mut().unwrap());
     }
 }
-// struct FileExplorerItemWidget {
-//     name: String
-// }
-// impl FileExplorerItemWidget {
-//     fn new(name: &String) -> Self {
-//         FileExplorerItemWidget {
-//             name: name.clone()
-//         }
-//     }
-//     fn get_name(&self) -> &String {
-//         &self.name
-//     }
-// }
-// impl Widget for FileExplorerItemWidget {
-//     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
-//         where
-//             Self: Sized {
-            
-//     }
-// }

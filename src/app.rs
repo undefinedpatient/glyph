@@ -1,5 +1,8 @@
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::string::String;
+
+use ratatui::widgets::{List, ListState};
 
 #[derive(Clone)]
 pub enum PopupConfirmType {
@@ -17,12 +20,23 @@ pub enum View {
     CreateGlyph
 }
 
+#[derive(Hash, PartialEq, Eq)]
+pub enum ListType {
+    CreateGlyph,
+    OpenGlyph,
+    Glyph
+}
+
 // The State Object hold all the data in Navi
 pub struct App {
-    pub current_path: PathBuf,
-    view_stack: Vec<View>,
-    popup_stack: Vec<Popup>,
-    section_index: u8, // Which section in view is underfocused
+    // UI
+    s_views: Vec<View>,
+    s_popup: Vec<Popup>,
+
+    // State
+    h_list_state: HashMap<ListType, ListState>,
+    focused_list: Option<ListType>,
+    current_path: PathBuf,  // ListType::{CreateGlyph, OpenGlyph} use this path
 
     info_message: Option<String>,
     should_quit: bool,
@@ -31,32 +45,63 @@ pub struct App {
 impl App {
     pub fn new(path: &PathBuf) -> App {
         App {
+            s_views: vec![View::Entrance],
+            s_popup: Vec::new(),
+
+            h_list_state: HashMap::from(
+                [
+                    (ListType::CreateGlyph, ListState::default()),
+                    (ListType::OpenGlyph, ListState::default()),
+                    (ListType::Glyph, ListState::default())
+                ]
+            ),
+            focused_list: None,
             current_path: path.clone(),
-            view_stack: vec![View::Entrance],
-            popup_stack: Vec::new(),
-            section_index: 0,
 
             info_message: None,
             should_quit: false,
         }
     }   
+    // State
+    pub fn focused_list(&self) -> Option<&ListState> {
+        if let Some(list_type) = &self.focused_list {
+            return self.h_list_state.get(&list_type);
+        }
+        None
+    }
+    pub fn focused_list_state_mut(&mut self) -> Option<&mut ListState> {
+        if let Some(list_type) = &self.focused_list {
+            return self.h_list_state.get_mut(&list_type);
+        }
+        None
+    }
+    pub fn set_focusd_list(&mut self, list: ListType) -> () {
+        self.focused_list = Some(list);
+    }
+    pub fn get_current_path(&self) -> &PathBuf {
+        &self.current_path
+    }
+    pub fn set_current_path(&mut self, path_buf: &PathBuf) -> () {
+        self.current_path = path_buf.clone();
+    }
+    // Views
     pub fn push_popup(&mut self, popup: Popup) -> () {
-        self.popup_stack.push(popup);
+        self.s_popup.push(popup);
     }
     pub fn peek_popup(&self) -> Option<&Popup> {
-        self.popup_stack.last()
+        self.s_popup.last()
     }
     pub fn pop_popup(&mut self) -> Option<Popup> {
-        self.popup_stack.pop()
+        self.s_popup.pop()
     }
     pub fn push_view(&mut self, view: View) -> () {
-        self.view_stack.push(view);
+        self.s_views.push(view);
     }
     pub fn peek_view(&self) -> Option<&View> {
-        self.view_stack.last()
+        self.s_views.last()
     }
     pub fn pop_view(&mut self) -> Option<View> {
-        self.view_stack.pop()
+        self.s_views.pop()
     }
     pub fn set_should_quit(&mut self, flag: bool) -> () {
         self.should_quit = flag;
@@ -64,16 +109,5 @@ impl App {
     pub fn get_should_quit(&mut self) -> &bool {
         &self.should_quit
     }
-    pub fn get_section_index(&self) -> u8 {
-        self.section_index
-    }
-    pub fn next_section(&mut self) -> u8 {
-        self.section_index = (self.section_index + 1) % u8::MAX;
-        self.section_index
-    }
-    pub fn previous_section(&mut self) -> u8 {
-        self.section_index = (self.section_index - 1) % u8::MAX;
-        self.section_index
-    }
-
+    // 
 }

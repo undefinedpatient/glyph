@@ -1,3 +1,5 @@
+use std::{error, fs, io, env};
+
 use crossterm::execute;
 use crossterm::event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind};
 use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode};
@@ -8,8 +10,6 @@ use ratatui::prelude::CrosstermBackend;
 use ratatui::style::Stylize;
 use ratatui::widgets::Paragraph;
 use ratatui::{DefaultTerminal, Frame, Terminal};
-
-use std::{error, fs, io, env};
 
 mod app;
 mod ui;

@@ -1,6 +1,6 @@
-use std::io;
+use std::{io, path::PathBuf};
 
-use crate::{app::{App, Popup, PopupConfirmType, View}, utils::create_glyph};
+use crate::{app::{App, ListType, Popup, PopupConfirmType, View}, utils::{create_glyph, get_dir_names}};
 use crossterm::event::{KeyCode, KeyEventKind, KeyEvent};
 use color_eyre::eyre::{Ok, Result};
 
@@ -58,14 +58,29 @@ pub fn handle_key_events_create_glyph_view(key: &KeyEvent, app: &mut App) -> Res
                         app.pop_view();
                         return Ok(())
                     },
+                    'k' => {
+                        app.focused_list_state_mut().unwrap().select_previous();
+                    }
+                    'j' => {
+                        app.focused_list_state_mut().unwrap().select_next();
+                    }
                     _ => return Ok(())
                 }
             }
+            if let KeyCode::Backspace = key.code {
+                let new_path: PathBuf = app.get_current_path().parent().unwrap().to_path_buf();
+                app.set_current_path(&new_path);
+                return Ok(());
+            }
             if let KeyCode::Enter = key.code {
-                let new_glyph_path = app.current_path.join("NewGlyph");
-                create_glyph(&new_glyph_path)?;
-                app.pop_view();
-                return Ok(())
+                let list = get_dir_names(app.get_current_path())?;
+                let state = app.focused_list_state_mut().unwrap();
+                if let Some(state) = state.selected() {
+                    let selected_dir_name: &String = &(list[state]);
+                    let new_path: PathBuf = app.get_current_path().join(selected_dir_name);
+                    app.set_current_path(&new_path);
+                }
+                return Ok(());
             }
         },
         KeyEventKind::Release=> return Ok(()),
@@ -86,6 +101,8 @@ pub fn handle_key_events_entrance_view(key: &KeyEvent, app: &mut App) -> Result<
                     },
                     'a' => {
                         app.push_view(View::CreateGlyph);
+                        app.set_focusd_list(ListType::CreateGlyph);
+                        app.focused_list_state_mut().unwrap().select_first();
                         return Ok(());
                     },
                     _ => return Ok(())
