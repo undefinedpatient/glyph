@@ -22,6 +22,15 @@ pub fn get_file_names(path: &Path) -> Result<Vec<String>> {
     Ok(file_names)
 }
 
+pub fn create_glyph(path: &Path) -> Result<()> {
+    fs::create_dir(path)?;
+    fs::write(path.join("main.toml"), "Hi")?;
+    Ok(())
+}
+
+pub fn is_glyph(path: &Path) -> Result<bool> {
+    Ok(false)
+}
 // 20260119 
 // - Add read/write json, set up basic structure of the Glyph e.g. a folder with correct toml file inside.
 // - Make main screen with menu like blender e.g. New Glyph / Open Glyph files

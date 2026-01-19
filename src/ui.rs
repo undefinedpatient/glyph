@@ -4,7 +4,7 @@ use ratatui::symbols::block;
 use ratatui::{Frame, text};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Text};
-use ratatui::widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Widget, Wrap};
+use ratatui::widgets::{Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph, Widget, Wrap};
 use ratatui::layout::{self, Alignment, Constraint, Direction, Flex, HorizontalAlignment, Layout, Rect};
 use tui_big_text::{BigText, PixelSize};
 
@@ -20,7 +20,14 @@ pub fn ui(frame: &mut Frame, app: &App) {
                     frame.area()
                 );
             },
+            View::CreateGlyph => {
+                frame.render_widget(
+                    CreateGlyphView::new(app),
+                    frame.area()
+                );
+            }
         }
+
     }
     if let Some(popup) = app.peek_popup() {
         frame.render_widget(    PopupWidget::new(popup), frame.area());
@@ -74,6 +81,31 @@ impl<'a> Widget for EntranceView<'a>{
     }
 }
 
+struct CreateGlyphView<'a>{
+    app: &'a App
+}
+impl<'a> CreateGlyphView<'a>{
+    fn new(app: &'a App) -> Self {
+        CreateGlyphView { 
+            app: app
+        }
+    }
+}
+impl<'a> Widget for CreateGlyphView<'a> {
+    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
+        where
+            Self: Sized {
+            let layout_views: Rc<[Rect]> = Layout::vertical(
+                [
+                    Constraint::Fill(1),
+                    Constraint::Length(1)
+                ]
+            ).split(area);
+        FileExplorerWidget::new(self.app).render(layout_views[0], buf);
+        Paragraph::new("Create (Enter) Back (q)").render(layout_views[1], buf);
+    }
+}
+
 struct PopupWidget<'a> {
     popup: &'a Popup
 }
@@ -115,3 +147,60 @@ impl<'a> Widget for PopupWidget<'a> {
     }
 }
 
+struct FileExplorerWidget<'a> {
+    app: &'a App
+}
+impl<'a> FileExplorerWidget<'a> {
+    fn new(app: &'a App) -> Self {
+        FileExplorerWidget {
+            app: app
+        }
+    }
+    fn alternative_color(&self, index: usize) -> Style {
+        if index % 2 == 0 {
+            Style::new().black()
+        } else {
+            Style::new().magenta()
+        }
+    }
+}
+impl<'a> Widget for FileExplorerWidget<'a> {
+    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
+        where
+            Self: Sized {
+        let list: Vec<ListItem> = get_file_names(&self.app.current_path)
+            .unwrap_or(Vec::new())
+            .iter()
+            .enumerate()
+            .map(
+                |(i, item)| {
+
+                    return ListItem::new(item.clone()).style(self.alternative_color(i));
+                }
+            )
+            .collect();
+        List::new(list).block(
+            Block::bordered()
+        ).render(area, buf);
+    }
+}
+// struct FileExplorerItemWidget {
+//     name: String
+// }
+// impl FileExplorerItemWidget {
+//     fn new(name: &String) -> Self {
+//         FileExplorerItemWidget {
+//             name: name.clone()
+//         }
+//     }
+//     fn get_name(&self) -> &String {
+//         &self.name
+//     }
+// }
+// impl Widget for FileExplorerItemWidget {
+//     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
+//         where
+//             Self: Sized {
+            
+//     }
+// }
