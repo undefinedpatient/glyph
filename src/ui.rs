@@ -4,11 +4,12 @@ use ratatui::symbols::block;
 use ratatui::{Frame, text};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Text};
-use ratatui::widgets::{Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph, Widget, Wrap};
+use ratatui::widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Padding, Paragraph, Widget, Wrap};
 use ratatui::layout::{self, Alignment, Constraint, Direction, Flex, HorizontalAlignment, Layout, Rect};
 use tui_big_text::{BigText, PixelSize};
 
 use crate::app::{App, Popup, PopupConfirmType, View};
+use crate::utils::get_dir_names;
 use crate::{utils::get_file_names};
 
 pub fn ui(frame: &mut Frame, app: &App) {
@@ -95,14 +96,22 @@ impl<'a> Widget for CreateGlyphView<'a> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
         where
             Self: Sized {
-            let layout_views: Rc<[Rect]> = Layout::vertical(
-                [
-                    Constraint::Fill(1),
-                    Constraint::Length(1)
-                ]
-            ).split(area);
-        FileExplorerWidget::new(self.app).render(layout_views[0], buf);
-        Paragraph::new("Create (Enter) Back (q)").render(layout_views[1], buf);
+        let areas: Rc<[Rect]> = Layout::vertical(
+            [
+                Constraint::Fill(1),
+                Constraint::Length(1)
+            ]
+        ).split(area);
+
+        let frame: Block = Block::default().borders(Borders::ALL);
+        let inner_area: Rect = frame.inner(areas[0]);
+
+        frame.render(areas[0], buf);
+
+        let file_explorer_area = inner_area
+            .centered(Constraint::Max(42), Constraint::Percentage(50));
+        FileExplorerWidget::new(self.app).render(file_explorer_area, buf);
+        Paragraph::new("Create (Enter) Back (q)").render(areas[1], buf);
     }
 }
 
@@ -158,9 +167,9 @@ impl<'a> FileExplorerWidget<'a> {
     }
     fn alternative_color(&self, index: usize) -> Style {
         if index % 2 == 0 {
-            Style::new().black()
+            Style::new().on_dark_gray()
         } else {
-            Style::new().magenta()
+            Style::new().on_black()
         }
     }
 }
@@ -168,7 +177,7 @@ impl<'a> Widget for FileExplorerWidget<'a> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
         where
             Self: Sized {
-        let list: Vec<ListItem> = get_file_names(&self.app.current_path)
+        let list: Vec<ListItem> = get_dir_names(&self.app.current_path)
             .unwrap_or(Vec::new())
             .iter()
             .enumerate()

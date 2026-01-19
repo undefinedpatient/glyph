@@ -62,7 +62,8 @@ pub fn handle_key_events_create_glyph_view(key: &KeyEvent, app: &mut App) -> Res
                 }
             }
             if let KeyCode::Enter = key.code {
-                create_glyph(&app.current_path);
+                let new_glyph_path = app.current_path.join("NewGlyph");
+                create_glyph(&new_glyph_path)?;
                 app.pop_view();
                 return Ok(())
             }
