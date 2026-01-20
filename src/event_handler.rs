@@ -2,29 +2,36 @@ use std::{io, path::PathBuf};
 
 use crate::{app::{App, ListType, Popup, PopupConfirmType, View}, utils::{create_glyph, get_dir_names}};
 use crossterm::event::{KeyCode, KeyEventKind, KeyEvent};
-use color_eyre::eyre::{Ok, Result};
-
-pub fn handle_key_events(key: &KeyEvent, app: &mut App) -> Result<()> {
-    if let Some(popup) = app.peek_popup() {
+use color_eyre::eyre::{Error, Ok, Result, Report};
+pub fn log_error(app: &mut App, report: Report) {
+    app.set_error_message(report.to_string().as_str());
+}
+pub fn handle_key_events(key: &KeyEvent, app: &mut App) -> () {
+    if let Some(popup) = app.peek_popup_ref() {
         match popup {
             Popup::Confirm(popup_t) => {
-                return handle_comfirm_popup(key, &popup_t.clone(), app);
+                return handle_comfirm_popup(key, &popup_t.clone(), app).unwrap_or_else(
+                    |report| log_error(app, report)
+                );
             }
-            _ => return Ok(()),
+            _ => return (),
         }
     }
-    if let Some(view) = app.peek_view() {
+    if let Some(view) = app.peek_view_ref() {
         match view {
             View::Entrance => {
-                return handle_key_events_entrance_view(key, app);
+                return handle_key_events_entrance_view(key, app).unwrap_or_else(
+                    |report| log_error(app, report)
+                );
             }
             View::CreateGlyph => {
-                return handle_key_events_create_glyph_view(key, app);
+                return handle_key_events_create_glyph_view(key, app).unwrap_or_else(
+                    |report| log_error(app, report)
+                );
             }
-            _ => return Ok(()),
+            _ => return (),
         }
     }
-    Ok(())
 }
 pub fn handle_comfirm_popup(key: &KeyEvent, confirm_type: &PopupConfirmType, app: &mut App) -> Result<()> {
     match key.kind {
@@ -63,6 +70,22 @@ pub fn handle_key_events_create_glyph_view(key: &KeyEvent, app: &mut App) -> Res
                     }
                     'j' => {
                         app.focused_list_state_mut().unwrap().select_next();
+                    }
+                    ' ' => {
+                        let list: Vec<String> = get_dir_names(app.get_current_path())?;
+                        if let Some(state) = app.focused_list_state_mut().unwrap().selected() {
+                            let selected_dir_name: &String = &(list[state]);
+                            let new_path: PathBuf = app.get_current_path().join(selected_dir_name);
+                            create_glyph(&new_path)?;
+                        }
+                    }
+                    _ => return Ok(())
+                }
+            }
+            if let KeyCode::F(num) = key.code {
+                match num {
+                    1 => {
+                        return Err(Report::msg("Not implemented yet"));
                     }
                     _ => return Ok(())
                 }

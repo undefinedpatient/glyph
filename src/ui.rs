@@ -13,7 +13,7 @@ use crate::utils::get_dir_names;
 use crate::{utils::get_file_names};
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
-    if let Some(view) = app.peek_view() {
+    if let Some(view) = app.peek_view_ref() {
         match view {
             View::Entrance => {
                 frame.render_widget(
@@ -30,19 +30,19 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
         }
 
     }
-    if let Some(popup) = app.peek_popup() {
+    if let Some(popup) = app.peek_popup_ref() {
         frame.render_widget(    PopupWidget::new(popup), frame.area());
     }
 }
 
 // Widget itself must not own any recources, and never outlive the AppState it references to.
 struct EntranceView<'a>{
-    app: &'a App
+    ref_app: &'a App
 }
 impl<'a> EntranceView<'a>{
     fn new(app: &'a mut App) -> Self {
         EntranceView { 
-            app: app
+            ref_app: app
         }
     }
 }
@@ -83,12 +83,12 @@ impl<'a> Widget for EntranceView<'a>{
 }
 
 struct CreateGlyphView<'a>{
-    app: &'a mut App
+    mut_ref_app: &'a mut App
 }
 impl<'a> CreateGlyphView<'a>{
     fn new(app: &'a mut App) -> Self {
         CreateGlyphView { 
-            app: app
+            mut_ref_app: app
         }
     }
 }
@@ -110,18 +110,21 @@ impl<'a> Widget for CreateGlyphView<'a> {
 
         let file_explorer_area = inner_area
             .centered(Constraint::Max(42), Constraint::Percentage(50));
-        DirectoryWidget::new(self.app).render(file_explorer_area, buf);
+        DirectoryWidget::new(self.mut_ref_app).render(file_explorer_area, buf);
         Paragraph::new("Create (Enter) Back (q)").alignment(Alignment::Right).render(areas[1], buf);
+        if let Some(message) = self.mut_ref_app.error_message() {
+            Line::from(message.red()).render(areas[1], buf);
+        }
     }
 }
 
 struct PopupWidget<'a> {
-    popup: &'a Popup
+    ref_popup: &'a Popup
 }
 impl<'a> PopupWidget<'a> {
     fn new(popup: &'a Popup) -> Self {
         PopupWidget {
-            popup: popup
+            ref_popup: popup
         }
     }
 }
@@ -129,7 +132,7 @@ impl<'a> Widget for PopupWidget<'a> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
         where
             Self: Sized {
-        match self.popup {
+        match self.ref_popup {
             Popup::Confirm(popup_t) => {
                 match popup_t {
                     PopupConfirmType::Exit => {
@@ -157,12 +160,12 @@ impl<'a> Widget for PopupWidget<'a> {
 }
 
 struct DirectoryWidget<'a> {
-    app: &'a mut App
+    ref_mut_app: &'a mut App
 }
 impl<'a> DirectoryWidget<'a> {
     fn new(app: &'a mut App) -> Self {
         DirectoryWidget {
-            app: app
+            ref_mut_app: app
         }
     }
 }
@@ -170,7 +173,7 @@ impl<'a> Widget for DirectoryWidget<'a> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
         where
             Self: Sized {
-        let list_items: Vec<ListItem> = get_dir_names(self.app.get_current_path())
+        let list_items: Vec<ListItem> = get_dir_names(self.ref_mut_app.get_current_path())
             .unwrap_or(Vec::new())
             .iter()
             .enumerate()
@@ -182,12 +185,12 @@ impl<'a> Widget for DirectoryWidget<'a> {
             .collect();
 
 
-        let current_path: String = self.app.get_current_path().clone().to_str().unwrap_or("Invalid Path").to_string();
+        let current_path: String = self.ref_mut_app.get_current_path().clone().to_str().unwrap_or("Invalid Path").to_string();
         let list = List::new(list_items)
             .block(
                 Block::bordered().title(current_path)
             )
             .highlight_style(Style::new().bold());
-        StatefulWidget::render(list, area, buf, self.app.focused_list_state_mut().unwrap());
+        StatefulWidget::render(list, area, buf, self.ref_mut_app.focused_list_state_mut().unwrap());
     }
 }

@@ -39,6 +39,7 @@ pub struct App {
     current_path: PathBuf,  // ListType::{CreateGlyph, OpenGlyph} use this path
 
     info_message: Option<String>,
+    error_message: Option<String>,
     should_quit: bool,
 }
 
@@ -59,11 +60,12 @@ impl App {
             current_path: path.clone(),
 
             info_message: None,
+            error_message: None,
             should_quit: false,
         }
     }   
     // State
-    pub fn focused_list(&self) -> Option<&ListState> {
+    pub fn focused_list_ref(&self) -> Option<&ListState> {
         if let Some(list_type) = &self.focused_list {
             return self.h_list_state.get(&list_type);
         }
@@ -84,11 +86,23 @@ impl App {
     pub fn set_current_path(&mut self, path_buf: &PathBuf) -> () {
         self.current_path = path_buf.clone();
     }
+    pub fn set_info_message(&mut self, message: &str) -> () {
+        self.info_message = Some(String::from(message));
+    }
+    pub fn set_error_message(&mut self, message: &str) -> () {
+        self.error_message = Some(String::from(message));
+    }
+    pub fn info_message(&self) -> Option<String> {
+        self.info_message.clone()
+    }
+    pub fn error_message(&self) -> Option<String> {
+        self.error_message.clone()
+    }
     // Views
     pub fn push_popup(&mut self, popup: Popup) -> () {
         self.s_popup.push(popup);
     }
-    pub fn peek_popup(&self) -> Option<&Popup> {
+    pub fn peek_popup_ref(&self) -> Option<&Popup> {
         self.s_popup.last()
     }
     pub fn pop_popup(&mut self) -> Option<Popup> {
@@ -97,7 +111,7 @@ impl App {
     pub fn push_view(&mut self, view: View) -> () {
         self.s_views.push(view);
     }
-    pub fn peek_view(&self) -> Option<&View> {
+    pub fn peek_view_ref(&self) -> Option<&View> {
         self.s_views.last()
     }
     pub fn pop_view(&mut self) -> Option<View> {
