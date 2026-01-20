@@ -4,30 +4,11 @@ use std::string::String;
 
 use ratatui::widgets::{List, ListState};
 
-use crate::app::states::ApplicationState;
+use crate::app::states::{ApplicationState, WidgetStates};
 
-mod states;
+pub mod states;
 
 #[derive(Clone)]
-pub enum PopupConfirmType {
-    Exit,
-}
-pub enum Popup {
-    Info(String),
-    Warning(String),
-    Error(String),
-    Confirm(PopupConfirmType),
-}
-
-pub enum Dialog {
-    CreateGlyphInfo,
-}
-
-// A State has component states, which implement Focusable
-pub struct DialogState{
-
-}
-
 pub enum View {
     Entrance,
     CreateGlyph,
@@ -35,18 +16,22 @@ pub enum View {
     Glyph
 }
 
-#[derive(Hash, PartialEq, Eq)]
-pub enum ListType {
-    CreateGlyph,
-    OpenGlyph,
-    Glyph
+pub enum Dialog {
+    CreateGlyphInfo,
 }
 
-trait Focusable {
-    fn set_focused() -> ();
-    fn is_focused() -> bool;
-    fn shift_focus() -> ();
+#[derive(Clone)]
+pub enum PopupConfirmType {
+    Exit,
 }
+
+pub enum Popup {
+    Info(String),
+    Warning(String),
+    Error(String),
+    Confirm(PopupConfirmType),
+}
+
 
 // The State Object hold all the data in Navi
 pub struct App {
@@ -55,14 +40,10 @@ pub struct App {
     s_dialogs: Vec<Dialog>,
     s_popup: Vec<Popup>,
 
-    // Widget Level State
-    h_list_state: HashMap<ListType, ListState>,
-    h_dialog_state: HashMap<Dialog, DialogState>,
-    active_dialog: Option<Dialog>,
-    active_list: Option<ListType>,
 
     // Application Level State
     pub state: ApplicationState,
+    pub widget_states: WidgetStates
 }
 
 impl App {
@@ -72,36 +53,11 @@ impl App {
             s_dialogs: Vec::new(),
             s_popup: Vec::new(),
 
-            h_list_state: HashMap::from(
-                [
-                    (ListType::CreateGlyph, ListState::default()),
-                    (ListType::OpenGlyph, ListState::default()),
-                    (ListType::Glyph, ListState::default())
-                ]
-            ),
-            h_dialog_state: HashMap::new(),
-            active_list: None,
-            active_dialog: None,
 
-            state: ApplicationState::new()
+            state: ApplicationState::new(),
+            widget_states: WidgetStates::new()
         }
     }   
-    // State
-    pub fn active_list_state_ref(&self) -> Option<&ListState> {
-        if let Some(list_type) = &self.active_list {
-            return self.h_list_state.get(&list_type);
-        }
-        None
-    }
-    pub fn active_list_state_mut(&mut self) -> Option<&mut ListState> {
-        if let Some(list_type) = &self.active_list {
-            return self.h_list_state.get_mut(&list_type);
-        }
-        None
-    }
-    pub fn set_active_list(&mut self, list: ListType) -> () {
-        self.active_list = Some(list);
-    }
     // Views
     pub fn push_popup(&mut self, popup: Popup) -> () {
         self.s_popup.push(popup);

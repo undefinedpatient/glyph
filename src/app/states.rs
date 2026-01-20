@@ -1,7 +1,9 @@
-use std::path::{Path, PathBuf};
+use std::{collections::HashMap, path::{Path, PathBuf}};
+
+use ratatui::widgets::ListState;
 
 
-// This represent the Application State 
+// Application Level
 pub struct ApplicationState{
     current_path: PathBuf,
     info_message: Option<String>,
@@ -61,5 +63,72 @@ impl ApplicationState{
         self.error_message.clone()
     }
 }
-// This represent the Widget State
-pub struct WidgetState{}
+
+
+
+
+// Widget Level
+#[derive(Hash, PartialEq, Eq)]
+pub enum ListStateType {
+    CreateGlyph,
+    OpenGlyph,
+    Glyph
+}
+pub enum DialogStateType {
+    CreateGlyphInfo,
+}
+
+// A State has component states, which implement Focusable
+pub struct DialogState{
+
+}
+trait Focusable {
+    fn set_focused() -> ();
+    fn is_focused() -> bool;
+    fn shift_focus() -> ();
+}
+trait Component {
+
+}
+// This represent the Widget Level State
+pub struct WidgetStates{
+    // Widget Level State
+    h_list_state: HashMap<ListStateType, ListState>,
+    h_dialog_state: HashMap<DialogStateType, DialogState>,
+    active_dialog: Option<DialogStateType>,
+    active_list: Option<ListStateType>,
+}
+
+impl WidgetStates {
+    pub fn new() -> Self {
+        WidgetStates {
+            h_list_state: HashMap::from(
+                [
+                    (ListStateType::CreateGlyph, ListState::default()),
+                    (ListStateType::OpenGlyph, ListState::default()),
+                    (ListStateType::Glyph, ListState::default())
+                ]
+            ),
+            h_dialog_state: HashMap::new(),
+            active_list: None,
+            active_dialog: None,
+        }
+
+    }
+    // State
+    pub fn active_list_state_ref(&self) -> Option<&ListState> {
+        if let Some(list_type) = &self.active_list {
+            return self.h_list_state.get(&list_type);
+        }
+        None
+    }
+    pub fn active_list_state_mut(&mut self) -> Option<&mut ListState> {
+        if let Some(list_type) = &self.active_list {
+            return self.h_list_state.get_mut(&list_type);
+        }
+        None
+    }
+    pub fn set_active_list(&mut self, list: ListStateType) -> () {
+        self.active_list = Some(list);
+    }
+}

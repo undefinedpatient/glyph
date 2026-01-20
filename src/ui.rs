@@ -246,7 +246,7 @@ impl<'a> Widget for DirectoryWidget<'a> {
                 Block::bordered().title(current_path)
             )
             .highlight_style(Style::new().bold());
-        StatefulWidget::render(list, area, buf, self.ref_mut_app.active_list_state_mut().unwrap());
+        StatefulWidget::render(list, area, buf, self.ref_mut_app.widget_states.active_list_state_mut().unwrap());
     }
 }
 

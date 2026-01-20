@@ -1,9 +1,13 @@
 use std::{io, path::PathBuf};
 
-use crate::{app::{App, ListType, Popup, PopupConfirmType, View}, utils::{create_glyph, get_dir_names}};
 use crossterm::event::{KeyCode, KeyEventKind, KeyEvent};
 use color_eyre::eyre::{Error, Ok, Result, Report};
 use ratatui::widgets::ListState;
+
+
+use crate::{app::{App, Popup, PopupConfirmType, View, states::ListStateType}, utils::{create_glyph, get_dir_names}};
+
+
 pub fn set_error_to_app(app: &mut App, report: Report) {
     app.state.set_error_message(report.to_string().as_str());
 }
@@ -34,7 +38,8 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut App) -> () {
     if let Some(popup) = app.peek_popup_ref() {
         match popup {
             Popup::Confirm(popup_t) => {
-                return handle_comfirm_popup(key, &popup_t.clone(), app).unwrap_or_else(
+                let popup_type: PopupConfirmType = popup_t.clone();
+                return handle_comfirm_popup(key, &popup_type, app).unwrap_or_else(
                     |report| set_error_to_app(app, report)
                 );
             }
@@ -123,14 +128,14 @@ pub fn handle_key_events_create_glyph_view(key: &KeyEvent, app: &mut App) -> Res
                         return Ok(())
                     },
                     'k' => {
-                        app.active_list_state_mut().unwrap().select_previous();
+                        app.widget_states.active_list_state_mut().unwrap().select_previous();
                     }
                     'j' => {
-                        app.active_list_state_mut().unwrap().select_next();
+                        app.widget_states.active_list_state_mut().unwrap().select_next();
                     }
                     'c' => {
                         let list: Vec<String> = get_dir_names(app.state.get_current_path())?;
-                        if let Some(state) = app.active_list_state_mut().unwrap().selected() {
+                        if let Some(state) = app.widget_states.active_list_state_mut().unwrap().selected() {
                             let selected_dir_name: &String = &(list[state]);
                             let new_path: PathBuf = app.state.get_current_path().join(selected_dir_name);
                             create_glyph(&new_path, "default")?;
@@ -138,7 +143,7 @@ pub fn handle_key_events_create_glyph_view(key: &KeyEvent, app: &mut App) -> Res
                     }
                     ' ' => {
                         let list: Vec<String> = get_dir_names(app.state.get_current_path())?;
-                        let state: &mut ListState = app.active_list_state_mut().unwrap();
+                        let state: &mut ListState = app.widget_states.active_list_state_mut().unwrap();
                         if let Some(index) = state.selected() {
                             if index == 0 {
                                 let parent_path: PathBuf = app.state.get_current_path().parent().unwrap_or(app.state.get_current_path()).to_path_buf();
@@ -173,8 +178,8 @@ pub fn handle_key_events_entrance_view(key: &KeyEvent, app: &mut App) -> Result<
                     },
                     'a' => {
                         app.push_view(View::CreateGlyph);
-                        app.set_active_list(ListType::CreateGlyph);
-                        app.active_list_state_mut().unwrap().select_first();
+                        app.widget_states.set_active_list(ListStateType::CreateGlyph);
+                        app.widget_states.active_list_state_mut().unwrap().select_first();
                         return Ok(());
                     },
                     _ => return Ok(())
