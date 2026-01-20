@@ -5,8 +5,9 @@ use crossterm::event::{KeyCode, KeyEventKind, KeyEvent};
 use color_eyre::eyre::{Error, Ok, Result, Report};
 use ratatui::widgets::ListState;
 pub fn set_error_to_app(app: &mut App, report: Report) {
-    app.set_error_message(report.to_string().as_str());
+    app.state.set_error_message(report.to_string().as_str());
 }
+
 pub fn handle_key_events(key: &KeyEvent, app: &mut App) -> () {
     // Universal Key that should work across the app
     match key.kind {
@@ -14,10 +15,10 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut App) -> () {
             if let KeyCode::F(num) = key.code {
                 match num {
                     1 => {
-                        app.set_info_message("Demo Info Message");
+                        app.state.set_info_message("Demo Info Message");
                     }
                     2 => {
-                        app.set_warning_message("Demo Warning Message");
+                        app.state.set_warning_message("Demo Warning Message");
                     }
                     3 => {
                         set_error_to_app(app,Report::msg("Demo Error Message"));
@@ -29,7 +30,6 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut App) -> () {
         }
         _ => {}
     }
-
 
     if let Some(popup) = app.peek_popup_ref() {
         match popup {
@@ -60,28 +60,34 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut App) -> () {
         }
     }
 }
+
 pub fn handle_comfirm_popup(key: &KeyEvent, confirm_type: &PopupConfirmType, app: &mut App) -> Result<()> {
-    match key.kind {
-        KeyEventKind::Press=> {
-            if let KeyCode::Char(code) = key.code {
-                match code {
-                    'y' => {
-                        app.set_should_quit(true);
-                        return Ok(())
-                    },
-                    'n' => {
-                        app.pop_popup();
-                        return Ok(())
-                    },
-                    _ => return Ok(())
-                }
+    match confirm_type {
+        PopupConfirmType::Exit => {
+            match key.kind {
+                KeyEventKind::Press=> {
+                    if let KeyCode::Char(code) = key.code {
+                        match code {
+                            'y' => {
+                                app.state.set_should_quit(true);
+                                return Ok(())
+                            },
+                            'n' => {
+                                app.pop_popup();
+                                return Ok(())
+                            },
+                            _ => return Ok(())
+                        }
+                    }
+                },
+                KeyEventKind::Release=> return Ok(()),
+                KeyEventKind::Repeat=> return Ok(()),
             }
-        },
-        KeyEventKind::Release=> return Ok(()),
-        KeyEventKind::Repeat=> return Ok(()),
+        }
     }
     Ok(())
 }
+
 pub fn hande_simple_message_popup(key: &KeyEvent, app: &mut App) -> Result<()> {
     match key.kind {
         KeyEventKind::Press=> {
@@ -106,6 +112,7 @@ pub fn hande_simple_message_popup(key: &KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 
 }
+
 pub fn handle_key_events_create_glyph_view(key: &KeyEvent, app: &mut App) -> Result<()> {
     match key.kind {
         KeyEventKind::Press=> {
@@ -116,36 +123,36 @@ pub fn handle_key_events_create_glyph_view(key: &KeyEvent, app: &mut App) -> Res
                         return Ok(())
                     },
                     'k' => {
-                        app.focused_list_state_mut().unwrap().select_previous();
+                        app.active_list_state_mut().unwrap().select_previous();
                     }
                     'j' => {
-                        app.focused_list_state_mut().unwrap().select_next();
+                        app.active_list_state_mut().unwrap().select_next();
+                    }
+                    'c' => {
+                        let list: Vec<String> = get_dir_names(app.state.get_current_path())?;
+                        if let Some(state) = app.active_list_state_mut().unwrap().selected() {
+                            let selected_dir_name: &String = &(list[state]);
+                            let new_path: PathBuf = app.state.get_current_path().join(selected_dir_name);
+                            create_glyph(&new_path, "default")?;
+                        }
                     }
                     ' ' => {
-                        let list: Vec<String> = get_dir_names(app.get_current_path())?;
-                        if let Some(state) = app.focused_list_state_mut().unwrap().selected() {
-                            let selected_dir_name: &String = &(list[state]);
-                            let new_path: PathBuf = app.get_current_path().join(selected_dir_name);
-                            create_glyph(&new_path)?;
+                        let list: Vec<String> = get_dir_names(app.state.get_current_path())?;
+                        let state: &mut ListState = app.active_list_state_mut().unwrap();
+                        if let Some(index) = state.selected() {
+                            if index == 0 {
+                                let parent_path: PathBuf = app.state.get_current_path().parent().unwrap_or(app.state.get_current_path()).to_path_buf();
+                                app.state.set_current_path(&parent_path);
+                                return Ok(());
+                            }
+                            let selected_dir_name: &String = &(list[index]);
+                            let new_path: PathBuf = app.state.get_current_path().join(selected_dir_name);
+                            app.state.set_current_path(&new_path);
                         }
+                        return Ok(());
                     }
                     _ => return Ok(())
                 }
-            }
-            if let KeyCode::Enter = key.code {
-                let list: Vec<String> = get_dir_names(app.get_current_path())?;
-                let state: &mut ListState = app.focused_list_state_mut().unwrap();
-                if let Some(index) = state.selected() {
-                    if index == 0 {
-                        let parent_path: PathBuf = app.get_current_path().parent().unwrap_or(app.get_current_path()).to_path_buf();
-                        app.set_current_path(&parent_path);
-                        return Ok(());
-                    }
-                    let selected_dir_name: &String = &(list[index]);
-                    let new_path: PathBuf = app.get_current_path().join(selected_dir_name);
-                    app.set_current_path(&new_path);
-                }
-                return Ok(());
             }
         },
         KeyEventKind::Release=> return Ok(()),
@@ -166,8 +173,8 @@ pub fn handle_key_events_entrance_view(key: &KeyEvent, app: &mut App) -> Result<
                     },
                     'a' => {
                         app.push_view(View::CreateGlyph);
-                        app.set_focusd_list(ListType::CreateGlyph);
-                        app.focused_list_state_mut().unwrap().select_first();
+                        app.set_active_list(ListType::CreateGlyph);
+                        app.active_list_state_mut().unwrap().select_first();
                         return Ok(());
                     },
                     _ => return Ok(())

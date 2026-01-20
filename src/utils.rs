@@ -2,8 +2,15 @@ use std::error::Error;
 use std::fs::DirEntry;
 use std::path::{PathBuf, Path};
 use std::{fs,io};
-
+use serde::{Deserialize, Serialize};
+use toml;
 use color_eyre::eyre::Result;
+
+#[derive(Serialize, Deserialize)]
+struct GlyphConfig {
+    name: String,
+}
+
 
 pub fn get_file_names(path: &Path) -> Result<Vec<String>> {
     let mut file_names: Vec<String> = Vec::new();
@@ -42,9 +49,12 @@ pub fn get_dir_names(path: &Path) -> Result<Vec<String>> {
     Ok(file_names)
 }
 
-pub fn create_glyph(path: &Path) -> Result<()> {
+pub fn create_glyph(path: &Path, glyph_name: &str) -> Result<()> {
     fs::create_dir(path)?;
-    fs::write(path.join("main.toml"), "Hi")?;
+    let glyph_config: String = toml::to_string(&GlyphConfig {
+        name: glyph_name.to_string(),
+    })?;
+    fs::write(path.join("glyph.toml"), glyph_config)?;
     Ok(())
 }
 

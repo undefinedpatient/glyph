@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Main
 
-    let mut app: App = App::new(&env::current_dir()?);
+    let mut app: App = App::new();
     let result = run(&mut terminal, &mut app);
 
 
@@ -54,7 +54,7 @@ fn run<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<bool
         if let Event::Key(key) = crossterm::event::read()? {
             event_handler::handle_key_events(&key, app);
         }
-        if *app.get_should_quit() {
+        if *app.state.get_should_quit() {
             break;
         }
     }

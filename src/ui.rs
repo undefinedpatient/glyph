@@ -27,16 +27,17 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
                     frame.area()
                 );
             }
+            _ => {}
         }
 
     }
-    if app.error_message().is_some() {
+    if app.state.error_message().is_some() {
         app.push_error_message();
     } else {
-        if app.warning_message().is_some() {
+        if app.state.warning_message().is_some() {
             app.push_warning_message();
         } else {
-            if app.info_message().is_some() {
+            if app.state.info_message().is_some() {
                 app.push_info_message();
             }
         }
@@ -122,7 +123,7 @@ impl<'a> Widget for CreateGlyphView<'a> {
         let file_explorer_area = inner_area
             .centered(Constraint::Max(42), Constraint::Percentage(50));
         DirectoryWidget::new(self.mut_ref_app).render(file_explorer_area, buf);
-        Paragraph::new("Create (Enter) Back (q)").alignment(Alignment::Right).render(areas[1], buf);
+        Paragraph::new("Create (c) Back (q)").alignment(Alignment::Right).render(areas[1], buf);
     }
 }
 
@@ -177,7 +178,7 @@ impl<'a> Widget for PopupWidget<'a> {
                 paragraph_message.render(area, buf);
             }
             Popup::Warning(message) => {
-                let area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
+                let area: Rect = area.centered(Constraint::Length(48), Constraint::Length(7));
                 let paragraph_message: Paragraph = Paragraph::new(message.as_str())
                     .wrap(Wrap {trim:true})
                     .alignment(Alignment::Center)
@@ -193,7 +194,7 @@ impl<'a> Widget for PopupWidget<'a> {
                 paragraph_message.render(area, buf);
             }
             Popup::Error(message) => {
-                let area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
+                let area: Rect = area.centered(Constraint::Length(64), Constraint::Length(8));
                 let paragraph_message: Paragraph = Paragraph::new(message.as_str())
                     .wrap(Wrap {trim:true})
                     .alignment(Alignment::Center)
@@ -227,7 +228,7 @@ impl<'a> Widget for DirectoryWidget<'a> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
         where
             Self: Sized {
-        let list_items: Vec<ListItem> = get_dir_names(self.ref_mut_app.get_current_path())
+        let list_items: Vec<ListItem> = get_dir_names(self.ref_mut_app.state.get_current_path())
             .unwrap_or(Vec::new())
             .iter()
             .enumerate()
@@ -239,13 +240,13 @@ impl<'a> Widget for DirectoryWidget<'a> {
             .collect();
 
 
-        let current_path: String = self.ref_mut_app.get_current_path().clone().to_str().unwrap_or("Invalid Path").to_string();
+        let current_path: String = self.ref_mut_app.state.get_current_path().clone().to_str().unwrap_or("Invalid Path").to_string();
         let list = List::new(list_items)
             .block(
                 Block::bordered().title(current_path)
             )
             .highlight_style(Style::new().bold());
-        StatefulWidget::render(list, area, buf, self.ref_mut_app.focused_list_state_mut().unwrap());
+        StatefulWidget::render(list, area, buf, self.ref_mut_app.active_list_state_mut().unwrap());
     }
 }
 

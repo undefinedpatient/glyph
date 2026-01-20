@@ -4,6 +4,10 @@ use std::string::String;
 
 use ratatui::widgets::{List, ListState};
 
+use crate::app::states::ApplicationState;
+
+mod states;
+
 #[derive(Clone)]
 pub enum PopupConfirmType {
     Exit,
@@ -13,12 +17,22 @@ pub enum Popup {
     Warning(String),
     Error(String),
     Confirm(PopupConfirmType),
-    CreateGlyphInput(String)
+}
+
+pub enum Dialog {
+    CreateGlyphInfo,
+}
+
+// A State has component states, which implement Focusable
+pub struct DialogState{
+
 }
 
 pub enum View {
     Entrance,
-    CreateGlyph
+    CreateGlyph,
+    OpenGlyph,
+    Glyph
 }
 
 #[derive(Hash, PartialEq, Eq)]
@@ -28,27 +42,34 @@ pub enum ListType {
     Glyph
 }
 
+trait Focusable {
+    fn set_focused() -> ();
+    fn is_focused() -> bool;
+    fn shift_focus() -> ();
+}
+
 // The State Object hold all the data in Navi
 pub struct App {
     // UI
     s_views: Vec<View>,
+    s_dialogs: Vec<Dialog>,
     s_popup: Vec<Popup>,
 
-    // State
+    // Widget Level State
     h_list_state: HashMap<ListType, ListState>,
-    focused_list: Option<ListType>,
-    current_path: PathBuf,  // ListType::{CreateGlyph, OpenGlyph} use this path
+    h_dialog_state: HashMap<Dialog, DialogState>,
+    active_dialog: Option<Dialog>,
+    active_list: Option<ListType>,
 
-    info_message: Option<String>,
-    warning_message: Option<String>,
-    error_message: Option<String>,
-    should_quit: bool,
+    // Application Level State
+    pub state: ApplicationState,
 }
 
 impl App {
-    pub fn new(path: &PathBuf) -> App {
+    pub fn new() -> App {
         App {
             s_views: vec![View::Entrance],
+            s_dialogs: Vec::new(),
             s_popup: Vec::new(),
 
             h_list_state: HashMap::from(
@@ -58,82 +79,28 @@ impl App {
                     (ListType::Glyph, ListState::default())
                 ]
             ),
-            focused_list: None,
-            current_path: path.clone(),
+            h_dialog_state: HashMap::new(),
+            active_list: None,
+            active_dialog: None,
 
-            info_message: None,
-            warning_message: None,
-            error_message: None,
-            should_quit: false,
+            state: ApplicationState::new()
         }
     }   
     // State
-    pub fn focused_list_ref(&self) -> Option<&ListState> {
-        if let Some(list_type) = &self.focused_list {
+    pub fn active_list_state_ref(&self) -> Option<&ListState> {
+        if let Some(list_type) = &self.active_list {
             return self.h_list_state.get(&list_type);
         }
         None
     }
-    pub fn focused_list_state_mut(&mut self) -> Option<&mut ListState> {
-        if let Some(list_type) = &self.focused_list {
+    pub fn active_list_state_mut(&mut self) -> Option<&mut ListState> {
+        if let Some(list_type) = &self.active_list {
             return self.h_list_state.get_mut(&list_type);
         }
         None
     }
-    pub fn set_focusd_list(&mut self, list: ListType) -> () {
-        self.focused_list = Some(list);
-    }
-    pub fn get_current_path(&self) -> &PathBuf {
-        &self.current_path
-    }
-    pub fn set_current_path(&mut self, path_buf: &PathBuf) -> () {
-        self.current_path = path_buf.clone();
-    }
-    // INFO / WARNING / ERROR Messages
-    pub fn set_info_message(&mut self, message: &str) -> () {
-        self.info_message = Some(String::from(message));
-    }
-    pub fn set_warning_message(&mut self, message: &str) -> () {
-        self.warning_message = Some(String::from(message));
-    }
-    pub fn set_error_message(&mut self, message: &str) -> () {
-        self.error_message = Some(String::from(message));
-    }
-    pub fn reset_info_message(&mut self) -> () {
-        self.info_message = None;
-    }
-    pub fn reset_warning_message(&mut self) -> () {
-        self.warning_message = None;
-    }
-    pub fn reset_error_message(&mut self) -> () {
-        self.error_message = None;
-    }
-    pub fn info_message(&self) -> Option<String> {
-        self.info_message.clone()
-    }
-    pub fn warning_message(&self) -> Option<String> {
-        self.warning_message.clone()
-    }
-    pub fn error_message(&self) -> Option<String> {
-        self.error_message.clone()
-    }
-    pub fn push_info_message(&mut self) -> () {
-        if let Some(message) = self.info_message.clone() {
-            self.push_popup(Popup::Info(message));
-            self.info_message = None;
-        }
-    }
-    pub fn push_warning_message(&mut self) -> () {
-        if let Some(message) = self.warning_message.clone() {
-            self.push_popup(Popup::Warning(message));
-            self.warning_message = None;
-        }
-    }
-    pub fn push_error_message(&mut self) -> () {
-        if let Some(message) = self.error_message.clone() {
-            self.push_popup(Popup::Error(message));
-            self.error_message = None;
-        }
+    pub fn set_active_list(&mut self, list: ListType) -> () {
+        self.active_list = Some(list);
     }
     // Views
     pub fn push_popup(&mut self, popup: Popup) -> () {
@@ -154,11 +121,23 @@ impl App {
     pub fn pop_view(&mut self) -> Option<View> {
         self.s_views.pop()
     }
-    pub fn set_should_quit(&mut self, flag: bool) -> () {
-        self.should_quit = flag;
+    pub fn push_info_message(&mut self) -> () {
+        if let Some(message) = self.state.info_message().clone() {
+            self.push_popup(Popup::Info(message));
+            self.state.reset_info_message();
+        }
     }
-    pub fn get_should_quit(&mut self) -> &bool {
-        &self.should_quit
+    pub fn push_warning_message(&mut self) -> () {
+        if let Some(message) = self.state.warning_message().clone() {
+            self.push_popup(Popup::Warning(message));
+            self.state.reset_warning_message();
+        }
+    }
+    pub fn push_error_message(&mut self) -> () {
+        if let Some(message) = self.state.error_message().clone() {
+            self.push_popup(Popup::Error(message));
+            self.state.reset_error_message();
+        }
     }
     // 
 }

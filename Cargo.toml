@@ -7,7 +7,16 @@ edition = "2024"
 unused = {level = "allow"}
 
 [dependencies]
+# Core
 ratatui = "0.30.0"
 crossterm = "0.29.0"
+
+# Error
 color-eyre = "0.6.5"
+
+# Widget
 tui-big-text = "0.8.1"
+
+# Serialization
+toml = "0.9.11"
+serde = { version = "1.0.228", features = ["derive"] }
