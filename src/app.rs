@@ -11,8 +11,9 @@ pub enum PopupConfirmType {
 pub enum Popup {
     Info(String),
     Warning(String),
+    Error(String),
     Confirm(PopupConfirmType),
-    FileExplorer(PathBuf)
+    CreateGlyphInput(String)
 }
 
 pub enum View {
@@ -39,6 +40,7 @@ pub struct App {
     current_path: PathBuf,  // ListType::{CreateGlyph, OpenGlyph} use this path
 
     info_message: Option<String>,
+    warning_message: Option<String>,
     error_message: Option<String>,
     should_quit: bool,
 }
@@ -60,6 +62,7 @@ impl App {
             current_path: path.clone(),
 
             info_message: None,
+            warning_message: None,
             error_message: None,
             should_quit: false,
         }
@@ -86,17 +89,51 @@ impl App {
     pub fn set_current_path(&mut self, path_buf: &PathBuf) -> () {
         self.current_path = path_buf.clone();
     }
+    // INFO / WARNING / ERROR Messages
     pub fn set_info_message(&mut self, message: &str) -> () {
         self.info_message = Some(String::from(message));
+    }
+    pub fn set_warning_message(&mut self, message: &str) -> () {
+        self.warning_message = Some(String::from(message));
     }
     pub fn set_error_message(&mut self, message: &str) -> () {
         self.error_message = Some(String::from(message));
     }
+    pub fn reset_info_message(&mut self) -> () {
+        self.info_message = None;
+    }
+    pub fn reset_warning_message(&mut self) -> () {
+        self.warning_message = None;
+    }
+    pub fn reset_error_message(&mut self) -> () {
+        self.error_message = None;
+    }
     pub fn info_message(&self) -> Option<String> {
         self.info_message.clone()
     }
+    pub fn warning_message(&self) -> Option<String> {
+        self.warning_message.clone()
+    }
     pub fn error_message(&self) -> Option<String> {
         self.error_message.clone()
+    }
+    pub fn push_info_message(&mut self) -> () {
+        if let Some(message) = self.info_message.clone() {
+            self.push_popup(Popup::Info(message));
+            self.info_message = None;
+        }
+    }
+    pub fn push_warning_message(&mut self) -> () {
+        if let Some(message) = self.warning_message.clone() {
+            self.push_popup(Popup::Warning(message));
+            self.warning_message = None;
+        }
+    }
+    pub fn push_error_message(&mut self) -> () {
+        if let Some(message) = self.error_message.clone() {
+            self.push_popup(Popup::Error(message));
+            self.error_message = None;
+        }
     }
     // Views
     pub fn push_popup(&mut self, popup: Popup) -> () {

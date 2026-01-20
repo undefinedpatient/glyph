@@ -30,6 +30,17 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
         }
 
     }
+    if app.error_message().is_some() {
+        app.push_error_message();
+    } else {
+        if app.warning_message().is_some() {
+            app.push_warning_message();
+        } else {
+            if app.info_message().is_some() {
+                app.push_info_message();
+            }
+        }
+    }
     if let Some(popup) = app.peek_popup_ref() {
         frame.render_widget(    PopupWidget::new(popup), frame.area());
     }
@@ -112,9 +123,6 @@ impl<'a> Widget for CreateGlyphView<'a> {
             .centered(Constraint::Max(42), Constraint::Percentage(50));
         DirectoryWidget::new(self.mut_ref_app).render(file_explorer_area, buf);
         Paragraph::new("Create (Enter) Back (q)").alignment(Alignment::Right).render(areas[1], buf);
-        if let Some(message) = self.mut_ref_app.error_message() {
-            Line::from(message.red()).render(areas[1], buf);
-        }
     }
 }
 
@@ -148,11 +156,57 @@ impl<'a> Widget for PopupWidget<'a> {
                             );
 
                         Clear.render(area, buf);
-                        // frame.render(area, buf);
                         paragraph_message.render(area, buf);
                     }
                     _ => {}
                 }
+            }
+            Popup::Info(message) => {
+                let area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
+                let paragraph_message: Paragraph = Paragraph::new(message.as_str())
+                    .wrap(Wrap {trim:true})
+                    .alignment(Alignment::Center)
+                    .block(
+                        Block::bordered()
+                        .padding(Padding::uniform(1))
+                        .title_top(Line::from("Info").centered())
+                        .title_bottom(Line::from("Understood").centered())
+                    );
+
+                Clear.render(area, buf);
+                paragraph_message.render(area, buf);
+            }
+            Popup::Warning(message) => {
+                let area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
+                let paragraph_message: Paragraph = Paragraph::new(message.as_str())
+                    .wrap(Wrap {trim:true})
+                    .alignment(Alignment::Center)
+                    .block(
+                        Block::bordered()
+                        .style(Style::new().yellow())
+                        .padding(Padding::uniform(1))
+                        .title_top(Line::from("Warning").yellow().centered())
+                        .title_bottom(Line::from("Understood").centered())
+                    );
+
+                Clear.render(area, buf);
+                paragraph_message.render(area, buf);
+            }
+            Popup::Error(message) => {
+                let area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
+                let paragraph_message: Paragraph = Paragraph::new(message.as_str())
+                    .wrap(Wrap {trim:true})
+                    .alignment(Alignment::Center)
+                    .block(
+                        Block::bordered()
+                        .style(Style::new().red())
+                        .padding(Padding::uniform(1))
+                        .title_top(Line::from("Error").red().centered())
+                        .title_bottom(Line::from("Understood").centered())
+                    );
+
+                Clear.render(area, buf);
+                paragraph_message.render(area, buf);
             }
             _ => {}
         }
@@ -194,3 +248,4 @@ impl<'a> Widget for DirectoryWidget<'a> {
         StatefulWidget::render(list, area, buf, self.ref_mut_app.focused_list_state_mut().unwrap());
     }
 }
+

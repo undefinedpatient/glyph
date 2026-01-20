@@ -23,7 +23,7 @@ pub fn get_file_names(path: &Path) -> Result<Vec<String>> {
 }
 
 pub fn get_dir_names(path: &Path) -> Result<Vec<String>> {
-    let mut file_names: Vec<String> = Vec::new();
+    let mut file_names: Vec<String> = vec!["..".to_string()];
 
     for entry_result in fs::read_dir(path)? {
         let entry: DirEntry = entry_result?;
