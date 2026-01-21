@@ -2,6 +2,17 @@ use std::{collections::HashMap, path::{Path, PathBuf}};
 
 use ratatui::widgets::ListState;
 
+use crate::app::widgets::{ButtonState, TextFieldState};
+
+pub trait Focusable {
+    fn set_focused(&mut self, focused: bool) -> ();
+    fn is_focused(&self) -> bool;
+}
+pub enum MessageLevel{
+    INFO,
+    WARNING,
+    ERROR
+}
 // Application Level
 pub struct ApplicationState{
     current_path: PathBuf,
@@ -34,111 +45,60 @@ impl ApplicationState{
         self.current_path = path_buf.clone();
     }
     // INFO / WARNING / ERROR Messages
-    pub fn set_info_message(&mut self, message: &str) -> () {
-        self.info_message = Some(String::from(message));
+    pub fn set_message(&mut self, message: &str, level: MessageLevel) -> () {
+        match level {
+            MessageLevel::INFO => {
+                self.info_message = Some(String::from(message));
+            }
+            MessageLevel::WARNING => {
+                self.warning_message = Some(String::from(message));
+            }
+            MessageLevel::ERROR => {
+                self.error_message = Some(String::from(message));
+            }
+        }
     }
-    pub fn set_warning_message(&mut self, message: &str) -> () {
-        self.warning_message = Some(String::from(message));
+    pub fn reset_message(&mut self, level: MessageLevel) -> () {
+        match level {
+            MessageLevel::INFO => {
+                self.info_message = None;
+            }
+            MessageLevel::WARNING => {
+                self.warning_message = None;
+            }
+            MessageLevel::ERROR => {
+                self.error_message = None;
+            }
+        }
     }
-    pub fn set_error_message(&mut self, message: &str) -> () {
-        self.error_message = Some(String::from(message));
-    }
-    pub fn reset_info_message(&mut self) -> () {
-        self.info_message = None;
-    }
-    pub fn reset_warning_message(&mut self) -> () {
-        self.warning_message = None;
-    }
-    pub fn reset_error_message(&mut self) -> () {
-        self.error_message = None;
-    }
-    pub fn info_message(&self) -> Option<String> {
-        self.info_message.clone()
-    }
-    pub fn warning_message(&self) -> Option<String> {
-        self.warning_message.clone()
-    }
-    pub fn error_message(&self) -> Option<String> {
-        self.error_message.clone()
+    pub fn message(&self, level: MessageLevel) -> Option<String> {
+        match level {
+            MessageLevel::INFO => {
+                self.info_message.clone()
+            }
+            MessageLevel::WARNING => {
+                self.warning_message.clone()
+            }
+            MessageLevel::ERROR => {
+                self.error_message.clone()
+            }
+        }
     }
 }
 
 
-
-
-// Widget Level
-#[derive(Hash, PartialEq, Eq)]
-pub enum ListStateType {
-    CreateGlyph,
-    OpenGlyph,
-    Glyph
-}
-pub enum DialogStateType {
-    CreateGlyphInfo,
-}
-
-trait Focusable {
-    fn set_focused() -> ();
-    fn is_focused() -> bool;
-    fn shift_focus() -> ();
-}
-trait Component {
-
-}
 // This represents the Widget Level State
-pub struct WidgetStates{
-    // Widget Level State
-    h_list_state: HashMap<ListStateType, ListState>,
-    h_dialog_state: HashMap<DialogStateType, DialogState>,
-    active_dialog: Option<DialogStateType>,
-    active_list: Option<ListStateType>,
-}
-
-impl WidgetStates {
-    pub fn new() -> Self {
-        WidgetStates {
-            h_list_state: HashMap::from(
-                [
-                    (ListStateType::CreateGlyph, ListState::default()),
-                    (ListStateType::OpenGlyph, ListState::default()),
-                    (ListStateType::Glyph, ListState::default())
-                ]
-            ),
-            h_dialog_state: HashMap::new(),
-            active_list: None,
-            active_dialog: None,
-        }
-
-    }
-    // State
-    pub fn active_list_state_ref(&self) -> Option<&ListState> {
-        if let Some(list_type) = &self.active_list {
-            return self.h_list_state.get(&list_type);
-        }
-        None
-    }
-    pub fn active_list_state_mut(&mut self) -> Option<&mut ListState> {
-        if let Some(list_type) = &self.active_list {
-            return self.h_list_state.get_mut(&list_type);
-        }
-        None
-    }
-    pub fn set_active_list(&mut self, list: ListStateType) -> () {
-        self.active_list = Some(list);
-    }
-}
-// This represents Page/Dialog/Popup State.
 pub enum PageState {
     Entrance {
-    
+
     },
     CreateGlyph {
-        list_directory: ListState,
+        list_state: ListState,
     },
 }
-
 pub enum DialogState {
-    CreateGlyph {
-
+    CreateGlyphInfo {
+        text_field_state: TextFieldState,
+        button_state: ButtonState,
     }
 }

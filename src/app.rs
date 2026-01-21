@@ -1,13 +1,11 @@
 pub mod states;
 pub mod views;
+pub mod widgets;
 pub use states::*;
 pub use views::*;
+pub use widgets::*;
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::string::String;
-
-use ratatui::widgets::{List, ListState};
 
 // The State Object hold all the data in Navi
 pub struct App {
@@ -63,23 +61,27 @@ impl App {
     pub fn pop_page(&mut self) -> Option<PageView> {
         self.s_pages.pop()
     }
-    pub fn push_info_message(&mut self) -> () {
-        if let Some(message) = self.state.info_message().clone() {
-            self.push_popup(PopupView::Info(message));
-            self.state.reset_info_message();
+    pub fn push_message(&mut self, level: MessageLevel) -> () {
+        match level {
+            MessageLevel::INFO => {
+                if let Some(message) = self.state.message(MessageLevel::INFO).clone() {
+                    self.push_popup(PopupView::Info(message));
+                    self.state.reset_message(MessageLevel::INFO);
+                }
+            },
+            MessageLevel::WARNING => {
+                if let Some(message) = self.state.message(MessageLevel::WARNING).clone() {
+                    self.push_popup(PopupView::Warning(message));
+                    self.state.reset_message(MessageLevel::WARNING);
+                }
+            },
+            MessageLevel::ERROR => {
+                if let Some(message) = self.state.message(MessageLevel::ERROR).clone() {
+                    self.push_popup(PopupView::Error(message));
+                    self.state.reset_message(MessageLevel::ERROR);
+                }
+            }
         }
     }
-    pub fn push_warning_message(&mut self) -> () {
-        if let Some(message) = self.state.warning_message().clone() {
-            self.push_popup(PopupView::Warning(message));
-            self.state.reset_warning_message();
-        }
-    }
-    pub fn push_error_message(&mut self) -> () {
-        if let Some(message) = self.state.error_message().clone() {
-            self.push_popup(PopupView::Error(message));
-            self.state.reset_error_message();
-        }
-    }
-    // 
+    //
 }

@@ -1,27 +1,22 @@
 use std::rc::Rc;
+use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Flex, HorizontalAlignment, Layout, Rect};
 use ratatui::prelude::{Line, StatefulWidget, Style, Stylize, Text, Widget};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 use tui_big_text::{BigText, PixelSize};
+
 use crate::app::{App, PageState, PageView};
 use crate::utils::get_dir_names;
 
 // Widget itself must not own any resources, and never outlive the AppState it references to.
-pub(crate) struct EntrancePageLayout<'a>{
-    ref_app: &'a App
+pub struct EntrancePageLayout<'a>{
+    app: &'a mut App,
 }
-impl<'a> EntrancePageLayout<'a>{
+impl<'a> EntrancePageLayout<'a> {
     pub fn new(app: &'a mut App) -> Self {
-        EntrancePageLayout {
-            ref_app: app
-        }
+        Self { app }
     }
-}
-impl<'a> Widget for EntrancePageLayout<'a>{
-    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
-    where
-        Self: Sized {
-
+    pub fn draw(&mut self, frame: &mut Frame) -> () {
         // Widget/Data Section
         let title = BigText::builder()
             .pixel_size(PixelSize::HalfHeight)
@@ -37,7 +32,7 @@ impl<'a> Widget for EntrancePageLayout<'a>{
             Line::from("Quit   (q)"),
         ]).centered();
         let block: Block = Block::default().borders(Borders::ALL);
-        let area_inner: Rect = block.inner(area);
+        let area_inner: Rect = block.inner(frame.area());
         let rect: Rect = area_inner.centered(Constraint::Fill(1), Constraint::Ratio(1, 2));
         let rects: Rc<[Rect]> = Layout::vertical([
             Constraint::Length(8),
@@ -46,43 +41,39 @@ impl<'a> Widget for EntrancePageLayout<'a>{
             .flex(Flex::Center)
             .split(rect);
         // Render Section
-        block.render(area, buf);
-        title.render(rects[0], buf);
-        text_actions.render(rects[1], buf);
-
+        frame.render_widget(block, frame.area());
+        frame.render_widget(title, rects[0]);
+        frame.render_widget(text_actions, rects[1]);
     }
 }
 
-pub(crate) struct CreateGlyphView<'a>{
+pub struct CreateGlyphLayout<'a>{
     mut_ref_app: &'a mut App
 }
-impl<'a> CreateGlyphView<'a>{
+impl<'a> CreateGlyphLayout<'a>{
     pub fn new(app: &'a mut App) -> Self {
-        CreateGlyphView {
+        CreateGlyphLayout {
             mut_ref_app: app
         }
     }
-}
-impl<'a> Widget for CreateGlyphView<'a> {
-    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
-    where
-        Self: Sized {
+    pub fn draw(&mut self, frame: &mut Frame) -> () {
         let areas: Rc<[Rect]> = Layout::vertical(
             [
                 Constraint::Fill(1),
                 Constraint::Length(1)
             ]
-        ).split(area);
+        ).split(frame.area());
 
-        let frame: Block = Block::default().borders(Borders::ALL).title(" Create Glyph ");
-        let inner_area: Rect = frame.inner(areas[0]);
-
-        frame.render(areas[0], buf);
+        let _frame: Block = Block::default().borders(Borders::ALL).title(" Create Glyph ");
+        let inner_area: Rect = _frame.inner(areas[0]);
+        
+        
+        frame.render_widget(_frame, areas[0]);
 
         let file_explorer_area = inner_area
             .centered(Constraint::Max(42), Constraint::Percentage(50));
-        DirectoryWidget::new(self.mut_ref_app).render(file_explorer_area, buf);
-        Paragraph::new("Create (c) Back (q)").alignment(Alignment::Right).render(areas[1], buf);
+        frame.render_widget(DirectoryWidget::new(self.mut_ref_app), file_explorer_area);
+        frame.render_widget(Paragraph::new("Create (c) Back (q)").alignment(Alignment::Right), areas[1]);
     }
 }
 
@@ -120,8 +111,8 @@ impl<'a> Widget for DirectoryWidget<'a> {
             .highlight_style(Style::new().bold());
         if let Some(state) = self.ref_mut_app.h_page_states.get_mut(&PageView::CreateGlyph) {
             match state {
-                PageState::CreateGlyph { list_directory } => {
-                    StatefulWidget::render(list, area, buf, list_directory);
+                PageState::CreateGlyph { list_state: list_state } => {
+                    StatefulWidget::render(list, area, buf, list_state);
 
                 }
                 _ => {}

@@ -1,7 +1,8 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+
 use crate::app::{App, PopupConfirmView};
 
-pub fn handle_confirm_popup(key: &KeyEvent, confirm_type: &PopupConfirmView, app: &mut App) -> color_eyre::Result<()> {
+pub fn handle_confirm(key: &KeyEvent, confirm_type: &PopupConfirmView, app: &mut App) -> color_eyre::Result<()> {
     match confirm_type {
         PopupConfirmView::Exit => {
             match key.kind {
@@ -28,7 +29,7 @@ pub fn handle_confirm_popup(key: &KeyEvent, confirm_type: &PopupConfirmView, app
     color_eyre::eyre::Ok(())
 }
 
-pub fn hande_simple_message_popup(key: &KeyEvent, app: &mut App) -> color_eyre::Result<()> {
+pub fn hande_simple(key: &KeyEvent, app: &mut App) -> color_eyre::Result<()> {
     match key.kind {
         KeyEventKind::Press=> {
             if let KeyCode::Char(code) = key.code {

@@ -1,50 +1,41 @@
-mod page_layouts;
-mod dialog_layouts;
-mod popup_layouts;
-
 use ratatui::style::Stylize;
 use ratatui::widgets::{StatefulWidget, Widget};
 use ratatui::Frame;
 
-use crate::app::{App, DialogView, PageView};
-
+mod page_layouts;
+mod dialog_layouts;
+mod popup_layouts;
+mod widgets;
+use crate::app::{App, DialogView, MessageLevel, PageView};
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
     if let Some(view) = app.peek_page_ref() {
         match view {
             PageView::Entrance => {
-                frame.render_widget(
-                    page_layouts::EntrancePageLayout::new(app),
-                    frame.area()
-                );
+                page_layouts::EntrancePageLayout::new(app).draw(frame);
             },
             PageView::CreateGlyph => {
-                frame.render_widget(
-                    page_layouts::CreateGlyphView::new(app),
-                    frame.area()
-                );
+                page_layouts::CreateGlyphLayout::new(app).draw(frame);
             }
             _ => {}
         }
 
     }
-    if app.state.error_message().is_some() {
-        app.push_error_message();
+    if app.state.message(MessageLevel::ERROR).is_some() {
+        app.push_message(MessageLevel::ERROR);
     } else {
-        if app.state.warning_message().is_some() {
-            app.push_warning_message();
+        if app.state.message(MessageLevel::WARNING).is_some() {
+            app.push_message(MessageLevel::WARNING);
         } else {
-            if app.state.info_message().is_some() {
-                app.push_info_message();
-            }
+            if app.state.message(MessageLevel::INFO).is_some() {
+                app.push_message(MessageLevel::INFO);
+        }
         }
     }
     if let Some(dialog) = app.peek_dialog_ref() {
         match dialog {
             DialogView::CreateGlyphInfo => {
-                frame.render_widget(
-                    dialog_layouts::CreateGlyphInfoDialogLayout::new(app), frame.area()
-                );
+                dialog_layouts::CreateGlyphInfoDialogLayout::new(app).draw(frame)
             }
             _ => {}
         }
