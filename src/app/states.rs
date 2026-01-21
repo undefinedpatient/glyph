@@ -90,7 +90,7 @@ trait Focusable {
 trait Component {
 
 }
-// This represent the Widget Level State
+// This represents the Widget Level State
 pub struct WidgetStates{
     // Widget Level State
     h_list_state: HashMap<ListStateType, ListState>,
@@ -131,4 +131,16 @@ impl WidgetStates {
     pub fn set_active_list(&mut self, list: ListStateType) -> () {
         self.active_list = Some(list);
     }
+}
+
+pub struct ViewState{
+
+}
+
+impl ViewState {
+
+}
+
+pub struct EntrancePageState{
+
 }

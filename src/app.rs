@@ -7,39 +7,17 @@ use ratatui::widgets::{List, ListState};
 use crate::app::states::{ApplicationState, WidgetStates};
 
 pub mod states;
+pub mod views;
+pub use views::*;
 
-#[derive(Clone)]
-pub enum View {
-    Entrance,
-    CreateGlyph,
-    OpenGlyph,
-    Glyph
-}
-
-pub enum Dialog {
-    CreateGlyphInfo,
-}
-
-#[derive(Clone)]
-pub enum PopupConfirmType {
-    Exit,
-}
-
-pub enum Popup {
-    Info(String),
-    Warning(String),
-    Error(String),
-    Confirm(PopupConfirmType),
-}
 
 
 // The State Object hold all the data in Navi
 pub struct App {
     // UI
-    s_views: Vec<View>,
-    s_dialogs: Vec<Dialog>,
-    s_popup: Vec<Popup>,
-
+    s_pages: Vec<PageView>,
+    s_dialogs: Vec<DialogView>,
+    s_popup: Vec<PopupView>,
 
     // Application Level State
     pub state: ApplicationState,
@@ -49,7 +27,7 @@ pub struct App {
 impl App {
     pub fn new() -> App {
         App {
-            s_views: vec![View::Entrance],
+            s_pages: vec![PageView::Entrance],
             s_dialogs: Vec::new(),
             s_popup: Vec::new(),
 
@@ -59,39 +37,48 @@ impl App {
         }
     }   
     // Views
-    pub fn push_popup(&mut self, popup: Popup) -> () {
+    pub fn push_popup(&mut self, popup: PopupView) -> () {
         self.s_popup.push(popup);
     }
-    pub fn peek_popup_ref(&self) -> Option<&Popup> {
+    pub fn peek_popup_ref(&self) -> Option<&PopupView> {
         self.s_popup.last()
     }
-    pub fn pop_popup(&mut self) -> Option<Popup> {
+    pub fn pop_popup(&mut self) -> Option<PopupView> {
         self.s_popup.pop()
     }
-    pub fn push_view(&mut self, view: View) -> () {
-        self.s_views.push(view);
+    pub fn push_dialog(&mut self, dialog: DialogView) -> () {
+        self.s_dialogs.push(dialog);
     }
-    pub fn peek_view_ref(&self) -> Option<&View> {
-        self.s_views.last()
+    pub fn peek_dialog_ref(&self) -> Option<&DialogView> {
+        self.s_dialogs.last()
     }
-    pub fn pop_view(&mut self) -> Option<View> {
-        self.s_views.pop()
+    pub fn pop_dialog(&mut self) -> Option<DialogView> {
+        self.s_dialogs.pop()
+    }
+    pub fn push_page(&mut self, view: PageView) -> () {
+        self.s_pages.push(view);
+    }
+    pub fn peek_page_ref(&self) -> Option<&PageView> {
+        self.s_pages.last()
+    }
+    pub fn pop_page(&mut self) -> Option<PageView> {
+        self.s_pages.pop()
     }
     pub fn push_info_message(&mut self) -> () {
         if let Some(message) = self.state.info_message().clone() {
-            self.push_popup(Popup::Info(message));
+            self.push_popup(PopupView::Info(message));
             self.state.reset_info_message();
         }
     }
     pub fn push_warning_message(&mut self) -> () {
         if let Some(message) = self.state.warning_message().clone() {
-            self.push_popup(Popup::Warning(message));
+            self.push_popup(PopupView::Warning(message));
             self.state.reset_warning_message();
         }
     }
     pub fn push_error_message(&mut self) -> () {
         if let Some(message) = self.state.error_message().clone() {
-            self.push_popup(Popup::Error(message));
+            self.push_popup(PopupView::Error(message));
             self.state.reset_error_message();
         }
     }

@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Restore
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
-    terminal.show_cursor();
+    terminal.show_cursor()?;
 
     // Process the result
     match result {
