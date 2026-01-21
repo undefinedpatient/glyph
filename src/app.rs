@@ -1,16 +1,13 @@
+pub mod states;
+pub mod views;
+pub use states::*;
+pub use views::*;
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::string::String;
 
 use ratatui::widgets::{List, ListState};
-
-use crate::app::states::{ApplicationState, WidgetStates};
-
-pub mod states;
-pub mod views;
-pub use views::*;
-
-
 
 // The State Object hold all the data in Navi
 pub struct App {
@@ -21,7 +18,9 @@ pub struct App {
 
     // Application Level State
     pub state: ApplicationState,
-    pub widget_states: WidgetStates
+    pub h_page_states: HashMap<PageView, PageState>,
+    pub h_dialog_states: HashMap<DialogView, DialogState>,
+    // # A popup does not have state.
 }
 
 impl App {
@@ -31,9 +30,9 @@ impl App {
             s_dialogs: Vec::new(),
             s_popup: Vec::new(),
 
-
             state: ApplicationState::new(),
-            widget_states: WidgetStates::new()
+            h_page_states: HashMap::new(),
+            h_dialog_states: HashMap::new(),
         }
     }   
     // Views

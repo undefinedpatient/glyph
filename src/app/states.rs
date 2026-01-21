@@ -2,7 +2,6 @@ use std::{collections::HashMap, path::{Path, PathBuf}};
 
 use ratatui::widgets::ListState;
 
-
 // Application Level
 pub struct ApplicationState{
     current_path: PathBuf,
@@ -78,10 +77,6 @@ pub enum DialogStateType {
     CreateGlyphInfo,
 }
 
-// A State has component states, which implement Focusable
-pub struct DialogState{
-
-}
 trait Focusable {
     fn set_focused() -> ();
     fn is_focused() -> bool;
@@ -132,15 +127,18 @@ impl WidgetStates {
         self.active_list = Some(list);
     }
 }
-
-pub struct ViewState{
-
+// This represents Page/Dialog/Popup State.
+pub enum PageState {
+    Entrance {
+    
+    },
+    CreateGlyph {
+        list_directory: ListState,
+    },
 }
 
-impl ViewState {
+pub enum DialogState {
+    CreateGlyph {
 
-}
-
-pub struct EntrancePageState{
-
+    }
 }

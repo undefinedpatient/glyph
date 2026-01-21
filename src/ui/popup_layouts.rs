@@ -2,7 +2,7 @@ use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::prelude::{Line, Style, Widget};
 use ratatui::style::Stylize;
 use ratatui::widgets::{Block, Clear, Padding, Paragraph, Wrap};
-use crate::app::{PopupConfirmType, PopupView};
+use crate::app::{PopupConfirmView, PopupView};
 
 pub struct PopupLayout<'a> {
     ref_popup: &'a PopupView
@@ -21,7 +21,7 @@ impl<'a> Widget for PopupLayout<'a> {
         match self.ref_popup {
             PopupView::Confirm(popup_t) => {
                 match popup_t {
-                    PopupConfirmType::Exit => {
+                    PopupConfirmView::Exit => {
                         let area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
                         let paragraph_message: Paragraph = Paragraph::new("Confirm Exit?")
                             .wrap(Wrap {trim:true})

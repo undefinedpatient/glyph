@@ -3,7 +3,7 @@ use ratatui::layout::{Alignment, Constraint, Flex, HorizontalAlignment, Layout, 
 use ratatui::prelude::{Line, StatefulWidget, Style, Stylize, Text, Widget};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 use tui_big_text::{BigText, PixelSize};
-use crate::app::App;
+use crate::app::{App, PageState, PageView};
 use crate::utils::get_dir_names;
 
 // Widget itself must not own any resources, and never outlive the AppState it references to.
@@ -118,7 +118,15 @@ impl<'a> Widget for DirectoryWidget<'a> {
                 Block::bordered().title(current_path)
             )
             .highlight_style(Style::new().bold());
-        StatefulWidget::render(list, area, buf, self.ref_mut_app.widget_states.active_list_state_mut().unwrap());
+        if let Some(state) = self.ref_mut_app.h_page_states.get_mut(&PageView::CreateGlyph) {
+            match state {
+                PageState::CreateGlyph { list_directory } => {
+                    StatefulWidget::render(list, area, buf, list_directory);
+
+                }
+                _ => {}
+            }
+        }
     }
 }
 

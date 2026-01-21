@@ -1,18 +1,13 @@
-use std::rc::Rc;
-
-use ratatui::layout::{Alignment, Constraint, Flex, HorizontalAlignment, Layout, Rect};
-use ratatui::style::{Style, Stylize};
-use ratatui::text::{Line, Text};
-use ratatui::widgets::{Block, Borders, Clear, List, ListItem, Padding, Paragraph, StatefulWidget, Widget, Wrap};
-use ratatui::Frame;
-use tui_big_text::{BigText, PixelSize};
-
-use crate::app::{App, DialogView, PopupView, PopupConfirmType, PageView};
-use crate::utils::get_dir_names;
-
 mod page_layouts;
 mod dialog_layouts;
 mod popup_layouts;
+
+use ratatui::style::Stylize;
+use ratatui::widgets::{StatefulWidget, Widget};
+use ratatui::Frame;
+
+use crate::app::{App, DialogView, PageView};
+
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
     if let Some(view) = app.peek_page_ref() {
