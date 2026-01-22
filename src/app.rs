@@ -1,96 +1,53 @@
+use std::any::Any;
 
+pub mod entrance;
+mod widget;
 
-use std::collections::HashMap;
+use entrance::Entrance;
+use crate::drawer::Drawable;
+use crate::event_handler::{Focusable, Interactable};
 
-use crate::app::view_type::{DialogView, PageView, PopupView};
-use crate::event_handler::EventHandler;
-
-pub mod app_states;
-pub mod view_states;
-pub mod widget_states;
-pub mod view_type;
-mod focus_handler;
-
-pub use app_states::*;
-pub use view_states::*;
-pub use widget_states::*;
-use crate::layout::LayoutHandler;
-
-// The State Object hold all the data in Navi
-pub trait StateHandler: FocusHandler + EventHandler{}
-impl<T: FocusHandler + EventHandler> StateHandler for T {}
-
-
-pub struct App {
-    // UI
-    s_pages: Vec<Page>,
-    s_dialogs: Vec<DialogView>,
-    s_popup: Vec<PopupView>,
-
-    // Application Level State
-    pub state: ApplicationState,
-    // # A popup does not have state.
+pub enum Command {
+    Quit,
+    PushView(Box<dyn View>),
+    PopView,
+    None
+}
+pub trait View: Interactable + Focusable + Drawable {
+    fn as_interactable(&mut self) -> &mut dyn Interactable;
+    fn as_focusable(&mut self) -> &mut dyn Focusable;
+    fn as_drawable(&mut self) -> &mut dyn Drawable;
+}
+impl<T: Interactable+Focusable+Drawable> View for T{
+    fn as_interactable(&mut self) -> &mut dyn Interactable{
+        self
+    }
+    fn as_focusable(&mut self) -> &mut dyn Focusable{
+        self
+    }
+    fn as_drawable(&mut self) -> &mut dyn Drawable{
+        self
+    }
 }
 
-impl App {
-    pub fn new() -> App {
-        App {
-            s_pages: vec![PageView::Entrance],
-            s_dialogs: Vec::new(),
-            s_popup: Vec::new(),
+// Global State of the Application
+pub struct AppState{
+    pub should_quit: bool,
+}
+pub struct Application {
+    pub views: Vec<Box<dyn View>>,
+    pub q_commands: Vec<Command>,
+    pub state: AppState,
+}
 
-            state: ApplicationState::new(),
-        }
-    }   
-    // Views
-    pub fn push_popup(&mut self, popup: PopupView) -> () {
-        self.s_popup.push(popup);
-    }
-    pub fn peek_popup_ref(&self) -> Option<&PopupView> {
-        self.s_popup.last()
-    }
-    pub fn pop_popup(&mut self) -> Option<PopupView> {
-        self.s_popup.pop()
-    }
-    pub fn push_dialog(&mut self, dialog: DialogView) -> () {
-        self.s_dialogs.push(dialog);
-    }
-    pub fn peek_dialog_ref(&self) -> Option<&DialogView> {
-        self.s_dialogs.last()
-    }
-    pub fn pop_dialog(&mut self) -> Option<DialogView> {
-        self.s_dialogs.pop()
-    }
-    pub fn push_page(&mut self, view: PageView) -> () {
-        self.s_pages.push(view);
-    }
-    pub fn peek_page_ref(&self) -> Option<&PageView> {
-        self.s_pages.last()
-    }
-    pub fn pop_page(&mut self) -> Option<PageView> {
-        self.s_pages.pop()
-    }
-    pub fn push_message(&mut self, level: MessageLevel) -> () {
-        match level {
-            MessageLevel::INFO => {
-                if let Some(message) = self.state.message(MessageLevel::INFO).clone() {
-                    self.push_popup(PopupView::Info(message));
-                    self.state.reset_message(MessageLevel::INFO);
-                }
+impl Application {
+    pub fn new() -> Application {
+        Application {
+            views: vec![Box::new(Entrance::new())],
+            state: AppState{
+                should_quit: false
             },
-            MessageLevel::WARNING => {
-                if let Some(message) = self.state.message(MessageLevel::WARNING).clone() {
-                    self.push_popup(PopupView::Warning(message));
-                    self.state.reset_message(MessageLevel::WARNING);
-                }
-            },
-            MessageLevel::ERROR => {
-                if let Some(message) = self.state.message(MessageLevel::ERROR).clone() {
-                    self.push_popup(PopupView::Error(message));
-                    self.state.reset_message(MessageLevel::ERROR);
-                }
-            }
+            q_commands: Vec::new(),
         }
     }
-    //
 }

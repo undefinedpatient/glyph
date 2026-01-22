@@ -10,13 +10,13 @@ use ratatui::style::Stylize;
 use ratatui::Terminal;
 
 mod app;
-mod layout;
+mod drawer;
 mod utils;
 mod event_handler;
 
-use app::App;
-use layout::ui;
-
+use app::Application;
+use drawer::draw;
+use crate::app::entrance;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Init
@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let backend = CrosstermBackend::new(stderr);
     let mut terminal = Terminal::new(backend)?;
     // Main
-    let mut app: App = App::new();
+    let mut app: Application = Application::new();
     let result = run(&mut terminal, &mut app);
     // Restore
     disable_raw_mode()?;
@@ -40,13 +40,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn run<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<bool>{
+fn run<B: Backend>(terminal: &mut Terminal<B>, app: &mut Application) -> io::Result<bool>{
     loop {
-        terminal.draw(|f| {ui(f, app)} );
+        terminal.draw(
+            |frame| { draw(frame, app)}
+        );
         if let Event::Key(key) = crossterm::event::read()? {
             event_handler::handle_key_events(&key, app);
         }
-        if *app.state.get_should_quit() {
+        if app.state.should_quit {
             break;
         }
     }
