@@ -1,4 +1,4 @@
-use crate::app::{views::PopupConfirmView, views::PopupView};
+use crate::app::{view_type::PopupConfirmView, view_type::PopupView};
 use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::prelude::{Line, Style, Widget};
 use ratatui::style::Stylize;

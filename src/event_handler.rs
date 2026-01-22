@@ -4,8 +4,28 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 mod popups_events;
 mod page_events;
 mod dialog_events;
-use crate::app::{App, MessageLevel, views::*};
-use crate::app::views::PopupConfirmView;
+mod widget_events;
+
+use crate::app::{App, MessageLevel, view_type::*};
+use crate::app::view_type::PopupConfirmView;
+
+pub trait EventHandler {
+    fn handle(&mut self, key: &KeyEvent, app: &mut App) -> color_eyre::Result<()>;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 pub fn handle_key_events(key: &KeyEvent, app: &mut App) -> () {
     handle_universal_events(key, app);
@@ -75,7 +95,9 @@ fn handle_dialog_events(key: &KeyEvent, app: &mut App) -> bool {
 
 fn handle_page_events(key: &KeyEvent, app: &mut App) -> bool {
     if let Some(view) = app.peek_page_ref() {
+
         match view {
+
             PageView::Entrance => {
                 page_events::handle_entrance(key, app).unwrap_or_else(
                     |report| set_error_to_app(app, report)

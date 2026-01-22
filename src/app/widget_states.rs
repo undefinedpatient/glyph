@@ -1,8 +1,11 @@
 use std::any::Any;
+use ratatui::widgets::ListState;
 
 pub trait Focusable: Any {
     fn set_focused(&mut self, focused: bool) -> ();
     fn is_focused(&self) -> bool;
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 // Can only be called on a dyn Focusable
 impl dyn Focusable {
@@ -14,6 +17,49 @@ impl dyn Focusable {
     }
 
 }
+
+
+
+
+
+
+
+
+
+
+/*
+    List
+*/
+pub struct GListState {
+    is_focused: bool,
+    list_state: ListState,
+}
+impl GListState {
+    pub fn new() -> Self {
+        Self{
+            is_focused: false,
+            list_state: ListState::default(),
+        }
+    }
+}
+impl Focusable for GListState {
+    fn set_focused(&mut self, focused: bool) {
+        self.is_focused = focused;
+    }
+    fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+}
+
+/*
+    Buttons
+*/
 pub struct ButtonState {
     is_focused: bool,
 }
@@ -33,7 +79,17 @@ impl Focusable for ButtonState {
     fn is_focused(&self) -> bool {
         self.is_focused
     }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
 }
+
+/*
+   TextFields
+*/
 
 pub enum TextInputMode{
     Normal,
@@ -69,7 +125,6 @@ impl TextFieldState {
         self.input_string.iter().collect()
     }
 }
-
 impl Focusable for TextFieldState {
     fn set_focused(&mut self, focused: bool) -> () {
         self.is_focused = focused;
@@ -77,5 +132,11 @@ impl Focusable for TextFieldState {
 
     fn is_focused(&self) -> bool {
         self.is_focused
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
     }
 }

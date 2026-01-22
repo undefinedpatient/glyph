@@ -1,6 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 
-use crate::app::{App, views::PopupConfirmView};
+use crate::app::{App, view_type::PopupConfirmView};
 
 pub fn handle_confirm(key: &KeyEvent, confirm_type: &PopupConfirmView, app: &mut App) -> color_eyre::Result<()> {
     match confirm_type {

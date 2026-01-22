@@ -10,12 +10,12 @@ use ratatui::style::Stylize;
 use ratatui::Terminal;
 
 mod app;
-mod ui;
+mod layout;
 mod utils;
 mod event_handler;
 
 use app::App;
-use ui::ui;
+use layout::ui;
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

@@ -1,26 +1,34 @@
+
+
+use std::collections::HashMap;
+
+use crate::app::view_type::{DialogView, PageView, PopupView};
+use crate::event_handler::EventHandler;
+
 pub mod app_states;
 pub mod view_states;
 pub mod widget_states;
-pub mod views;
+pub mod view_type;
+mod focus_handler;
 
 pub use app_states::*;
 pub use view_states::*;
 pub use widget_states::*;
-
-use std::collections::HashMap;
-use crate::app::views::{DialogView, PageView, PopupView};
+use crate::layout::LayoutHandler;
 
 // The State Object hold all the data in Navi
+pub trait StateHandler: FocusHandler + EventHandler{}
+impl<T: FocusHandler + EventHandler> StateHandler for T {}
+
+
 pub struct App {
     // UI
-    s_pages: Vec<PageView>,
+    s_pages: Vec<Page>,
     s_dialogs: Vec<DialogView>,
     s_popup: Vec<PopupView>,
 
     // Application Level State
     pub state: ApplicationState,
-    pub h_page_states: HashMap<PageView, PageState>,
-    pub h_dialog_states: HashMap<DialogView, DialogState>,
     // # A popup does not have state.
 }
 
@@ -32,8 +40,6 @@ impl App {
             s_popup: Vec::new(),
 
             state: ApplicationState::new(),
-            h_page_states: HashMap::new(),
-            h_dialog_states: HashMap::new(),
         }
     }   
     // Views

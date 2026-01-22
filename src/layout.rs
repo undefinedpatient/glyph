@@ -6,7 +6,14 @@ mod page_layouts;
 mod dialog_layouts;
 mod popup_layouts;
 mod widget_layouts;
-use crate::app::{App, views::*, MessageLevel};
+use crate::app::{App, view_type::*, MessageLevel};
+
+pub trait LayoutHandler {
+    fn get_layout(&self) -> View;
+}
+
+
+
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
     if let Some(view) = app.peek_page_ref() {

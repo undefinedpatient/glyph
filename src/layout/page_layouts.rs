@@ -5,7 +5,7 @@ use ratatui::Frame;
 use std::rc::Rc;
 use tui_big_text::{BigText, PixelSize};
 
-use crate::app::{App, PageState, views::PageView};
+use crate::app::{App, PageState, view_type::PageView};
 use crate::utils::get_dir_names;
 
 // Widget itself must not own any resources, and never outlive the AppState it references to.
