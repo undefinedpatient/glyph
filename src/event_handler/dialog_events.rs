@@ -1,5 +1,5 @@
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use color_eyre::eyre::Result;
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 
 use crate::app::App;
 pub fn handle_create_glyph_info(key: &KeyEvent, app: &mut App) -> Result<()> {

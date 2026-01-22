@@ -5,8 +5,8 @@ use ratatui::Frame;
 mod page_layouts;
 mod dialog_layouts;
 mod popup_layouts;
-mod widgets;
-use crate::app::{App, DialogView, MessageLevel, PageView};
+mod widget_layouts;
+use crate::app::{App, views::*, MessageLevel};
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
     if let Some(view) = app.peek_page_ref() {

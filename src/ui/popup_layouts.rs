@@ -1,16 +1,16 @@
+use crate::app::{views::PopupConfirmView, views::PopupView};
 use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::prelude::{Line, Style, Widget};
 use ratatui::style::Stylize;
 use ratatui::widgets::{Block, Clear, Padding, Paragraph, Wrap};
-use crate::app::{PopupConfirmView, PopupView};
 
 pub struct PopupLayout<'a> {
-    ref_popup: &'a PopupView
+    ref_popup_view: &'a PopupView
 }
 impl<'a> PopupLayout<'a> {
     pub fn new(popup: &'a PopupView) -> Self {
         PopupLayout {
-            ref_popup: popup
+            ref_popup_view: popup
         }
     }
 }
@@ -18,7 +18,7 @@ impl<'a> Widget for PopupLayout<'a> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
     where
         Self: Sized {
-        match self.ref_popup {
+        match self.ref_popup_view {
             PopupView::Confirm(popup_t) => {
                 match popup_t {
                     PopupConfirmView::Exit => {

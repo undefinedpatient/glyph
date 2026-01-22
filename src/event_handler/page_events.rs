@@ -1,11 +1,12 @@
-use crate::app::{App, DialogState, DialogView, PageState, PageView, PopupConfirmView, PopupView, TextFieldState};
-use crate::app::widgets::ButtonState;
+use crate::app::widget_states::ButtonState;
+use crate::app::{App, DialogState, views::{DialogView, PageView, PopupConfirmView}, PageState, TextFieldState};
 use crate::utils::get_dir_names;
 
+use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::widgets::ListState;
 use std::path::PathBuf;
-use color_eyre::eyre::Result;
+use crate::app::views::PopupView;
 
 pub fn handle_create_glyph_page(key: &KeyEvent, app: &mut App) -> Result<()> {
     match key.kind {
@@ -48,7 +49,8 @@ pub fn handle_create_glyph_page(key: &KeyEvent, app: &mut App) -> Result<()> {
                             app.h_dialog_states.insert(
                                 DialogView::CreateGlyphInfo,
                                 DialogState::CreateGlyphInfo {
-                                    text_field_state: TextFieldState::new(),
+                                    focuses: Vec::new(),
+                                    text_field_state: TextFieldState::from_str("Untitled Glyph"),
                                     button_state: ButtonState::new(),
                                 }
                             );

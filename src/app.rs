@@ -1,11 +1,14 @@
-pub mod states;
+pub mod app_states;
+pub mod view_states;
+pub mod widget_states;
 pub mod views;
-pub mod widgets;
-pub use states::*;
-pub use views::*;
-pub use widgets::*;
+
+pub use app_states::*;
+pub use view_states::*;
+pub use widget_states::*;
 
 use std::collections::HashMap;
+use crate::app::views::{DialogView, PageView, PopupView};
 
 // The State Object hold all the data in Navi
 pub struct App {

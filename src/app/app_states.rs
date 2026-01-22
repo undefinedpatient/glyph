@@ -1,13 +1,5 @@
-use std::{collections::HashMap, path::{Path, PathBuf}};
+use std::path::PathBuf;
 
-use ratatui::widgets::ListState;
-
-use crate::app::widgets::{ButtonState, TextFieldState};
-
-pub trait Focusable {
-    fn set_focused(&mut self, focused: bool) -> ();
-    fn is_focused(&self) -> bool;
-}
 pub enum MessageLevel{
     INFO,
     WARNING,
@@ -87,18 +79,3 @@ impl ApplicationState{
 }
 
 
-// This represents the Widget Level State
-pub enum PageState {
-    Entrance {
-
-    },
-    CreateGlyph {
-        list_state: ListState,
-    },
-}
-pub enum DialogState {
-    CreateGlyphInfo {
-        text_field_state: TextFieldState,
-        button_state: ButtonState,
-    }
-}

@@ -1,15 +1,13 @@
-use std::{error, fs, io, env};
+use std::io;
 
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture, Event};
 use crossterm::execute;
-use crossterm::event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind};
-use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 
 use ratatui::backend::Backend;
-use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::prelude::CrosstermBackend;
 use ratatui::style::Stylize;
-use ratatui::widgets::Paragraph;
-use ratatui::{DefaultTerminal, Frame, Terminal};
+use ratatui::Terminal;
 
 mod app;
 mod ui;
@@ -27,19 +25,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     execute!(stderr, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stderr);
     let mut terminal = Terminal::new(backend)?;
-
-
     // Main
-
     let mut app: App = App::new();
     let result = run(&mut terminal, &mut app);
-
-
     // Restore
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
     terminal.show_cursor()?;
-
     // Process the result
     match result {
         Ok(m) => println!("Navi Exit"),

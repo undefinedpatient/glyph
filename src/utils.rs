@@ -1,11 +1,10 @@
-use std::error::Error;
 use std::fs::DirEntry;
-use std::path::{PathBuf, Path};
-use std::{fs,io};
+use std::path::{Path, PathBuf};
+use std::fs;
 
+use color_eyre::eyre::Result;
 use serde::{Deserialize, Serialize};
 use toml;
-use color_eyre::eyre::Result;
 
 #[derive(Serialize, Deserialize)]
 struct GlyphConfig {
