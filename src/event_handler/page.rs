@@ -2,52 +2,49 @@ use crate::app::{page::Entrance, Command, Stateful};
 use crate::event_handler::{Focusable, Interactable};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use crate::app::popup::ExitConfirmPopup;
 
 impl Interactable for Entrance {
     fn handle(&mut self, key: &KeyEvent) -> Result<Command> {
         match key.kind {
             KeyEventKind::Press=> {
-                if let KeyCode::Char(code) = key.code {
-                    return match code {
-                        'q' => {
-                            Ok(Command::Quit)
-                        },
-                        'j' => {
-                            if let Some(index) = self.hover_index {
-                                self.buttons[index].is_highlighted = false;
-                                self.hover_index = Some((index + 1usize) % self.buttons.len());
-                                self.buttons[self.hover_index.unwrap()].is_highlighted = true;
-
-                            } else {
-                                self.hover_index = Some(0);
-                                self.buttons[0].is_highlighted = true;
-                            }
-                            Ok(Command::None)
-                        },
-                        'k' => {
-                            if let Some(index) = self.hover_index {
-                                self.buttons[index].is_highlighted = false;
-                                if index == 0 {
-                                    self.hover_index = Some(self.buttons.len()-1usize);
-                                    self.buttons[self.hover_index.unwrap()].is_highlighted = true;
-                                } else {
-                                    self.hover_index = Some(index-1usize);
-                                    self.buttons[self.hover_index.unwrap()].is_highlighted = true;
-                                }
-
-                            } else {
-                                self.hover_index = Some(self.buttons.len()-1usize);
-                                self.buttons[self.hover_index.unwrap()].is_highlighted = true;
-                            }
-                            Ok(Command::None)
-                        },
-                        _ => Ok(Command::None)
-                    }
-                }
-                if let KeyCode::Esc = key.code {
+                if let KeyCode::Tab = key.code {
                     if let Some(index) = self.hover_index {
                         self.buttons[index].is_highlighted = false;
-                        self.hover_index = None
+                        self.hover_index = Some((index + 1usize) % self.buttons.len());
+                        self.buttons[self.hover_index.unwrap()].is_highlighted = true;
+
+                    } else {
+                        self.hover_index = Some(0);
+                        self.buttons[0].is_highlighted = true;
+                    }
+                    return Ok(Command::None)
+                }
+                if let KeyCode::BackTab = key.code {
+                    if let Some(index) = self.hover_index {
+                        self.buttons[index].is_highlighted = false;
+                        if index == 0 {
+                            self.hover_index = Some(self.buttons.len()-1usize);
+                            self.buttons[self.hover_index.unwrap()].is_highlighted = true;
+                        } else {
+                            self.hover_index = Some(index-1usize);
+                            self.buttons[self.hover_index.unwrap()].is_highlighted = true;
+                        }
+
+                    } else {
+                        self.hover_index = Some(self.buttons.len()-1usize);
+                        self.buttons[self.hover_index.unwrap()].is_highlighted = true;
+                    }
+                    return Ok(Command::None)
+                }
+                if let KeyCode::Esc = key.code {
+                    return Ok(Command::PushPopup(Box::new(ExitConfirmPopup::new(true))));
+                }
+                if let KeyCode::Enter = key.code {
+                    if let Some(index) = self.hover_index {
+                        if index == 2 {
+                            return Ok(Command::PushPopup(Box::new(ExitConfirmPopup::new(true))));
+                        }
                     }
                 }
             },

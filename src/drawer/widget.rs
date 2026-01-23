@@ -11,8 +11,15 @@ use crate::event_handler::Focusable;
 
 impl Drawable for SimpleButton {
     fn draw(&self, area: Rect, buf: &mut Buffer) {
+  
         if self.is_highlighted {
-            Line::from(self.label.as_str()).bold().centered().render(area, buf);
+            Line::from(
+                [
+                    "[",
+                    self.label.as_str(),
+                    "]"
+                ].concat()
+            ).bold().centered().render(area, buf);
         } else {
             Line::from(self.label.as_str()).centered().render(area, buf);
         }

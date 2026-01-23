@@ -13,7 +13,7 @@ pub enum Command {
     PushView(Box<dyn Stateful>),
     PopView,
     PushPopup(Box<dyn Stateful>),
-    PopPopup(),
+    PopPopup,
     None
 }
 pub trait Stateful: Interactable +  Focusable+ Drawable {

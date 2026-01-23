@@ -34,7 +34,7 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
             Command::PushPopup(popup) => {
                 app.popup_states.push(popup);
             }
-            Command::PopPopup() => {
+            Command::PopPopup => {
                 app.popup_states.pop();
             }
             Command::Quit => {
