@@ -3,7 +3,7 @@ mod popup;
 mod widget;
 
 use crate::app::popup::MessagePopup;
-use crate::app::{Application, Command, Convertible, Stateful};
+use crate::app::{Application, Command, Convertible, Container};
 use crate::drawer::Drawable;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
@@ -14,8 +14,8 @@ pub trait Interactable: Convertible {
 pub trait Focusable {
     fn is_focused(&self) -> bool;
     fn set_focus(&mut self, value: bool) -> ();
-    fn focused_child_ref(&self) -> Option<&dyn Stateful>;
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Stateful>;
+    fn focused_child_ref(&self) -> Option<&dyn Container>;
+    fn focused_child_mut(&mut self) -> Option<&mut dyn Container>;
 }
 pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
     handle_global_events(key, app);
@@ -46,6 +46,7 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
                 app.page_states.push(view);
             }
             Command::PopView => {
+                app.page_states.pop();
             }
             Command::PushPopup(popup) => {
                 app.popup_states.push(popup);
@@ -68,6 +69,7 @@ fn handle_global_events(key: &KeyEvent, app: &mut Application) -> () {
             if let KeyCode::F(num) = (*key).code {
                 match num {
                     1 => {
+                        app.state.should_quit = true;
                     }
                     2 => {
                     }

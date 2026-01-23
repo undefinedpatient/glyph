@@ -1,11 +1,8 @@
-use crate::app::Command;
+use crate::app::{Command, Container};
 use color_eyre::eyre::Result;
-use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
-use ratatui::prelude::Line;
-use ratatui::style::Stylize;
-use ratatui::widgets::{ListState, Widget};
 use std::path::PathBuf;
+use crate::event_handler::Focusable;
+use crate::utils::get_dir_names;
 
 pub struct SimpleButton {
     pub label: String,
@@ -24,30 +21,40 @@ impl SimpleButton {
             on_interact: Some(f)
         }
     }
-    pub fn render_highlighted(&self, area: Rect, buf: &mut Buffer) {
-        Line::from(
-            [
-                "[",
-                self.label.as_str(),
-                "]"
-            ].concat()
-        ).bold().centered().render(area, buf);
-    }
 
 }
 pub struct DirectoryList {
+    pub is_focused: bool,
     pub label: String,
-    pub is_highlighted: bool,
-    pub list_state: ListState,
+    pub line_height: usize,
     pub current_path: PathBuf,
+    pub hover_index: Option<usize>,
 }
 impl DirectoryList {
-    fn new(label: &str) -> Self {
+    pub(crate) fn new(label: &str) -> Self {
         Self {
+            is_focused: false,
             label: label.to_string(),
-            is_highlighted: false,
-            list_state: ListState::default(),
+            line_height: 1,
             current_path: std::env::current_dir().unwrap(),
+            hover_index: None
         }
+    }
+    pub fn get_num_entry(&self) -> usize {
+        get_dir_names(&self.current_path).unwrap().len()
+    }
+}
+impl Focusable for DirectoryList {
+    fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+    fn set_focus(&mut self, value: bool) -> () {
+        self.is_focused = value;
+    }
+    fn focused_child_ref(&self) -> Option<&dyn Container> {
+        None
+    }
+    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
+        None
     }
 }

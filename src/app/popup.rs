@@ -1,4 +1,4 @@
-use crate::app::Stateful;
+use crate::app::Container;
 use crate::event_handler::Focusable;
 
 pub struct MessagePopup {
@@ -20,10 +20,10 @@ impl Focusable for MessagePopup {
     fn set_focus(&mut self, value: bool) -> () {
         self.is_focused = value;
     }
-    fn focused_child_ref(&self) -> Option<&dyn Stateful> {
+    fn focused_child_ref(&self) -> Option<&dyn Container> {
         None
     }
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Stateful> {
+    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
         None
     }
 }
@@ -46,10 +46,10 @@ impl Focusable for ExitConfirmPopup {
     fn set_focus(&mut self, value: bool) -> () {
         self.is_focused = value;
     }
-    fn focused_child_ref(&self) -> Option<&dyn Stateful> {
+    fn focused_child_ref(&self) -> Option<&dyn Container> {
         None
     }
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Stateful> {
+    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
         None
     }
 }

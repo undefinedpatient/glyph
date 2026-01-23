@@ -1,5 +1,5 @@
 use crate::app::popup::{ExitConfirmPopup, MessagePopup};
-use crate::drawer::Drawable;
+use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Rect};
@@ -8,7 +8,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Clear, Padding, Paragraph, Widget, Wrap};
 
 impl Drawable for MessagePopup {
-    fn render(&self, area: Rect, buf: &mut Buffer) {
+    fn render(&self, area: Rect, buf: &mut Buffer, draw_flag: DrawFlag) {
         let area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
         let paragraph_message: Paragraph = Paragraph::new(self.message.clone())
             .wrap(Wrap {trim:true})
@@ -40,7 +40,7 @@ impl Drawable for MessagePopup {
 }
 
 impl Drawable for ExitConfirmPopup{
-    fn render(&self, area: Rect, buf: &mut Buffer) {
+    fn render(&self, area: Rect, buf: &mut Buffer, draw_flag: DrawFlag) {
         let area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
         let paragraph_message: Paragraph = Paragraph::new("Confirm Exit?")
             .wrap(Wrap {trim:true})
