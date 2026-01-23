@@ -1,36 +1,28 @@
-mod entrance;
+mod page;
+mod popup;
+mod widget;
 
+use ratatui::buffer::Buffer;
+use crate::app::Application;
 use ratatui::style::Stylize;
 use ratatui::widgets::{StatefulWidget, Widget};
 use ratatui::Frame;
-use crate::app::{Application};
+use ratatui::layout::Rect;
 
-pub enum DrawType {
-    Full,
-    Partial
-}
 pub trait Drawable {
-    fn draw_type(&self) -> DrawType;
-    fn draw(&self, frame: &mut Frame);
+    fn draw(&self, area: Rect, buf: &mut Buffer);
 }
 pub fn draw(frame: &mut Frame, app: &mut Application) {
     const MAX_FULLSCREEN: u8 = 1;
     let mut fullscreen_count: u8 = 0;
-    for view in (*app.views).iter_mut() {
-        match view.as_drawable().draw_type() {
-            DrawType::Full => {
-                if fullscreen_count > MAX_FULLSCREEN {
-                    continue;
-                }
-                view.as_drawable().draw(frame);
-                fullscreen_count += 1;
-            }
-            DrawType::Partial => {
-                view.as_drawable().draw(frame);
-                
-            }
-        }
+    for view in (*app.page_states).iter_mut() {
+        view.as_drawable_mut().draw(frame.area(), frame.buffer_mut());
+        break;
     }
-    
+    for popup in (*app.popup_states).iter_mut() {
+        popup.as_drawable_mut().draw(frame.area(), frame.buffer_mut());
+
+    }
+
 }
 

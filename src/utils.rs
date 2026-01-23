@@ -1,6 +1,6 @@
+use std::fs;
 use std::fs::DirEntry;
 use std::path::{Path, PathBuf};
-use std::fs;
 
 use color_eyre::eyre::Result;
 use serde::{Deserialize, Serialize};

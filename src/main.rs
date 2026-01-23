@@ -16,7 +16,6 @@ mod event_handler;
 
 use app::Application;
 use drawer::draw;
-use crate::app::entrance;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Init
