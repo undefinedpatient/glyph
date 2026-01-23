@@ -13,6 +13,20 @@ impl MessagePopup {
         }
     }
 }
+impl Focusable for MessagePopup {
+    fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+    fn set_focus(&mut self, value: bool) -> () {
+        self.is_focused = value;
+    }
+    fn focused_child_ref(&self) -> Option<&dyn Stateful> {
+        None
+    }
+    fn focused_child_mut(&mut self) -> Option<&mut dyn Stateful> {
+        None
+    }
+}
 pub struct ExitConfirmPopup {
     pub is_focused: bool,
     pub focus_index: usize,

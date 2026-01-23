@@ -2,10 +2,13 @@ mod page;
 mod popup;
 mod widget;
 
-use crate::app::{Application, Command, Stateful};
+use crate::app::popup::MessagePopup;
+use crate::app::{Application, Command, Convertible, Stateful};
+use crate::drawer::Drawable;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use std::any::Any;
 
-pub trait Interactable {
+pub trait Interactable: Convertible {
     fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command>;
 }
 pub trait Focusable {
@@ -17,8 +20,21 @@ pub trait Focusable {
 pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
     handle_global_events(key, app);
     let mut command: Option<Command> = None;
-    if let Some(stateful) = app.focused_child_mut(){
-        command = Some(stateful.as_interactable_mut().handle(key).unwrap());
+    if let Some(stateful) = (*app).view_to_focus_mut(){
+        let result: color_eyre::Result<Command> = (*stateful).as_interactable_mut().handle(key);
+        if (&result).is_ok() {
+            command = Some(result.unwrap());
+        } else {
+            command = Some(
+                Command::PushPopup(
+                    Box::new(
+                        MessagePopup::new(
+                            result.err().unwrap().to_string().as_str()
+                        )
+                    )
+                )
+            )
+        }
     }
     if let Some(c) = command {
         app.q_commands.push(c);

@@ -1,44 +1,18 @@
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use crate::app::page::Entrance;
-use crate::app::{Command, Stateful};
-use crate::app::widget::SimpleButton;
-use crate::event_handler::{Focusable, Interactable};
-
-// impl Focusable for SimpleButton {
-//     fn is_focused(&self) -> bool {
-//         self.is_focused
-//     }
-//     fn set_focus(&mut self, value: bool) -> () {
-//         self.is_focused = value;
-//     }
-//     fn focused_child_ref(&self) -> Option<&dyn Stateful> {
-//         None
-//     }
-//     fn focused_child_mut(&mut self) -> Option<&mut dyn Stateful> {
-//         None
-//     }
-//     fn focus_index(&self) -> Option<usize> {
-//         None
-//     }
-// }
-// impl Interactable for SimpleButton {
-//     fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
-//         match key.kind {
-//             KeyEventKind::Press=> {
-//                 if let KeyCode::Char(code) = key.code {
-//                     return match code {
-//                         'q' => {
-//                             Ok(Command::Quit)
-//                         },
-//                         _ => Ok(Command::None)
-//                     }
-//                 }
-//                 if let KeyCode::Esc = key.code {
-//                     self.is_focused = false;
-//                 }
-//             },
-//             _ => {}
-//         }
-//         Ok(Command::None)
-//     }
-// }
+use crate::app::widget::{DirectoryList, SimpleButton};
+use crate::app::Command;
+use crate::event_handler::Interactable;
+use crossterm::event::KeyEvent;
+impl Interactable for SimpleButton {
+    fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
+        if let Some(f) = &mut self.on_interact {
+            f()
+        } else {
+            Ok(Command::None)
+        }
+    }
+}
+impl Interactable for DirectoryList {
+    fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
+        Ok(Command::None)
+    }
+}
