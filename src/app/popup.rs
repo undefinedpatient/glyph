@@ -7,7 +7,7 @@ pub struct MessagePopup {
 }
 impl MessagePopup {
     pub fn new(message: &str) -> Self {
-        Self { 
+        Self {
             is_focused: false,
             message: String::from(message),
         }

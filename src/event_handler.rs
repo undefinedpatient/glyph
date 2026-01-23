@@ -3,8 +3,10 @@ mod popup;
 mod widget;
 
 use crate::app::popup::MessagePopup;
-use crate::app::{Application, Command, Convertible, Container};
+use crate::app::{Application, Command, Container, Convertible};
 use crate::drawer::Drawable;
+use color_eyre::Report;
+use color_eyre::eyre::eyre;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
 
@@ -20,24 +22,14 @@ pub trait Focusable {
 pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
     handle_global_events(key, app);
     let mut command: Option<Command> = None;
-    if let Some(stateful) = (*app).view_to_focus_mut(){
-        let result: color_eyre::Result<Command> = (*stateful).as_interactable_mut().handle(key);
-        if (&result).is_ok() {
-            command = Some(result.unwrap());
-        } else {
-            command = Some(
-                Command::PushPopup(
-                    Box::new(
-                        MessagePopup::new(
-                            result.err().unwrap().to_string().as_str()
-                        )
-                    )
-                )
-            )
-        }
-    }
-    if let Some(c) = command {
-        app.q_commands.push(c);
+    if let Some(stateful) = (*app).view_to_focus_mut() {
+        let result: Command = (*stateful)
+            .as_interactable_mut()
+            .handle(key)
+            .unwrap_or_else(|report| {
+                return Command::PushPopup(Box::new(MessagePopup::new(report.to_string().as_str())));
+            });
+        app.q_commands.push(result);
     }
     if app.q_commands.len() > 0 {
         let command: Command = app.q_commands.pop().unwrap();
@@ -57,27 +49,22 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
             Command::Quit => {
                 app.state.should_quit = true;
             }
-            Command::None => {
-
-            }
+            Command::None => {}
         }
     }
 }
 fn handle_global_events(key: &KeyEvent, app: &mut Application) -> () {
-   match (*key).kind {
+    match (*key).kind {
         KeyEventKind::Press => {
             if let KeyCode::F(num) = (*key).code {
                 match num {
                     1 => {
                         app.state.should_quit = true;
                     }
-                    2 => {
-                    }
-                    3 => {
-                    }
+                    2 => {}
+                    3 => {}
                     _ => {}
                 }
-
             }
         }
         _ => {}

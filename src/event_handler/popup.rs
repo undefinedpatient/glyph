@@ -8,25 +8,21 @@ impl Interactable for MessagePopup {
         return match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Enter = key.code {
-                    return Ok(Command::PopPopup)
+                    return Ok(Command::PopPopup);
                 }
                 if let KeyCode::Esc = key.code {
-                    return Ok(Command::PopPopup)
+                    return Ok(Command::PopPopup);
                 }
                 Ok(Command::None)
-
             }
-            _ => {
-                Ok(Command::None)
-            }
-        }
+            _ => Ok(Command::None),
+        };
     }
 }
 impl Interactable for ExitConfirmPopup {
     fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
-
         return match key.kind {
-            KeyEventKind::Press=> {
+            KeyEventKind::Press => {
                 if let KeyCode::Tab = key.code {
                     self.focus_index = (self.focus_index + 1) % 2;
                 }
@@ -42,16 +38,14 @@ impl Interactable for ExitConfirmPopup {
                         Ok(Command::Quit)
                     } else {
                         Ok(Command::PopPopup)
-                    }
+                    };
                 }
                 if let KeyCode::Esc = key.code {
-                    return Ok(Command::PopPopup)
+                    return Ok(Command::PopPopup);
                 }
                 Ok(Command::None)
             }
-            _ => {
-                Ok(Command::None)
-            }
-        }
+            _ => Ok(Command::None),
+        };
     }
 }

@@ -11,7 +11,6 @@ struct GlyphConfig {
     name: String,
 }
 
-
 pub fn get_file_names(path: &Path) -> Result<Vec<String>> {
     let mut file_names: Vec<String> = Vec::new();
 
@@ -22,9 +21,8 @@ pub fn get_file_names(path: &Path) -> Result<Vec<String>> {
             if let Some(name) = file_name.to_str() {
                 file_names.push(name.to_string());
             }
-
         }
-    }   
+    }
 
     Ok(file_names)
 }
@@ -42,9 +40,8 @@ pub fn get_dir_names(path: &Path) -> Result<Vec<String>> {
             if let Some(name) = file_name.to_str() {
                 file_names.push(name.to_string());
             }
-
         }
-    }   
+    }
 
     Ok(file_names)
 }
