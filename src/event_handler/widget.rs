@@ -112,39 +112,44 @@ impl Interactable for TextField {
                         return Ok(Command::None);
                     }
                     if let KeyCode::Char(i) = key.code {
-                        return match i {
+                        match i {
                             'i' => {
                                 self.switch_mode(TextFieldInputMode::Edit);
-                                Ok(Command::None)
                             }
                             'h' => {
                                 self.move_to_previous_char();
-                                Ok(Command::None)
                             }
                             'l' => {
                                 self.move_to_next_char();
-                                Ok(Command::None)
                             }
                             'x' => {
                                 self.delete_char();
-                                Ok(Command::None)
                             }
                             'A' => {
                                 self.switch_mode(TextFieldInputMode::Edit);
                                 self.move_to_end_char();
-                                Ok(Command::None)
                             }
                             'w' | 'W' => {
                                 self.next_word();
-                                Ok(Command::None)
                             }
                             'b' | 'B' => {
                                 self.previous_word();
-                                Ok(Command::None)
                             }
+                            'e' | 'E' => {
+                                self.next_word();
+                                self.move_to_previous_char();
+                            }
+
                             _ => return Ok(Command::None),
                         }
                     }
+                    if let KeyCode::Left = key.code {
+                        self.move_to_previous_char();
+                    }
+                    if let KeyCode::Right = key.code {
+                        self.move_to_next_char();
+                    }
+                    Ok(Command::None)
                 }
                 TextFieldInputMode::Edit => {
                     if let KeyCode::Esc = key.code {
@@ -157,14 +162,16 @@ impl Interactable for TextField {
                     if let KeyCode::Backspace = key.code {
                         self.move_to_previous_char();
                         self.delete_char();
-                        return Ok(Command::None);
                     }
+                    if let KeyCode::Left = key.code {
+                        self.move_to_previous_char();
+                    }
+                    if let KeyCode::Right = key.code {
+                        self.move_to_next_char();
+                    }
+                    Ok(Command::None)
                 }
             }
-            match key.kind {
-                _ => Ok(Command::None),
-            }
-
         }
 
     }
