@@ -1,12 +1,11 @@
 use crate::app::page::{CreateGlyphPage, EntrancePage};
 use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
-use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::{Block, BorderType, Borders, Widget};
-use std::rc::Rc;
 use ratatui::Frame;
+use std::rc::Rc;
 use tui_big_text::{BigText, PixelSize};
 
 impl Drawable for EntrancePage {

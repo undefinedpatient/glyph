@@ -4,7 +4,6 @@ mod widget;
 mod dialog;
 
 use crate::app::Application;
-use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Stylize;
 use ratatui::widgets::{StatefulWidget, Widget};
@@ -21,6 +20,11 @@ pub trait Drawable {
 pub fn draw(frame: &mut Frame, app: &mut Application) {
     for page in (*app.page_states).iter_mut().rev() {
         page.as_drawable_mut()
+            .render(frame, frame.area(), DrawFlag::DEFAULT);
+        break;
+    }
+    for dialog in (*app.dialog_states).iter_mut().rev() {
+        dialog.as_drawable_mut()
             .render(frame, frame.area(), DrawFlag::DEFAULT);
         break;
     }

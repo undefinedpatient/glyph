@@ -1,6 +1,6 @@
 use crate::app::page::CreateGlyphPage;
 use crate::app::popup::ExitConfirmPopup;
-use crate::app::{page::EntrancePage, Command, Container};
+use crate::app::{page::EntrancePage, Command};
 use crate::event_handler::{Focusable, Interactable};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
@@ -41,20 +41,6 @@ impl Interactable for EntrancePage {
             _ => {}
         }
         Ok(Command::None)
-    }
-}
-impl Focusable for EntrancePage {
-    fn is_focused(&self) -> bool {
-        self.is_focused
-    }
-    fn set_focus(&mut self, value: bool) -> () {
-        self.is_focused = value;
-    }
-    fn focused_child_ref(&self) -> Option<&dyn Container> {
-        None
-    }
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
-        None
     }
 }
 impl Interactable for CreateGlyphPage {
@@ -106,29 +92,5 @@ impl Interactable for CreateGlyphPage {
             self.focused_child_mut().unwrap().handle(key)?;
             Ok(Command::None)
         }
-    }
-}
-impl Focusable for CreateGlyphPage {
-    fn is_focused(&self) -> bool {
-        self.is_focused
-    }
-    fn set_focus(&mut self, value: bool) -> () {
-        self.is_focused = value;
-    }
-    fn focused_child_ref(&self) -> Option<&dyn Container> {
-        for container in &self.containers {
-            if container.is_focused() {
-                return Some(&**container);
-            }
-        }
-        None
-    }
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
-        for container in &mut self.containers {
-            if container.is_focused() {
-                return Some(&mut **container);
-            }
-        }
-        None
     }
 }

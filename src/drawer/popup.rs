@@ -1,12 +1,11 @@
 use crate::app::popup::{ExitConfirmPopup, MessagePopup};
 use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
-use ratatui::buffer::Buffer;
-use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::style::Stylize;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Clear, Padding, Paragraph, Widget, Wrap};
+use ratatui::Frame;
 
 impl Drawable for MessagePopup {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {

@@ -1,24 +1,57 @@
-use crossterm::event::KeyEvent;
-use crate::app::{Command, Container};
 use crate::app::dialog::TextInputDialog;
+use crate::app::Command;
 use crate::event_handler::{Focusable, Interactable};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 
 impl Interactable for TextInputDialog {
     fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
-        todo!()
-    }
-}
-impl Focusable for TextInputDialog {
-    fn is_focused(&self) -> bool {
-        self.is_focused
-    }
-    fn set_focus(&mut self, value: bool) -> () {
-        self.is_focused = value;
-    }
-    fn focused_child_ref(&self) -> Option<&dyn Container> {
-        None
-    }
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
-        None
+        if self.focused_child_mut().is_none() {
+            match key.kind {
+                KeyEventKind::Press => {
+                    if let KeyCode::Esc = key.code {
+                        return Ok(Command::PopDialog);
+                    }
+                    if let KeyCode::Tab = key.code {
+                        if let Some(index) = self.hover_index {
+                            self.hover_index = Some(
+                                (index + 1usize) % (self.components.len() + self.containers.len()),
+                            );
+                        } else {
+                            self.hover_index = Some(0);
+                        }
+                        return Ok(Command::None);
+                    }
+                    if let KeyCode::BackTab = key.code {
+                        if let Some(index) = self.hover_index {
+                            if index == 0 {
+                                self.hover_index =
+                                    Some((self.components.len() + self.containers.len()) - 1usize);
+                            } else {
+                                self.hover_index = Some(index - 1usize);
+                            }
+                        } else {
+                            self.hover_index =
+                                Some((self.components.len() + self.containers.len()) - 1usize);
+                        }
+                        return Ok(Command::None);
+                    }
+                    if let KeyCode::Enter = key.code {
+                        if let Some(index) = self.hover_index {
+                            if index == 0 {
+                                self.containers[0].set_focus(true);
+                            }
+                            else if index > 0 && index < 3 {
+                                return self.components[index-1].handle(key);
+                            }
+                            return Ok(Command::None);
+                        }
+                    }
+                    Ok(Command::None)
+                },
+                _ => Ok(Command::None)
+            }
+        } else {
+            self.focused_child_mut().unwrap().handle(key)
+        }
     }
 }

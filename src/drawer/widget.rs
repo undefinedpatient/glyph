@@ -1,12 +1,13 @@
-use crate::app::widget::{DirectoryList, SimpleButton, TextField};
+use crate::app::widget::{DirectoryList, LineButton, SimpleButton, TextField, TextFieldInputMode};
 use crate::drawer::{DrawFlag, Drawable};
+use crate::event_handler::Focusable;
 use crate::utils::get_dir_names;
-use ratatui::buffer::Buffer;
-use ratatui::Frame;
-use ratatui::layout::{Constraint, Layout, Offset, Position, Rect};
+use ratatui::layout::{Constraint, Offset, Position, Rect};
 use ratatui::prelude::Stylize;
 use ratatui::text::Line;
-use ratatui::widgets::{Block, BorderType, Borders, Widget};
+use ratatui::widgets::{Block, BorderType, Borders, Clear, Widget};
+use ratatui::Frame;
+use ratatui::style::{Color, Style};
 
 impl Drawable for SimpleButton {
     fn render(&self, frame: &mut Frame,area: Rect, draw_flag: DrawFlag) {
@@ -19,6 +20,20 @@ impl Drawable for SimpleButton {
             }
             _ => {
                 Line::from(self.label.as_str()).centered().render(area, frame.buffer_mut());
+            }
+        }
+    }
+}
+
+impl Drawable for LineButton {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+        let text = self.label.clone().to_string();
+        match draw_flag {
+            DrawFlag::HIGHLIGHTING => {
+                Line::from([" ",text.as_str()," "].concat()).render(area, frame.buffer_mut());
+            },
+            _ => {
+                Line::from(["[",text.as_str(),"]"].concat()).bold().render(area, frame.buffer_mut());
             }
         }
     }
@@ -92,10 +107,32 @@ impl Drawable for TextField {
             Constraint::Min(18),
             Constraint::Min(3),
         );
-        let text_line: Line = Line::from(self.chars.iter().collect::<String>().as_str());
-        let cursor_position: Position = text_field_area.as_position().offset(Offset{
-            x: self.cursor_index as i32,
-            y: 1
-        });
+        let text = self.chars.iter().collect::<String>();
+        let text_line: Line = Line::from(text);
+        let text_field_block: Block = Block::bordered().title(self.label.as_str())
+            .border_type(
+                match draw_flag {
+                    DrawFlag::DEFAULT => BorderType::Plain,
+                    DrawFlag::HIGHLIGHTING => BorderType::Double,
+                    DrawFlag::FOCUSED => BorderType::Thick,
+                    _ => BorderType::LightDoubleDashed,
+                }
+            )
+            .border_style(
+                match self.input_mode {
+                    TextFieldInputMode::Normal => Style::default().fg(Color::White),
+                    TextFieldInputMode::Edit => Style::default().fg(Color::Yellow),
+                }
+            );
+        let text_line_area: Rect = text_field_block.inner(text_field_area);
+        if self.is_focused() {
+            let cursor_position: Position = text_field_area.as_position().offset(Offset{ x: 1 + self.cursor_index as i32,
+                y: 1
+            });
+            frame.set_cursor_position(cursor_position);
+        }
+        Clear.render(text_field_area, frame.buffer_mut());
+        text_field_block.render(text_field_area, frame.buffer_mut());
+        text_line.render(text_line_area, frame.buffer_mut());
     }
 }

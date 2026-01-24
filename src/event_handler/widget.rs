@@ -1,11 +1,20 @@
-use crate::app::widget::{DirectoryList, SimpleButton};
-use crate::app::{Command, Container};
+use crate::app::widget::{DirectoryList, LineButton, SimpleButton, TextField, TextFieldInputMode};
+use crate::app::Command;
 use crate::event_handler::{Focusable, Interactable};
 use crate::utils::get_dir_names;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers, ModifierKeyCode};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::path::PathBuf;
 
 impl Interactable for SimpleButton {
+    fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
+        if let Some(f) = &mut self.on_interact {
+            f()
+        } else {
+            Ok(Command::None)
+        }
+    }
+}
+impl Interactable for LineButton {
     fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
         if let Some(f) = &mut self.on_interact {
             f()
@@ -82,17 +91,81 @@ impl Interactable for DirectoryList {
         }
     }
 }
-impl Focusable for DirectoryList {
-    fn is_focused(&self) -> bool {
-        self.is_focused
-    }
-    fn set_focus(&mut self, value: bool) -> () {
-        self.is_focused = value;
-    }
-    fn focused_child_ref(&self) -> Option<&dyn Container> {
-        None
-    }
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
-        None
+
+
+/*
+    Text Field
+ */
+
+
+impl Interactable for TextField {
+    fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
+        if !self.is_focused() {
+            self.set_focus(true);
+            Ok(Command::None)
+        } else {
+            match self.input_mode {
+                TextFieldInputMode::Normal => {
+                    if let KeyCode::Esc = key.code {
+                        self.switch_mode(TextFieldInputMode::Normal);
+                        self.set_focus(false);
+                        return Ok(Command::None);
+                    }
+                    if let KeyCode::Char(i) = key.code {
+                        return match i {
+                            'i' => {
+                                self.switch_mode(TextFieldInputMode::Edit);
+                                Ok(Command::None)
+                            }
+                            'h' => {
+                                self.move_to_previous_char();
+                                Ok(Command::None)
+                            }
+                            'l' => {
+                                self.move_to_next_char();
+                                Ok(Command::None)
+                            }
+                            'x' => {
+                                self.delete_char();
+                                Ok(Command::None)
+                            }
+                            'A' => {
+                                self.switch_mode(TextFieldInputMode::Edit);
+                                self.move_to_end_char();
+                                Ok(Command::None)
+                            }
+                            'w' | 'W' => {
+                                self.next_word();
+                                Ok(Command::None)
+                            }
+                            'b' | 'B' => {
+                                self.previous_word();
+                                Ok(Command::None)
+                            }
+                            _ => return Ok(Command::None),
+                        }
+                    }
+                }
+                TextFieldInputMode::Edit => {
+                    if let KeyCode::Esc = key.code {
+                        self.switch_mode(TextFieldInputMode::Normal);
+                    }
+                    if let KeyCode::Char(c) = key.code {
+                        self.insert_char(c);
+                        self.move_to_next_char();
+                    }
+                    if let KeyCode::Backspace = key.code {
+                        self.move_to_previous_char();
+                        self.delete_char();
+                        return Ok(Command::None);
+                    }
+                }
+            }
+            match key.kind {
+                _ => Ok(Command::None),
+            }
+
+        }
+
     }
 }

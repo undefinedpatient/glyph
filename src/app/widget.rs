@@ -1,10 +1,10 @@
-use crate::app::{Command, Container};
-use crate::event_handler::Focusable;
+use crate::app::Command;
+use crate::drawer::DrawFlag;
 use crate::utils::get_dir_names;
 use color_eyre::eyre::Result;
+use ratatui::style::Stylize;
+use ratatui::text::Line;
 use std::path::PathBuf;
-
-
 /*
     Button
  */
@@ -29,7 +29,36 @@ impl SimpleButton {
     }
 }
 
+pub struct LineButton {
+    pub label: String,
+    pub on_interact: Option<Box<dyn FnMut() -> Result<Command>>>,
+}
+impl LineButton {
+    pub fn new(label: &str) -> Self {
+        Self {
+            label: label.to_string(),
+            on_interact: None,
+        }
+    }
+    pub fn on_interact(&mut self, f: Box<dyn FnMut() -> Result<Command>>) -> Self {
+        Self {
+            label: self.label.clone(),
+            on_interact: Some(f),
+        }
+    }
 
+    pub fn as_line(&self, draw_flag: DrawFlag) -> Line<'_> {
+        let text = self.label.clone().to_string();
+        match draw_flag {
+            DrawFlag::HIGHLIGHTING => {
+                Line::from(["[",text.as_str(),"]"].concat()).bold()
+            },
+            _ => {
+                Line::from([" ",text.as_str()," "].concat())
+            }
+        }
+    }
+}
 /*
     Directory Lists
  */
@@ -90,10 +119,11 @@ impl DirectoryList {
 
 
 pub enum TextFieldInputMode {
-    NORMAL,
-    EDIT
+    Normal,
+    Edit
 }
 pub struct TextField {
+    pub is_focused: bool,
     pub label: String,
     pub chars: Vec<char>,
     pub cursor_index: usize,
@@ -101,12 +131,66 @@ pub struct TextField {
 }
 
 impl TextField {
-    pub fn new(label: &str, chars: Vec<char>) -> Self {
+    pub fn new(label: &str, default: String) -> Self {
         Self {
+            is_focused: false,
             label: label.to_string(),
-            chars: chars,
-            cursor_index: 0,
-            input_mode: TextFieldInputMode::NORMAL,
+            chars: default.chars().collect(),
+            cursor_index: default.len(),
+            input_mode: TextFieldInputMode::Normal,
         }
+    }
+    pub fn move_to_next_char(&mut self) {
+        self.cursor_index = self.cursor_index.saturating_add(1);
+        if self.cursor_index >= self.chars.len() {
+            self.cursor_index = self.chars.len();
+        }
+    }
+    pub fn move_to_previous_char(&mut self) {
+        self.cursor_index = self.cursor_index.saturating_sub(1);
+    }
+    pub fn insert_char(&mut self, char: char) {
+        self.chars.insert(self.cursor_index, char);
+    }
+    pub fn delete_char(&mut self) {
+        if self.cursor_index >= self.chars.len() {
+            return;
+        }
+        self.chars.remove(self.cursor_index);
+    }
+    pub fn switch_mode(&mut self, mode: TextFieldInputMode) {
+        self.input_mode = mode;
+    }
+    pub fn move_to_end_char(&mut self) {
+        self.cursor_index = self.chars.len();
+    }
+    pub fn next_word(&mut self) {
+        if self.chars.len() == 0 {
+            return;
+        }
+        let (index, ch) = self.chars.iter().enumerate().find(
+            |(i, item)| {
+                if **item == ' ' && *i > self.cursor_index {
+                    return true;
+                }
+                false
+            }
+        ).unwrap_or_else(||{(self.chars.len(), self.chars.last().unwrap())});
+        self.cursor_index = index;
+    }
+    pub fn previous_word(&mut self) {
+        if self.chars.len() == 0 {
+            return;
+        }
+        let (index, ch) = self.chars.iter().enumerate().rfind(
+            |(i, item)| {
+                if **item == ' ' && *i < self.cursor_index {
+                    return true;
+                }
+                false
+            }
+        ).unwrap_or_else(||{(0, self.chars.last().unwrap())});
+        self.cursor_index = index;
+
     }
 }

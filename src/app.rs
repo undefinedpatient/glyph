@@ -24,6 +24,7 @@ pub trait Convertible {
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 impl<T: Any> Convertible for T {
+    
     fn as_any(&self) -> &dyn Any
     where
         Self: Sized,
@@ -42,8 +43,8 @@ pub trait Component: Interactable + Drawable {
     fn as_interactable_mut(&mut self) -> &mut dyn Interactable;
     fn as_drawable_ref(&self) -> &dyn Drawable;
     fn as_drawable_mut(&mut self) -> &mut dyn Drawable;
-    fn as_element_ref(&self) -> &dyn Component;
-    fn as_element_mut(&mut self) -> &mut dyn Component;
+    fn as_component_ref(&self) -> &dyn Component;
+    fn as_component_mut(&mut self) -> &mut dyn Component;
 }
 pub trait Container: Interactable + Drawable + Focusable {
     fn as_interactable_ref(&self) -> &dyn Interactable;
@@ -68,10 +69,10 @@ impl<T: Interactable + Drawable> Component for T {
     fn as_drawable_mut(&mut self) -> &mut dyn Drawable {
         self
     }
-    fn as_element_ref(&self) -> &dyn Component {
+    fn as_component_ref(&self) -> &dyn Component {
         self
     }
-    fn as_element_mut(&mut self) -> &mut dyn Component {
+    fn as_component_mut(&mut self) -> &mut dyn Component {
         self
     }
 }

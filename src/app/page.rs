@@ -1,7 +1,7 @@
+use crate::app::dialog::TextInputDialog;
 use crate::app::popup::{ExitConfirmPopup, MessagePopup};
 use crate::app::widget::{DirectoryList, SimpleButton};
-use crate::app::{Command, Container, Component};
-use crate::app::dialog::TextInputDialog;
+use crate::app::{Command, Component, Container};
 
 pub struct EntrancePage {
     pub is_focused: bool,
