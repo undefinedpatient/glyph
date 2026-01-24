@@ -9,7 +9,7 @@ use ratatui::widgets::{Block, BorderType, Clear, Padding, Paragraph, Widget, Wra
 
 impl Drawable for MessagePopup {
     fn render(&self, area: Rect, buf: &mut Buffer, draw_flag: DrawFlag) {
-        let area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
+        let popup_area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
         let paragraph_message: Paragraph = Paragraph::new(self.message.clone())
             .wrap(Wrap { trim: true })
             .alignment(Alignment::Center)
@@ -26,8 +26,8 @@ impl Drawable for MessagePopup {
                     .title_bottom(Line::from(Span::from("[Understood]").bold()).centered())
             });
 
-        Clear.render(area, buf);
-        paragraph_message.render(area, buf);
+        Clear.render(popup_area, buf);
+        paragraph_message.render(popup_area, buf);
     }
 }
 

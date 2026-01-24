@@ -1,12 +1,11 @@
 mod page;
 mod popup;
 mod widget;
+mod dialog;
 
 use crate::app::popup::MessagePopup;
 use crate::app::{Application, Command, Container, Convertible};
 use crate::drawer::Drawable;
-use color_eyre::Report;
-use color_eyre::eyre::eyre;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
 
@@ -34,11 +33,17 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
     if app.q_commands.len() > 0 {
         let command: Command = app.q_commands.pop().unwrap();
         match command {
-            Command::PushView(view) => {
+            Command::PushPage(view) => {
                 app.page_states.push(view);
             }
-            Command::PopView => {
+            Command::PopPage => {
                 app.page_states.pop();
+            }
+            Command::PushDialog(view) => {
+                app.dialog_states.push(view);
+            }
+            Command::PopDialog => {
+                app.dialog_states.pop();
             }
             Command::PushPopup(popup) => {
                 app.popup_states.push(popup);

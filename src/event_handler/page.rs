@@ -11,7 +11,7 @@ impl Interactable for EntrancePage {
             KeyEventKind::Press => {
                 if let KeyCode::Tab = key.code {
                     if let Some(index) = self.hover_index {
-                        self.hover_index = Some((index + 1usize) % self.elements.len());
+                        self.hover_index = Some((index + 1usize) % self.components.len());
                     } else {
                         self.hover_index = Some(0);
                     }
@@ -20,12 +20,12 @@ impl Interactable for EntrancePage {
                 if let KeyCode::BackTab = key.code {
                     if let Some(index) = self.hover_index {
                         if index == 0 {
-                            self.hover_index = Some(self.elements.len() - 1usize);
+                            self.hover_index = Some(self.components.len() - 1usize);
                         } else {
                             self.hover_index = Some(index - 1usize);
                         }
                     } else {
-                        self.hover_index = Some(self.elements.len() - 1usize);
+                        self.hover_index = Some(self.components.len() - 1usize);
                     }
                     return Ok(Command::None);
                 }
@@ -34,7 +34,7 @@ impl Interactable for EntrancePage {
                 }
                 if let KeyCode::Enter = key.code {
                     if let Some(index) = self.hover_index {
-                        return self.elements[index].handle(key);
+                        return self.components[index].handle(key);
                     }
                 }
             }
@@ -65,7 +65,7 @@ impl Interactable for CreateGlyphPage {
                     if let KeyCode::Tab = key.code {
                         if let Some(index) = self.hover_index {
                             self.hover_index = Some(
-                                (index + 1usize) % (self.elements.len() + self.containers.len()),
+                                (index + 1usize) % (self.components.len() + self.containers.len()),
                             );
                         } else {
                             self.hover_index = Some(0);
@@ -76,25 +76,25 @@ impl Interactable for CreateGlyphPage {
                         if let Some(index) = self.hover_index {
                             if index == 0 {
                                 self.hover_index =
-                                    Some((self.elements.len() + self.containers.len()) - 1usize);
+                                    Some((self.components.len() + self.containers.len()) - 1usize);
                             } else {
                                 self.hover_index = Some(index - 1usize);
                             }
                         } else {
                             self.hover_index =
-                                Some((self.elements.len() + self.containers.len()) - 1usize);
+                                Some((self.components.len() + self.containers.len()) - 1usize);
                         }
                         return Ok(Command::None);
                     }
                     if let KeyCode::Esc = key.code {
-                        return Ok(Command::PopView);
+                        return Ok(Command::PopPage);
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.hover_index {
                             if index == 0 {
                                 self.containers[index].set_focus(true);
                             } else {
-                                return self.elements[index - self.containers.len()].handle(key);
+                                return self.components[index - self.containers.len()].handle(key);
                             }
                         }
                     }

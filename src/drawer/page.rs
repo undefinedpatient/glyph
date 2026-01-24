@@ -48,7 +48,7 @@ impl Drawable for EntrancePage {
         // Render Section
         block.render(area, buf);
         title.render(rects[0], buf);
-        for (i, button_interactable) in (&self.elements).iter().enumerate() {
+        for (i, button_interactable) in (&self.components).iter().enumerate() {
             if let Some(ci) = self.hover_index {
                 if i == ci {
                     button_interactable.render(button_rects[i], buf, DrawFlag::HIGHLIGHTING);
@@ -108,7 +108,7 @@ impl Drawable for CreateGlyphPage {
                 DrawFlag::DEFAULT
             },
         );
-        self.elements[0].render(
+        self.components[0].render(
             button_areas[0],
             buf,
             if let Some(index) = self.hover_index {
@@ -121,7 +121,7 @@ impl Drawable for CreateGlyphPage {
                 DrawFlag::DEFAULT
             },
         );
-        self.elements[1].render(
+        self.components[1].render(
             button_areas[1],
             buf,
             if let Some(index) = self.hover_index {

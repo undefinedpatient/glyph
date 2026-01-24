@@ -1,6 +1,7 @@
 mod page;
 mod popup;
 mod widget;
+mod dialog;
 
 use crate::app::Application;
 use ratatui::buffer::Buffer;
@@ -15,17 +16,17 @@ pub enum DrawFlag {
     FOCUSED = 0b0000_0010,
 }
 pub trait Drawable {
-    fn render(&self, area: Rect, buf: &mut Buffer, draw_flag: DrawFlag);
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag);
 }
 pub fn draw(frame: &mut Frame, app: &mut Application) {
     for page in (*app.page_states).iter_mut().rev() {
         page.as_drawable_mut()
-            .render(frame.area(), frame.buffer_mut(), DrawFlag::DEFAULT);
+            .render(frame, frame.area(), DrawFlag::DEFAULT);
         break;
     }
     for popup in (*app.popup_states).iter_mut() {
         popup
             .as_drawable_mut()
-            .render(frame.area(), frame.buffer_mut(), DrawFlag::DEFAULT);
+            .render(frame, frame.area(), DrawFlag::DEFAULT);
     }
 }

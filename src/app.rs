@@ -3,6 +3,7 @@ use std::any::Any;
 pub mod page;
 pub mod popup;
 pub mod widget;
+pub mod dialog;
 
 use crate::drawer::Drawable;
 use crate::event_handler::{Focusable, Interactable};
@@ -10,8 +11,10 @@ use page::EntrancePage;
 
 pub enum Command {
     Quit,
-    PushView(Box<dyn Container>),
-    PopView,
+    PushPage(Box<dyn Container>),
+    PopPage,
+    PushDialog(Box<dyn Container>),
+    PopDialog,
     PushPopup(Box<dyn Container>),
     PopPopup,
     None,
@@ -34,13 +37,13 @@ impl<T: Any> Convertible for T {
         self
     }
 }
-pub trait Element: Interactable + Drawable {
+pub trait Component: Interactable + Drawable {
     fn as_interactable_ref(&self) -> &dyn Interactable;
     fn as_interactable_mut(&mut self) -> &mut dyn Interactable;
     fn as_drawable_ref(&self) -> &dyn Drawable;
     fn as_drawable_mut(&mut self) -> &mut dyn Drawable;
-    fn as_element_ref(&self) -> &dyn Element;
-    fn as_element_mut(&mut self) -> &mut dyn Element;
+    fn as_element_ref(&self) -> &dyn Component;
+    fn as_element_mut(&mut self) -> &mut dyn Component;
 }
 pub trait Container: Interactable + Drawable + Focusable {
     fn as_interactable_ref(&self) -> &dyn Interactable;
@@ -52,7 +55,7 @@ pub trait Container: Interactable + Drawable + Focusable {
     fn as_view_ref(&self) -> &dyn Container;
     fn as_view_mut(&mut self) -> &mut dyn Container;
 }
-impl<T: Interactable + Drawable> Element for T {
+impl<T: Interactable + Drawable> Component for T {
     fn as_interactable_ref(&self) -> &dyn Interactable {
         self
     }
@@ -65,10 +68,10 @@ impl<T: Interactable + Drawable> Element for T {
     fn as_drawable_mut(&mut self) -> &mut dyn Drawable {
         self
     }
-    fn as_element_ref(&self) -> &dyn Element {
+    fn as_element_ref(&self) -> &dyn Component {
         self
     }
-    fn as_element_mut(&mut self) -> &mut dyn Element {
+    fn as_element_mut(&mut self) -> &mut dyn Component {
         self
     }
 }
@@ -113,6 +116,9 @@ impl Application {
             // }
             return Some(self.popup_states.last().unwrap().as_view_ref());
         }
+        if self.dialog_states.len() != 0 {
+            return Some(self.dialog_states.last().unwrap().as_view_ref());
+        }
         if self.page_states.len() != 0 {
             // for (index, page_state) in (&self.page_states).iter().enumerate() {
             //     if page_state.is_focused() || index == self.page_states.len() - 1 {
@@ -132,6 +138,9 @@ impl Application {
             //     }
             // }
             return Some(self.popup_states.last_mut().unwrap().as_view_mut());
+        }
+        if self.dialog_states.len() != 0 {
+            return Some(self.dialog_states.last_mut().unwrap().as_view_mut());
         }
         if self.page_states.len() != 0 {
             // let len: usize = self.page_states.len();

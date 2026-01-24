@@ -4,6 +4,12 @@ use crate::utils::get_dir_names;
 use color_eyre::eyre::Result;
 use std::path::PathBuf;
 
+
+/*
+    Button
+ */
+
+
 pub struct SimpleButton {
     pub label: String,
     pub on_interact: Option<Box<dyn FnMut() -> Result<Command>>>,
@@ -22,6 +28,13 @@ impl SimpleButton {
         }
     }
 }
+
+
+/*
+    Directory Lists
+ */
+
+
 pub struct DirectoryList {
     pub is_focused: bool,
     pub label: String,
@@ -69,17 +82,31 @@ impl DirectoryList {
         self.offset += 4;
     }
 }
-impl Focusable for DirectoryList {
-    fn is_focused(&self) -> bool {
-        self.is_focused
-    }
-    fn set_focus(&mut self, value: bool) -> () {
-        self.is_focused = value;
-    }
-    fn focused_child_ref(&self) -> Option<&dyn Container> {
-        None
-    }
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
-        None
+
+
+/*
+    Text Field
+ */
+
+
+pub enum TextFieldInputMode {
+    NORMAL,
+    EDIT
+}
+pub struct TextField {
+    pub label: String,
+    pub chars: Vec<char>,
+    pub cursor_index: usize,
+    pub input_mode: TextFieldInputMode,
+}
+
+impl TextField {
+    pub fn new(label: &str, chars: Vec<char>) -> Self {
+        Self {
+            label: label.to_string(),
+            chars: chars,
+            cursor_index: 0,
+            input_mode: TextFieldInputMode::NORMAL,
+        }
     }
 }

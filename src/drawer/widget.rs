@@ -1,8 +1,8 @@
-use crate::app::widget::{DirectoryList, SimpleButton};
+use crate::app::widget::{DirectoryList, SimpleButton, TextField};
 use crate::drawer::{DrawFlag, Drawable};
 use crate::utils::get_dir_names;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Offset, Rect};
+use ratatui::layout::{Constraint, Layout, Offset, Position, Rect};
 use ratatui::prelude::Stylize;
 use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Widget};
@@ -79,5 +79,22 @@ impl Drawable for DirectoryList {
                 buf,
             );
         }
+    }
+}
+/*
+    Text Field
+ */
+
+impl Drawable for TextField {
+    fn render(&self, area: Rect, buf: &mut Buffer, draw_flag: DrawFlag) {
+        let text_field_area = area.centered(
+            Constraint::Min(18),
+            Constraint::Min(3),
+        );
+        let text_line: Line = Line::from(self.chars.iter().collect::<String>().as_str());
+        let cursor_position: Position = text_field_area.as_position().offset(Offset{
+            x: self.cursor_index as i32,
+            y: 1
+        });
     }
 }

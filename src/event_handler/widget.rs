@@ -1,5 +1,5 @@
 use crate::app::widget::{DirectoryList, SimpleButton};
-use crate::app::Command;
+use crate::app::{Command, Container};
 use crate::event_handler::{Focusable, Interactable};
 use crate::utils::get_dir_names;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers, ModifierKeyCode};
@@ -80,5 +80,19 @@ impl Interactable for DirectoryList {
                 _ => Ok(Command::None),
             }
         }
+    }
+}
+impl Focusable for DirectoryList {
+    fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+    fn set_focus(&mut self, value: bool) -> () {
+        self.is_focused = value;
+    }
+    fn focused_child_ref(&self) -> Option<&dyn Container> {
+        None
+    }
+    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
+        None
     }
 }
