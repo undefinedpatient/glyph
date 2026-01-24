@@ -6,10 +6,11 @@ use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::{Block, BorderType, Borders, Widget};
 use std::rc::Rc;
+use ratatui::Frame;
 use tui_big_text::{BigText, PixelSize};
 
 impl Drawable for EntrancePage {
-    fn render(&self, area: Rect, buf: &mut Buffer, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
         /*
            Container Frame
         */
@@ -46,26 +47,26 @@ impl Drawable for EntrancePage {
         ])
         .split(rects[1]);
         // Render Section
-        block.render(area, buf);
-        title.render(rects[0], buf);
+        block.render(area, frame.buffer_mut());
+        title.render(rects[0], frame.buffer_mut());
         for (i, button_interactable) in (&self.components).iter().enumerate() {
             if let Some(ci) = self.hover_index {
                 if i == ci {
-                    button_interactable.render(button_rects[i], buf, DrawFlag::HIGHLIGHTING);
+                    button_interactable.render(frame,button_rects[i], DrawFlag::HIGHLIGHTING);
                 } else {
-                    button_interactable.render(button_rects[i], buf, DrawFlag::DEFAULT);
+                    button_interactable.render(frame, button_rects[i], DrawFlag::DEFAULT);
                 }
             }
-            button_interactable.render(button_rects[i], buf, DrawFlag::DEFAULT);
+            button_interactable.render(frame, button_rects[i], DrawFlag::DEFAULT);
         }
     }
 }
 impl Drawable for CreateGlyphPage {
-    fn render(&self, area: Rect, buf: &mut Buffer, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
         /*
            Outer Frame
         */
-        let frame: Block = match draw_flag {
+        let page_frame: Block = match draw_flag {
             DrawFlag::DEFAULT => Block::bordered()
                 .title("Create glyph page"),
             DrawFlag::HIGHLIGHTING => Block::bordered()
@@ -80,8 +81,8 @@ impl Drawable for CreateGlyphPage {
         /*
            Chucks
         */
-        let inner_area: Rect = frame.inner(area);
-        frame.render(area, buf);
+        let inner_area: Rect = page_frame.inner(area);
+        page_frame.render(area, frame.buffer_mut());
         let chunks = Layout::vertical([Constraint::Percentage(50), Constraint::Max(3)])
             .flex(Flex::Center)
             .spacing(3)
@@ -92,8 +93,8 @@ impl Drawable for CreateGlyphPage {
             .flex(Flex::Center)
             .split(chunks[1]);
         self.containers[0].render(
+            frame,
             file_explorer_area,
-            buf,
             if let Some(index) = self.hover_index {
                 if index == 0 {
                     if self.containers[0].is_focused() {
@@ -109,8 +110,8 @@ impl Drawable for CreateGlyphPage {
             },
         );
         self.components[0].render(
+            frame,
             button_areas[0],
-            buf,
             if let Some(index) = self.hover_index {
                 if index == 1 {
                     DrawFlag::HIGHLIGHTING
@@ -122,8 +123,8 @@ impl Drawable for CreateGlyphPage {
             },
         );
         self.components[1].render(
+            frame,
             button_areas[1],
-            buf,
             if let Some(index) = self.hover_index {
                 if index == 2 {
                     DrawFlag::HIGHLIGHTING
