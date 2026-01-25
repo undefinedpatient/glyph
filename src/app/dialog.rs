@@ -11,7 +11,6 @@ pub struct CreateGlyphDialog {
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
     pub state: CreateGlyphDialogState,
-    pub path_buf: PathBuf
 }
 impl CreateGlyphDialog {
     pub fn new(path_buf: PathBuf) -> Self {
@@ -32,13 +31,26 @@ impl CreateGlyphDialog {
                     )
                 ),
                 Box::new(
-                    LineButton::new("Confirm")
+                    LineButton::new("Confirm").on_interact(
+                        Box::new(
+                            |state_data| {
+                            let state = state_data.unwrap().downcast_mut::<CreateGlyphDialogState>().unwrap();
+                                let mut commands: Vec<Command> = Vec::new();
+                                commands.push(Command::PopDialog);
+                                commands.push(Command::CreateGlyph(
+                                    state.path_buf.clone(),
+                                    state.new_glyph_name.clone()
+                                ));
+                                Ok(commands)
+                            }
+                        )
+                    )
                 )
             ],
             state: CreateGlyphDialogState{
                 new_glyph_name: String::from("default"),
+                path_buf: path_buf,
             },
-            path_buf: path_buf,
         }
     }
 }

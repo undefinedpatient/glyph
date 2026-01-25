@@ -41,28 +41,15 @@ impl Interactable for CreateGlyphDialog {
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.hover_index {
                             return match index {
-                                0 => {
+                                0 => { // Text Field
                                     self.containers[0].set_focus(true);
                                     Ok(Vec::new())
                                 }
-                                1 => {
+                                1 => { // Back Button
                                     self.components[0].handle(key, None)
                                 }
-                                2 => {
-                                    let mut commands: Vec<Command> = Vec::new();
-                                    commands.push(Command::PopDialog);
-                                    commands.push(Command::CreateGlyph(
-                                        self.path_buf.clone(),
-                                        self.state.new_glyph_name.clone()
-                                    ));
-                                    commands.push(Command::PushPopup(
-                                        Box::new(
-                                            MessagePopup::new(["New Glyph Created at:\n", self.path_buf.to_str().unwrap()].concat().as_str())
-                                        )
-                                    ));
-                                    Ok(commands)
-                                    // return Ok(vec![Command::PopDialog, Command::CreateGlyph("",self.state.new_glyph_name.clone())]);
-                                    // self.components[1].handle(key, Some(&mut self.state.new_glyph_name))
+                                2 => { // Confirm Button
+                                    self.components[1].handle(key, Some(&mut self.state))
                                 }
                                 _ => Ok(Vec::new()),
                             }
@@ -73,7 +60,11 @@ impl Interactable for CreateGlyphDialog {
                 _ => Ok(Vec::new())
             }
         } else {
-            let result = self.focused_child_mut().unwrap().handle(key, None);
+            let index: usize = self.focused_child_index().unwrap();
+            let mut result = self.containers[index].handle(
+                key,
+                Some(&mut self.state.new_glyph_name)
+            );
             result
         }
     }

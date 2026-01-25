@@ -2,13 +2,14 @@ use crate::app::dialog::CreateGlyphDialog;
 use crate::app::popup::{ExitConfirmPopup, MessagePopup};
 use crate::app::widget::{DirectoryList, SimpleButton};
 use crate::app::{Command, Component, Container};
-use crate::state::page::CreateGlyphPageState;
+use crate::state::page::{CreateGlyphPageState, EntrancePageState};
 
 pub struct EntrancePage {
     pub is_focused: bool,
     pub is_hovered: bool,
     pub hover_index: Option<usize>,
     pub components: Vec<Box<dyn Component>>,
+    pub state: EntrancePageState
 }
 impl EntrancePage {
     pub fn new() -> Self {
@@ -17,24 +18,26 @@ impl EntrancePage {
             is_hovered: false,
             hover_index: None,
             components: vec![
-                Box::new(SimpleButton::new("Create").on_interact(Box::new(|me| {
+                Box::new(SimpleButton::new("Create").on_interact(Box::new(|_| {
                     Ok(vec![Command::PushPage(Box::new(CreateGlyphPage::new()))])
                 }))),
-                Box::new(SimpleButton::new("Open").on_interact(Box::new(|me| {
+                Box::new(SimpleButton::new("Open").on_interact(Box::new(|_| {
                     Ok(vec![Command::PushPopup(Box::new(MessagePopup::new(
                         "Not Implemented",
                     )))])
                 }))),
-                Box::new(SimpleButton::new("Quit").on_interact(Box::new(|me| {
+                Box::new(SimpleButton::new("Quit").on_interact(Box::new(|_| {
                     Ok(vec![Command::PushPopup(Box::new(ExitConfirmPopup::new(true)))])
                 }))),
             ],
+            state: EntrancePageState {
+                is_focused: true,
+                is_hovered: false,
+            }
         }
     }
 }
 pub struct CreateGlyphPage {
-    pub is_focused: bool,
-    pub is_hovered: bool,
     pub hover_index: Option<usize>,
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
@@ -43,17 +46,28 @@ pub struct CreateGlyphPage {
 impl CreateGlyphPage {
     pub fn new() -> Self {
         Self {
-            is_focused: true,
-            is_hovered: false,
             hover_index: None,
             containers: vec![Box::new(DirectoryList::new("Directory"))],
             components: vec![
                 Box::new(SimpleButton::new("Back").on_interact(Box::new(
-                    |me| Ok(vec![Command::PopPage])
+                    |_| Ok(vec![Command::PopPage])
                 ))),
-                Box::new(SimpleButton::new("Confirm")),
+                Box::new(SimpleButton::new("Confirm").on_interact(Box::new(
+                    |state_data| {
+                        let state = state_data.unwrap().downcast_mut::<CreateGlyphPageState>().unwrap();
+                        Ok(
+                            vec![Command::PushDialog(
+                                Box::new(
+                                    CreateGlyphDialog::new(state.path_to_create.clone())
+                                )
+                            )]
+                        )
+                    }
+                ))),
             ],
             state: CreateGlyphPageState{
+                is_focused: true,
+                is_hovered: false,
                 path_to_create: std::env::current_dir().unwrap()
             }
         }

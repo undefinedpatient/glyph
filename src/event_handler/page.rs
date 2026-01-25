@@ -80,23 +80,17 @@ impl Interactable for CreateGlyphPage {
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.hover_index {
                             match index {
-                                0 => {
+                                0 => { // Directory List
                                     self.containers[index].set_focus(true);
                                 }
-                                1=>{
-                                    return self.components[1].handle(key, Some(&mut self.state.path_to_create));
+                                1=> { // Back Button
+                                    return self.components[0].handle(key, None);
                                 }
-                                2 => {
-                                    return Ok(vec![Command::PushDialog(
-                                        Box::new(
-                                            CreateGlyphDialog::new(
-                                                self.state.path_to_create.clone()
-                                            )
-                                        )
-                                    )]);
+                                2 => { // Confirm Button
+                                    return self.components[1].handle(key, Some(&mut self.state));
                                 }
                                 _ => {
-                                    
+
                                 }
                             }
                         }
@@ -112,29 +106,6 @@ impl Interactable for CreateGlyphPage {
                 Some(&mut self.state.path_to_create)
             );
             result
-            // if result.is_err() {
-            //     return result;
-            // } else {
-            //     let mut commands: Vec<Command> = result?;
-            //     let mut output_commands: Vec<Command> = Vec::new();
-            //     for command in commands {
-            //         match &command {
-            //             Command::CreateGlyphRequest(name) => {
-            //                 create_glyph(&name, &self.state.path_to_create)?;
-            //                 output_commands.push(
-            //                     Command::PushPopup(
-            //                         Box::new(MessagePopup::new(self.state.path_to_create.to_str().unwrap()))
-            //                     )
-            //                 );
-            //             }
-            //             _ => {
-            //                 output_commands.push(command);
-            //             }
-            //         }
-            //     }
-            //     return Ok(output_commands);
-            // 
-            // }
         }
     }
 }

@@ -74,9 +74,7 @@ impl Interactable for DirectoryList {
                         self.set_focus(false);
                         let mut parent_data = data.unwrap().downcast_mut::<PathBuf>().unwrap();
                         *parent_data = self.current_path.clone();
-                        return Ok(vec![
-                            Command::PushPopup( Box::new(MessagePopup::new(parent_data.clone().to_str().unwrap()))),
-                        ]);
+                        return Ok(Vec::new());
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.hover_index {
@@ -118,6 +116,8 @@ impl Interactable for TextField {
                     if let KeyCode::Esc = key.code {
                         self.switch_mode(TextFieldInputMode::Normal);
                         self.set_focus(false);
+                        let mut name= data.unwrap().downcast_mut::<String>().unwrap();
+                        *name = self.chars.iter().collect::<String>();
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Char(i) = key.code {
