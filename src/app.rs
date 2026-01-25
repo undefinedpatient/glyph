@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::path::PathBuf;
 
 pub mod page;
 pub mod popup;
@@ -17,6 +18,7 @@ pub enum Command {
     PopDialog,
     PushPopup(Box<dyn Container>),
     PopPopup,
+    CreateGlyph(String, PathBuf),
     None,
 }
 pub trait Convertible {

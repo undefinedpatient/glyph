@@ -7,20 +7,22 @@ use std::path::PathBuf;
 
 impl Interactable for SimpleButton {
     fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
-        if let Some(f) = &mut self.on_interact {
-            f()
-        } else {
-            Ok(Command::None)
-        }
+        let Some(mut f) = self.on_interact.take() else {
+            return Ok(Command::None);
+        };
+        let result = f(self);
+        self.on_interact = Some(f);
+        result
     }
 }
 impl Interactable for LineButton {
     fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
-        if let Some(f) = &mut self.on_interact {
-            f()
-        } else {
-            Ok(Command::None)
-        }
+        let Some(mut f) = self.on_interact.take() else {
+            return Ok(Command::None);
+        };
+        let result = f(self);
+        self.on_interact = Some(f);
+        result
     }
 }
 impl Interactable for DirectoryList {

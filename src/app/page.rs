@@ -16,15 +16,15 @@ impl EntrancePage {
             is_hovered: false,
             hover_index: None,
             components: vec![
-                Box::new(SimpleButton::new("Create").on_interact(Box::new(|| {
+                Box::new(SimpleButton::new("Create").on_interact(Box::new(|me| {
                     color_eyre::eyre::Ok(Command::PushPage(Box::new(CreateGlyphPage::new())))
                 }))),
-                Box::new(SimpleButton::new("Open").on_interact(Box::new(|| {
+                Box::new(SimpleButton::new("Open").on_interact(Box::new(|me| {
                     color_eyre::eyre::Ok(Command::PushPopup(Box::new(MessagePopup::new(
                         "Not Implemented",
                     ))))
                 }))),
-                Box::new(SimpleButton::new("Quit").on_interact(Box::new(|| {
+                Box::new(SimpleButton::new("Quit").on_interact(Box::new(|me| {
                     color_eyre::eyre::Ok(Command::PushPopup(Box::new(ExitConfirmPopup::new(true))))
                 }))),
             ],
@@ -46,8 +46,8 @@ impl CreateGlyphPage {
             hover_index: None,
             containers: vec![Box::new(DirectoryList::new("Directory"))],
             components: vec![
-                Box::new(SimpleButton::new("Back").on_interact(Box::new(|| Ok(Command::PopPage)))),
-                Box::new(SimpleButton::new("Confirm").on_interact(Box::new(|| {
+                Box::new(SimpleButton::new("Back").on_interact(Box::new(|me| Ok(Command::PopPage)))),
+                Box::new(SimpleButton::new("Confirm").on_interact(Box::new(|me| {
                     color_eyre::eyre::Ok(Command::PushDialog(Box::new(TextInputDialog::new())))}))),
             ],
         }

@@ -12,7 +12,7 @@ use std::path::PathBuf;
 
 pub struct SimpleButton {
     pub label: String,
-    pub on_interact: Option<Box<dyn FnMut() -> Result<Command>>>,
+    pub on_interact: Option<Box<dyn FnMut(&mut Self) -> Result<Command>>>,
 }
 impl SimpleButton {
     pub fn new(label: &str) -> Self {
@@ -21,7 +21,7 @@ impl SimpleButton {
             on_interact: None,
         }
     }
-    pub fn on_interact(&mut self, f: Box<dyn FnMut() -> Result<Command>>) -> Self {
+    pub fn on_interact(&mut self, f: Box<dyn FnMut(&mut Self) -> Result<Command>>) -> Self {
         Self {
             label: self.label.clone(),
             on_interact: Some(f),
@@ -31,7 +31,7 @@ impl SimpleButton {
 
 pub struct LineButton {
     pub label: String,
-    pub on_interact: Option<Box<dyn FnMut() -> Result<Command>>>,
+    pub on_interact: Option<Box<dyn FnMut(&mut Self) -> Result<Command>>>,
 }
 impl LineButton {
     pub fn new(label: &str) -> Self {
@@ -40,7 +40,7 @@ impl LineButton {
             on_interact: None,
         }
     }
-    pub fn on_interact(&mut self, f: Box<dyn FnMut() -> Result<Command>>) -> Self {
+    pub fn on_interact(&mut self, f: Box<dyn FnMut(&mut Self) -> Result<Command>>) -> Self {
         Self {
             label: self.label.clone(),
             on_interact: Some(f),

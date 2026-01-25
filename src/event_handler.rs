@@ -51,6 +51,9 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
             Command::PopPopup => {
                 app.popup_states.pop();
             }
+            Command::CreateGlyph(glyph_name, path_buf) => {
+
+            }
             Command::Quit => {
                 app.state.should_quit = true;
             }

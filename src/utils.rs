@@ -46,15 +46,15 @@ pub fn get_dir_names(path: &Path) -> Result<Vec<String>> {
     Ok(file_names)
 }
 
-pub fn create_glyph(path: &Path, glyph_name: &str) -> Result<()> {
-    fs::create_dir(path)?;
+pub fn create_glyph(glyph_name: &str, path_buf: &PathBuf ) -> Result<()> {
+    fs::create_dir(path_buf.join(glyph_name))?;
     let glyph_config: String = toml::to_string(&GlyphConfig {
         name: glyph_name.to_string(),
     })?;
-    fs::write(path.join("glyph.toml"), glyph_config)?;
+    fs::write(path_buf.join(glyph_name).join("glyph.toml"), glyph_config)?;
     Ok(())
 }
 
-pub fn is_glyph(path: &Path) -> Result<bool> {
+pub fn is_valid_glyph(path_buf: &PathBuf) -> Result<bool> {
     Ok(false)
 }
