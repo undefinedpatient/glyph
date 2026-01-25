@@ -1,10 +1,11 @@
+use std::any::Any;
 use crate::app::dialog::TextInputDialog;
-use crate::app::Command;
+use crate::app::{Command, Data};
 use crate::event_handler::{Focusable, Interactable};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 
 impl Interactable for TextInputDialog {
-    fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<Data>) -> color_eyre::Result<Command> {
         if self.focused_child_mut().is_none() {
             match key.kind {
                 KeyEventKind::Press => {
@@ -37,13 +38,19 @@ impl Interactable for TextInputDialog {
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.hover_index {
-                            if index == 0 {
-                                self.containers[0].set_focus(true);
+                            return match index {
+                                0 => {
+                                    self.containers[0].set_focus(true);
+                                    Ok(Command::None)
+                                }
+                                1 => {
+                                    self.components[1].handle(key, None)
+                                }
+                                2 => {
+                                    self.components[2].handle(key, None)
+                                }
+                                _ => Ok(Command::None),
                             }
-                            else if index > 0 && index < 3 {
-                                return self.components[index-1].handle(key);
-                            }
-                            return Ok(Command::None);
                         }
                     }
                     Ok(Command::None)
@@ -51,7 +58,7 @@ impl Interactable for TextInputDialog {
                 _ => Ok(Command::None)
             }
         } else {
-            self.focused_child_mut().unwrap().handle(key)
+            self.focused_child_mut().unwrap().handle(key, None)
         }
     }
 }

@@ -1,32 +1,33 @@
+use std::any::Any;
 use crate::app::widget::{DirectoryList, LineButton, SimpleButton, TextField, TextFieldInputMode};
-use crate::app::Command;
+use crate::app::{Command, Data};
 use crate::event_handler::{Focusable, Interactable};
 use crate::utils::get_dir_names;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::path::PathBuf;
 
 impl Interactable for SimpleButton {
-    fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<Data>) -> color_eyre::Result<Command> {
         let Some(mut f) = self.on_interact.take() else {
             return Ok(Command::None);
         };
-        let result = f(self);
+        let result = f(data);
         self.on_interact = Some(f);
         result
     }
 }
 impl Interactable for LineButton {
-    fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<Data>) -> color_eyre::Result<Command> {
         let Some(mut f) = self.on_interact.take() else {
             return Ok(Command::None);
         };
-        let result = f(self);
+        let result = f(data);
         self.on_interact = Some(f);
         result
     }
 }
 impl Interactable for DirectoryList {
-    fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<Data>) -> color_eyre::Result<Command> {
         if !self.is_focused() {
             self.set_focus(true);
             Ok(Command::None)
@@ -101,7 +102,7 @@ impl Interactable for DirectoryList {
 
 
 impl Interactable for TextField {
-    fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<Data>) -> color_eyre::Result<Command> {
         if !self.is_focused() {
             self.set_focus(true);
             Ok(Command::None)

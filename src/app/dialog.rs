@@ -20,15 +20,15 @@ impl TextInputDialog {
             components: vec![
                 Box::new(
                     LineButton::new("Back").on_interact(
-                        Box::new(|me| {
+                        Box::new(|_| {
                             Ok(Command::PopDialog)
                         })
                     )
                 ),
                 Box::new(
                     LineButton::new("Confirm").on_interact(
-                        Box::new(|me| {
-                            Ok(Command::PopDialog)
+                        Box::new(|data| {
+                            
                         })
                     )
                 )

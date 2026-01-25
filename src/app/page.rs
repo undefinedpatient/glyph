@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::app::dialog::TextInputDialog;
 use crate::app::popup::{ExitConfirmPopup, MessagePopup};
 use crate::app::widget::{DirectoryList, SimpleButton};
@@ -37,6 +38,7 @@ pub struct CreateGlyphPage {
     pub hover_index: Option<usize>,
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
+    pub d_path_to_create: PathBuf,
 }
 impl CreateGlyphPage {
     pub fn new() -> Self {
@@ -50,6 +52,7 @@ impl CreateGlyphPage {
                 Box::new(SimpleButton::new("Confirm").on_interact(Box::new(|me| {
                     color_eyre::eyre::Ok(Command::PushDialog(Box::new(TextInputDialog::new())))}))),
             ],
+            d_path_to_create: PathBuf::new(),
         }
     }
 }

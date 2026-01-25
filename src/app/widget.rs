@@ -1,4 +1,5 @@
-use crate::app::Command;
+use std::any::Any;
+use crate::app::{Command, Data};
 use crate::drawer::DrawFlag;
 use crate::utils::get_dir_names;
 use color_eyre::eyre::Result;
@@ -12,7 +13,7 @@ use std::path::PathBuf;
 
 pub struct SimpleButton {
     pub label: String,
-    pub on_interact: Option<Box<dyn FnMut(&mut Self) -> Result<Command>>>,
+    pub on_interact: Option<Box<dyn FnMut(Option<Data>) -> Result<Command>>>,
 }
 impl SimpleButton {
     pub fn new(label: &str) -> Self {
@@ -21,7 +22,7 @@ impl SimpleButton {
             on_interact: None,
         }
     }
-    pub fn on_interact(&mut self, f: Box<dyn FnMut(&mut Self) -> Result<Command>>) -> Self {
+    pub fn on_interact(&mut self, f: Box<dyn FnMut(Option<Data>) -> Result<Command>>) -> Self {
         Self {
             label: self.label.clone(),
             on_interact: Some(f),
@@ -31,7 +32,7 @@ impl SimpleButton {
 
 pub struct LineButton {
     pub label: String,
-    pub on_interact: Option<Box<dyn FnMut(&mut Self) -> Result<Command>>>,
+    pub on_interact: Option<Box<dyn FnMut(Option<Data>) -> Result<Command>>>,
 }
 impl LineButton {
     pub fn new(label: &str) -> Self {
@@ -40,7 +41,7 @@ impl LineButton {
             on_interact: None,
         }
     }
-    pub fn on_interact(&mut self, f: Box<dyn FnMut(&mut Self) -> Result<Command>>) -> Self {
+    pub fn on_interact(&mut self, f: Box<dyn FnMut(Option<Data>) -> Result<Command>>) -> Self {
         Self {
             label: self.label.clone(),
             on_interact: Some(f),

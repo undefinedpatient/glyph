@@ -18,8 +18,21 @@ pub enum Command {
     PopDialog,
     PushPopup(Box<dyn Container>),
     PopPopup,
+    Data(Data),
     CreateGlyph(String, PathBuf),
     None,
+}
+pub enum Data {
+    String(String),
+    PathBuf(PathBuf),
+    Any(Box<dyn Any>),
+}
+
+/*
+    A data package consists of a vector of pair of (label, data)
+ */
+pub struct DataPackage{
+    pub data: Vec<(String,Data)>,
 }
 pub trait Convertible {
     fn as_any(&self) -> &dyn Any;

@@ -4,13 +4,13 @@ mod widget;
 mod dialog;
 
 use crate::app::popup::MessagePopup;
-use crate::app::{Application, Command, Container, Convertible};
+use crate::app::{Application, Command, Container, Convertible, Data};
 use crate::drawer::Drawable;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
 
 pub trait Interactable: Convertible {
-    fn handle(&mut self, key: &KeyEvent) -> color_eyre::Result<Command>;
+    fn handle(&mut self, key: &KeyEvent, data: Option<Data>) -> color_eyre::Result<Command>;
 }
 pub trait Focusable {
     fn is_focused(&self) -> bool;
@@ -24,7 +24,7 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
     if let Some(stateful) = (*app).view_to_focus_mut() {
         let result: Command = (*stateful)
             .as_interactable_mut()
-            .handle(key)
+            .handle(key, None)
             .unwrap_or_else(|report| {
                 return Command::PushPopup(Box::new(MessagePopup::new(report.to_string().as_str())));
             });
@@ -57,6 +57,7 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
             Command::Quit => {
                 app.state.should_quit = true;
             }
+            Command::Data(data) => {}
             Command::None => {}
         }
     }
