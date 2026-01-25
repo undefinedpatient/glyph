@@ -4,13 +4,13 @@ mod widget;
 mod dialog;
 
 use crate::app::popup::MessagePopup;
-use crate::app::{Application, Command, Container, Convertible, Data};
+use crate::app::{Application, Command, Container, Convertible, Data, DataPackage};
 use crate::drawer::Drawable;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
 
 pub trait Interactable: Convertible {
-    fn handle(&mut self, key: &KeyEvent, data: Option<Data>) -> color_eyre::Result<Command>;
+    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>>;
 }
 pub trait Focusable {
     fn is_focused(&self) -> bool;
@@ -20,17 +20,18 @@ pub trait Focusable {
 }
 pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
     handle_global_events(key, app);
-    let mut command: Option<Command> = None;
     if let Some(stateful) = (*app).view_to_focus_mut() {
-        let result: Command = (*stateful)
+        let mut commands: Vec<Command> = (*stateful)
             .as_interactable_mut()
             .handle(key, None)
             .unwrap_or_else(|report| {
-                return Command::PushPopup(Box::new(MessagePopup::new(report.to_string().as_str())));
+                return vec![Command::PushPopup(Box::new(MessagePopup::new(report.to_string().as_str())))];
             });
-        app.q_commands.push(result);
+        while !commands.is_empty() {
+            app.q_commands.push(commands.pop().unwrap());
+        }
     }
-    if app.q_commands.len() > 0 {
+    while app.q_commands.len() > 0 {
         let command: Command = app.q_commands.pop().unwrap();
         match command {
             Command::PushPage(view) => {
@@ -58,7 +59,6 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
                 app.state.should_quit = true;
             }
             Command::Data(data) => {}
-            Command::None => {}
         }
     }
 }

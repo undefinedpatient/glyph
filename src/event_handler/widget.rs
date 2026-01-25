@@ -1,15 +1,15 @@
 use std::any::Any;
 use crate::app::widget::{DirectoryList, LineButton, SimpleButton, TextField, TextFieldInputMode};
-use crate::app::{Command, Data};
+use crate::app::{Command, Data, DataPackage};
 use crate::event_handler::{Focusable, Interactable};
 use crate::utils::get_dir_names;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::path::PathBuf;
 
 impl Interactable for SimpleButton {
-    fn handle(&mut self, key: &KeyEvent, data: Option<Data>) -> color_eyre::Result<Command> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>> {
         let Some(mut f) = self.on_interact.take() else {
-            return Ok(Command::None);
+            return Ok(Vec::new());
         };
         let result = f(data);
         self.on_interact = Some(f);
@@ -17,9 +17,9 @@ impl Interactable for SimpleButton {
     }
 }
 impl Interactable for LineButton {
-    fn handle(&mut self, key: &KeyEvent, data: Option<Data>) -> color_eyre::Result<Command> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>> {
         let Some(mut f) = self.on_interact.take() else {
-            return Ok(Command::None);
+            return Ok(Vec::new());
         };
         let result = f(data);
         self.on_interact = Some(f);
@@ -27,10 +27,10 @@ impl Interactable for LineButton {
     }
 }
 impl Interactable for DirectoryList {
-    fn handle(&mut self, key: &KeyEvent, data: Option<Data>) -> color_eyre::Result<Command> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
-            Ok(Command::None)
+            Ok(Vec::new())
         } else {
             match key.kind {
                 KeyEventKind::Press => {
@@ -38,36 +38,36 @@ impl Interactable for DirectoryList {
                         return match char {
                             'j' => {
                                 self.next_entry();
-                                Ok(Command::None)
+                                Ok(Vec::new())
                             },
                             'k' => {
                                 self.previous_entry();
-                                Ok(Command::None)
+                                Ok(Vec::new())
                             }
                             'u' => {
                                 if key.modifiers.contains(KeyModifiers::CONTROL) {
                                     self.page_up();
                                 }
-                                Ok(Command::None)
+                                Ok(Vec::new())
                             }
                             'd' => {
                                 if key.modifiers.contains(KeyModifiers::CONTROL) {
                                     self.page_down();
                                 }
-                                Ok(Command::None)
+                                Ok(Vec::new())
                             }
                             _ => {
-                                Ok(Command::None)
+                                Ok(Vec::new())
                             }
                         }
                     }
                     if let KeyCode::Tab = key.code {
                         self.next_entry();
-                        return Ok(Command::None);
+                        return Ok(Vec::new());
                     }
                     if let KeyCode::BackTab = key.code {
                         self.previous_entry();
-                        return Ok(Command::None);
+                        return Ok(Vec::new());
                     }
                     if let KeyCode::Esc = key.code {
                         self.set_focus(false);
@@ -79,17 +79,17 @@ impl Interactable for DirectoryList {
                                 if let Some(path_buf) = (&self.current_path).parent() {
                                     self.current_path = path_buf.to_path_buf().clone();
                                 }
-                                return Ok(Command::None);
+                                return Ok(Vec::new());
                             }
                             self.current_path = self.current_path.join(PathBuf::from(
                                 get_dir_names(&self.current_path)?[index].to_string(),
                             ));
-                            return Ok(Command::None);
+                            return Ok(Vec::new());
                         }
                     }
-                    Ok(Command::None)
+                    Ok(Vec::new())
                 }
-                _ => Ok(Command::None),
+                _ => Ok(Vec::new()),
             }
         }
     }
@@ -102,17 +102,17 @@ impl Interactable for DirectoryList {
 
 
 impl Interactable for TextField {
-    fn handle(&mut self, key: &KeyEvent, data: Option<Data>) -> color_eyre::Result<Command> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
-            Ok(Command::None)
+            Ok(Vec::new())
         } else {
             match self.input_mode {
                 TextFieldInputMode::Normal => {
                     if let KeyCode::Esc = key.code {
                         self.switch_mode(TextFieldInputMode::Normal);
                         self.set_focus(false);
-                        return Ok(Command::None);
+                        return Ok(Vec::new());
                     }
                     if let KeyCode::Char(i) = key.code {
                         match i {
@@ -143,7 +143,7 @@ impl Interactable for TextField {
                                 self.move_to_previous_char();
                             }
 
-                            _ => return Ok(Command::None),
+                            _ => return Ok(Vec::new()),
                         }
                     }
                     if let KeyCode::Left = key.code {
@@ -152,7 +152,7 @@ impl Interactable for TextField {
                     if let KeyCode::Right = key.code {
                         self.move_to_next_char();
                     }
-                    Ok(Command::None)
+                    Ok(Vec::new())
                 }
                 TextFieldInputMode::Edit => {
                     if let KeyCode::Esc = key.code {
@@ -172,7 +172,7 @@ impl Interactable for TextField {
                     if let KeyCode::Right = key.code {
                         self.move_to_next_char();
                     }
-                    Ok(Command::None)
+                    Ok(Vec::new())
                 }
             }
         }

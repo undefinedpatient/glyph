@@ -20,7 +20,6 @@ pub enum Command {
     PopPopup,
     Data(Data),
     CreateGlyph(String, PathBuf),
-    None,
 }
 pub enum Data {
     String(String),

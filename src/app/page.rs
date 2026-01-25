@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use color_eyre::eyre::Result;
 use crate::app::dialog::TextInputDialog;
 use crate::app::popup::{ExitConfirmPopup, MessagePopup};
 use crate::app::widget::{DirectoryList, SimpleButton};
@@ -18,15 +19,15 @@ impl EntrancePage {
             hover_index: None,
             components: vec![
                 Box::new(SimpleButton::new("Create").on_interact(Box::new(|me| {
-                    color_eyre::eyre::Ok(Command::PushPage(Box::new(CreateGlyphPage::new())))
+                    Ok(vec![Command::PushPage(Box::new(CreateGlyphPage::new()))])
                 }))),
                 Box::new(SimpleButton::new("Open").on_interact(Box::new(|me| {
-                    color_eyre::eyre::Ok(Command::PushPopup(Box::new(MessagePopup::new(
+                    Ok(vec![Command::PushPopup(Box::new(MessagePopup::new(
                         "Not Implemented",
-                    ))))
+                    )))])
                 }))),
                 Box::new(SimpleButton::new("Quit").on_interact(Box::new(|me| {
-                    color_eyre::eyre::Ok(Command::PushPopup(Box::new(ExitConfirmPopup::new(true))))
+                    Ok(vec![Command::PushPopup(Box::new(ExitConfirmPopup::new(true)))])
                 }))),
             ],
         }
@@ -48,9 +49,12 @@ impl CreateGlyphPage {
             hover_index: None,
             containers: vec![Box::new(DirectoryList::new("Directory"))],
             components: vec![
-                Box::new(SimpleButton::new("Back").on_interact(Box::new(|me| Ok(Command::PopPage)))),
+                Box::new(SimpleButton::new("Back").on_interact(Box::new(|me| Ok(vec![Command::PopPage])))),
                 Box::new(SimpleButton::new("Confirm").on_interact(Box::new(|me| {
-                    color_eyre::eyre::Ok(Command::PushDialog(Box::new(TextInputDialog::new())))}))),
+                    color_eyre::eyre::Ok(
+                        vec![ Command::PushDialog(Box::new(TextInputDialog::new())) ]
+                    )}))
+                ),
             ],
             d_path_to_create: PathBuf::new(),
         }

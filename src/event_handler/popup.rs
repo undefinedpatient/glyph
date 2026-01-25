@@ -1,27 +1,27 @@
 use std::any::Any;
 use crate::app::popup::{ExitConfirmPopup, MessagePopup};
-use crate::app::{Command, Data};
+use crate::app::{Command, Data, DataPackage};
 use crate::event_handler::Interactable;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 
 impl Interactable for MessagePopup {
-    fn handle(&mut self, key: &KeyEvent, data: Option<Data>) -> color_eyre::Result<Command> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>> {
         return match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Enter = key.code {
-                    return Ok(Command::PopPopup);
+                    return Ok(vec![Command::PopPopup]);
                 }
                 if let KeyCode::Esc = key.code {
-                    return Ok(Command::PopPopup);
+                    return Ok(vec![Command::PopPopup]);
                 }
-                Ok(Command::None)
+                Ok(Vec::new())
             }
-            _ => Ok(Command::None),
+            _ => Ok(Vec::new()),
         };
     }
 }
 impl Interactable for ExitConfirmPopup {
-    fn handle(&mut self, key: &KeyEvent, data: Option<Data>) -> color_eyre::Result<Command> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>> {
         return match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Tab = key.code {
@@ -36,17 +36,17 @@ impl Interactable for ExitConfirmPopup {
                 }
                 if let KeyCode::Enter = key.code {
                     return if self.focus_index == 1 {
-                        Ok(Command::Quit)
+                        Ok(vec![Command::Quit])
                     } else {
-                        Ok(Command::PopPopup)
+                        Ok(vec![Command::PopPopup])
                     };
                 }
                 if let KeyCode::Esc = key.code {
-                    return Ok(Command::PopPopup);
+                    return Ok(vec![Command::PopPopup]);
                 }
-                Ok(Command::None)
+                Ok(Vec::new())
             }
-            _ => Ok(Command::None),
+            _ => Ok(Vec::new()),
         };
     }
 }

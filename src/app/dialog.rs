@@ -21,14 +21,19 @@ impl TextInputDialog {
                 Box::new(
                     LineButton::new("Back").on_interact(
                         Box::new(|_| {
-                            Ok(Command::PopDialog)
+                            Ok(vec![Command::PopDialog])
                         })
                     )
                 ),
                 Box::new(
                     LineButton::new("Confirm").on_interact(
                         Box::new(|data| {
-                            
+                            if let Some(data) = data {
+                                for datum in &data.data {
+
+                                }
+                            }
+                            Ok(Vec::new())
                         })
                     )
                 )
