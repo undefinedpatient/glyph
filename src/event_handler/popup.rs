@@ -1,11 +1,11 @@
-use std::any::Any;
 use crate::app::popup::{ExitConfirmPopup, MessagePopup};
-use crate::app::{Command, Data, DataPackage};
+use crate::app::Command;
 use crate::event_handler::Interactable;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use std::any::Any;
 
 impl Interactable for MessagePopup {
-    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         return match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Enter = key.code {
@@ -21,7 +21,7 @@ impl Interactable for MessagePopup {
     }
 }
 impl Interactable for ExitConfirmPopup {
-    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         return match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Tab = key.code {

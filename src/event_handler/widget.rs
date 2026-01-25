@@ -1,13 +1,14 @@
-use std::any::Any;
 use crate::app::widget::{DirectoryList, LineButton, SimpleButton, TextField, TextFieldInputMode};
-use crate::app::{Command, Data, DataPackage};
+use crate::app::{Command};
 use crate::event_handler::{Focusable, Interactable};
 use crate::utils::get_dir_names;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use std::any::Any;
 use std::path::PathBuf;
+use crate::app::popup::MessagePopup;
 
 impl Interactable for SimpleButton {
-    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         let Some(mut f) = self.on_interact.take() else {
             return Ok(Vec::new());
         };
@@ -17,7 +18,7 @@ impl Interactable for SimpleButton {
     }
 }
 impl Interactable for LineButton {
-    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         let Some(mut f) = self.on_interact.take() else {
             return Ok(Vec::new());
         };
@@ -27,7 +28,7 @@ impl Interactable for LineButton {
     }
 }
 impl Interactable for DirectoryList {
-    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
             Ok(Vec::new())
@@ -71,6 +72,11 @@ impl Interactable for DirectoryList {
                     }
                     if let KeyCode::Esc = key.code {
                         self.set_focus(false);
+                        let mut parent_data = data.unwrap().downcast_mut::<PathBuf>().unwrap();
+                        *parent_data = self.current_path.clone();
+                        return Ok(vec![
+                            Command::PushPopup( Box::new(MessagePopup::new(parent_data.clone().to_str().unwrap()))),
+                        ]);
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.hover_index {
@@ -102,7 +108,7 @@ impl Interactable for DirectoryList {
 
 
 impl Interactable for TextField {
-    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
             Ok(Vec::new())

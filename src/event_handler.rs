@@ -4,19 +4,21 @@ mod widget;
 mod dialog;
 
 use crate::app::popup::MessagePopup;
-use crate::app::{Application, Command, Container, Convertible, Data, DataPackage};
+use crate::app::{Application, Command, Container, Convertible};
 use crate::drawer::Drawable;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
+use crate::utils::create_glyph;
 
 pub trait Interactable: Convertible {
-    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>>;
+    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>>;
 }
 pub trait Focusable {
     fn is_focused(&self) -> bool;
     fn set_focus(&mut self, value: bool) -> ();
     fn focused_child_ref(&self) -> Option<&dyn Container>;
     fn focused_child_mut(&mut self) -> Option<&mut dyn Container>;
+    fn focused_child_index(&self) -> Option<usize>;
 }
 pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
     handle_global_events(key, app);
@@ -52,13 +54,14 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
             Command::PopPopup => {
                 app.popup_states.pop();
             }
-            Command::CreateGlyph(glyph_name, path_buf) => {
-
+            Command::CreateGlyph(path_buf, name) => {
+                create_glyph(&path_buf, &name);
             }
             Command::Quit => {
                 app.state.should_quit = true;
             }
             Command::Data(data) => {}
+            _ => {}
         }
     }
 }

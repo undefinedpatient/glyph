@@ -1,9 +1,8 @@
-use std::path::PathBuf;
-use color_eyre::eyre::Result;
-use crate::app::dialog::TextInputDialog;
+use crate::app::dialog::CreateGlyphDialog;
 use crate::app::popup::{ExitConfirmPopup, MessagePopup};
 use crate::app::widget::{DirectoryList, SimpleButton};
 use crate::app::{Command, Component, Container};
+use crate::state::page::CreateGlyphPageState;
 
 pub struct EntrancePage {
     pub is_focused: bool,
@@ -39,7 +38,7 @@ pub struct CreateGlyphPage {
     pub hover_index: Option<usize>,
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
-    pub d_path_to_create: PathBuf,
+    pub state: CreateGlyphPageState
 }
 impl CreateGlyphPage {
     pub fn new() -> Self {
@@ -49,14 +48,14 @@ impl CreateGlyphPage {
             hover_index: None,
             containers: vec![Box::new(DirectoryList::new("Directory"))],
             components: vec![
-                Box::new(SimpleButton::new("Back").on_interact(Box::new(|me| Ok(vec![Command::PopPage])))),
-                Box::new(SimpleButton::new("Confirm").on_interact(Box::new(|me| {
-                    color_eyre::eyre::Ok(
-                        vec![ Command::PushDialog(Box::new(TextInputDialog::new())) ]
-                    )}))
-                ),
+                Box::new(SimpleButton::new("Back").on_interact(Box::new(
+                    |me| Ok(vec![Command::PopPage])
+                ))),
+                Box::new(SimpleButton::new("Confirm")),
             ],
-            d_path_to_create: PathBuf::new(),
+            state: CreateGlyphPageState{
+                path_to_create: std::env::current_dir().unwrap()
+            }
         }
     }
 }

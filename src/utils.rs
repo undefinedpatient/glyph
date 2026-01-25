@@ -46,7 +46,7 @@ pub fn get_dir_names(path: &Path) -> Result<Vec<String>> {
     Ok(file_names)
 }
 
-pub fn create_glyph(glyph_name: &str, path_buf: &PathBuf ) -> Result<()> {
+pub fn create_glyph(path_buf: &PathBuf, glyph_name: &str) -> Result<()> {
     fs::create_dir(path_buf.join(glyph_name))?;
     let glyph_config: String = toml::to_string(&GlyphConfig {
         name: glyph_name.to_string(),

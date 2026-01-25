@@ -26,6 +26,7 @@ impl Focusable for MessagePopup {
     fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
         None
     }
+    fn focused_child_index(&self) -> Option<usize> { None }
 }
 pub struct ExitConfirmPopup {
     pub is_focused: bool,
@@ -49,7 +50,6 @@ impl Focusable for ExitConfirmPopup {
     fn focused_child_ref(&self) -> Option<&dyn Container> {
         None
     }
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
-        None
-    }
+    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> { None }
+    fn focused_child_index(&self) -> Option<usize> { None }
 }

@@ -1,14 +1,14 @@
-use std::any::Any;
-use std::path::Components;
 use crate::app::page::CreateGlyphPage;
-use crate::app::popup::ExitConfirmPopup;
-use crate::app::{page::EntrancePage, Command, Component, Data, DataPackage};
+use crate::app::popup::{ExitConfirmPopup, MessagePopup};
+use crate::app::{page::EntrancePage, Command};
 use crate::event_handler::{Focusable, Interactable};
-use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use std::any::Any;
+use crate::app::dialog::CreateGlyphDialog;
+use crate::utils::create_glyph;
 
 impl Interactable for EntrancePage {
-    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Tab = key.code {
@@ -46,7 +46,7 @@ impl Interactable for EntrancePage {
     }
 }
 impl Interactable for CreateGlyphPage {
-    fn handle(&mut self, key: &KeyEvent, data: Option<DataPackage>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         if self.focused_child_ref().is_none() {
             match key.kind {
                 KeyEventKind::Press => {
@@ -79,10 +79,25 @@ impl Interactable for CreateGlyphPage {
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.hover_index {
-                            if index == 0 {
-                                self.containers[index].set_focus(true);
-                            } else {
-                                return self.components[index - self.containers.len()].handle(key, None);
+                            match index {
+                                0 => {
+                                    self.containers[index].set_focus(true);
+                                }
+                                1=>{
+                                    return self.components[1].handle(key, Some(&mut self.state.path_to_create));
+                                }
+                                2 => {
+                                    return Ok(vec![Command::PushDialog(
+                                        Box::new(
+                                            CreateGlyphDialog::new(
+                                                self.state.path_to_create.clone()
+                                            )
+                                        )
+                                    )]);
+                                }
+                                _ => {
+                                    
+                                }
                             }
                         }
                     }
@@ -91,7 +106,35 @@ impl Interactable for CreateGlyphPage {
             }
             Ok(Vec::new())
         } else {
-            self.focused_child_mut().unwrap().handle(key, None)
+            let index: usize = self.focused_child_index().unwrap();
+            let mut result = self.containers[index].handle(
+                key,
+                Some(&mut self.state.path_to_create)
+            );
+            result
+            // if result.is_err() {
+            //     return result;
+            // } else {
+            //     let mut commands: Vec<Command> = result?;
+            //     let mut output_commands: Vec<Command> = Vec::new();
+            //     for command in commands {
+            //         match &command {
+            //             Command::CreateGlyphRequest(name) => {
+            //                 create_glyph(&name, &self.state.path_to_create)?;
+            //                 output_commands.push(
+            //                     Command::PushPopup(
+            //                         Box::new(MessagePopup::new(self.state.path_to_create.to_str().unwrap()))
+            //                     )
+            //                 );
+            //             }
+            //             _ => {
+            //                 output_commands.push(command);
+            //             }
+            //         }
+            //     }
+            //     return Ok(output_commands);
+            // 
+            // }
         }
     }
 }

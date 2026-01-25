@@ -8,6 +8,7 @@ pub mod dialog;
 
 use crate::drawer::Drawable;
 use crate::event_handler::{Focusable, Interactable};
+use crate::state::GlobalState;
 use page::EntrancePage;
 
 pub enum Command {
@@ -18,20 +19,9 @@ pub enum Command {
     PopDialog,
     PushPopup(Box<dyn Container>),
     PopPopup,
-    Data(Data),
-    CreateGlyph(String, PathBuf),
-}
-pub enum Data {
-    String(String),
-    PathBuf(PathBuf),
-    Any(Box<dyn Any>),
-}
-
-/*
-    A data package consists of a vector of pair of (label, data)
- */
-pub struct DataPackage{
-    pub data: Vec<(String,Data)>,
+    Data(Box<dyn Any>),
+    CreateGlyphRequest(String), // Sent from dialog with the desired Glyph Name
+    CreateGlyph(PathBuf, String),
 }
 pub trait Convertible {
     fn as_any(&self) -> &dyn Any;
@@ -117,10 +107,6 @@ impl<T: Interactable + Drawable + Focusable> Container for T {
     }
 }
 
-// Global State of the Application
-pub struct GlobalState {
-    pub should_quit: bool,
-}
 impl Application {
     fn view_to_focus_ref(&self) -> Option<&dyn Container> {
         if self.popup_states.len() != 0 {

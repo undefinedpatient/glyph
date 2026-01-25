@@ -4,10 +4,10 @@ use crate::event_handler::Focusable;
 use crate::utils::get_dir_names;
 use ratatui::layout::{Constraint, Offset, Position, Rect};
 use ratatui::prelude::Stylize;
+use ratatui::style::{Color, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Clear, Widget};
 use ratatui::Frame;
-use ratatui::style::{Color, Style};
 
 impl Drawable for SimpleButton {
     fn render(&self, frame: &mut Frame,area: Rect, draw_flag: DrawFlag) {
