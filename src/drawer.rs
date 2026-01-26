@@ -3,12 +3,14 @@ mod popup;
 mod widget;
 mod dialog;
 
-use crate::app::Application;
+use std::any::Any;
 use ratatui::layout::Rect;
 use ratatui::style::Stylize;
 use ratatui::widgets::{StatefulWidget, Widget};
 use ratatui::Frame;
-use std::any::Any;
+use crate::app::Application;
+
+
 pub enum DrawFlag {
     DEFAULT = 0b0000_0000,
     HIGHLIGHTING = 0b0000_0001,
@@ -32,5 +34,25 @@ pub fn draw(frame: &mut Frame, app: &mut Application) {
         popup
             .as_drawable_mut()
             .render(frame, frame.area(), DrawFlag::DEFAULT);
+    }
+}
+
+/*
+    Helper Functions
+ */
+fn get_draw_flag(current_hover_index: Option<usize>, widget_index: usize, include_focus: Option<bool>) -> DrawFlag {
+    if let Some(should_focus) = include_focus {
+        if should_focus {
+            return DrawFlag::FOCUSED;
+        }
+    }
+    if let Some(index) = current_hover_index {
+        if index == widget_index {
+            DrawFlag::HIGHLIGHTING
+        } else {
+            DrawFlag::DEFAULT
+        }
+    } else {
+        DrawFlag::DEFAULT
     }
 }

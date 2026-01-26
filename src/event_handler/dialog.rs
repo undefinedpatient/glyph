@@ -15,31 +15,31 @@ impl Interactable for CreateGlyphDialog {
                         return Ok(vec![Command::PopDialog]);
                     }
                     if let KeyCode::Tab = key.code {
-                        if let Some(index) = self.hover_index {
-                            self.hover_index = Some(
+                        if let Some(index) = self.state.hover_index {
+                            self.state.hover_index = Some(
                                 (index + 1usize) % (self.components.len() + self.containers.len()),
                             );
                         } else {
-                            self.hover_index = Some(0);
+                            self.state.hover_index = Some(0);
                         }
                         return Ok(Vec::new());
                     }
                     if let KeyCode::BackTab = key.code {
-                        if let Some(index) = self.hover_index {
+                        if let Some(index) = self.state.hover_index {
                             if index == 0 {
-                                self.hover_index =
+                                self.state.hover_index =
                                     Some((self.components.len() + self.containers.len()) - 1usize);
                             } else {
-                                self.hover_index = Some(index - 1usize);
+                                self.state.hover_index = Some(index - 1usize);
                             }
                         } else {
-                            self.hover_index =
+                            self.state.hover_index =
                                 Some((self.components.len() + self.containers.len()) - 1usize);
                         }
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Enter = key.code {
-                        if let Some(index) = self.hover_index {
+                        if let Some(index) = self.state.hover_index {
                             return match index {
                                 0 => { // Text Field
                                     self.containers[0].set_focus(true);

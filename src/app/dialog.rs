@@ -6,8 +6,6 @@ use std::path::PathBuf;
 use crate::app::popup::MessagePopup;
 
 pub struct CreateGlyphDialog {
-    pub is_focused: bool,
-    pub hover_index: Option<usize>,
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
     pub state: CreateGlyphDialogState,
@@ -15,8 +13,6 @@ pub struct CreateGlyphDialog {
 impl CreateGlyphDialog {
     pub fn new(path_buf: PathBuf) -> Self {
         Self {
-            is_focused: false,
-            hover_index: None,
             containers: vec![
                 Box::new(
                     TextField::new("Glpyh Name", "Untitled".to_string())
@@ -36,6 +32,7 @@ impl CreateGlyphDialog {
                             |state_data| {
                             let state = state_data.unwrap().downcast_mut::<CreateGlyphDialogState>().unwrap();
                                 let mut commands: Vec<Command> = Vec::new();
+                                commands.push(Command::PopPage);
                                 commands.push(Command::PopDialog);
                                 commands.push(Command::CreateGlyph(
                                     state.path_buf.clone(),
@@ -48,6 +45,8 @@ impl CreateGlyphDialog {
                 )
             ],
             state: CreateGlyphDialogState{
+                is_focused: false,
+                hover_index: None,
                 new_glyph_name: String::from("default"),
                 path_buf: path_buf,
             },

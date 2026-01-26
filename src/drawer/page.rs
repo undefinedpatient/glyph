@@ -1,5 +1,5 @@
 use crate::app::page::{CreateGlyphPage, EntrancePage};
-use crate::drawer::{DrawFlag, Drawable};
+use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect};
 use ratatui::style::{Style, Stylize};
@@ -49,7 +49,7 @@ impl Drawable for EntrancePage {
         block.render(area, frame.buffer_mut());
         title.render(rects[0], frame.buffer_mut());
         for (i, button_interactable) in (&self.components).iter().enumerate() {
-            if let Some(ci) = self.hover_index {
+            if let Some(ci) = self.state.hover_index {
                 if i == ci {
                     button_interactable.render(frame,button_rects[i], DrawFlag::HIGHLIGHTING);
                 } else {
@@ -94,45 +94,17 @@ impl Drawable for CreateGlyphPage {
         self.containers[0].render(
             frame,
             file_explorer_area,
-            if let Some(index) = self.hover_index {
-                if index == 0 {
-                    if self.containers[0].is_focused() {
-                        DrawFlag::FOCUSED
-                    } else {
-                        DrawFlag::HIGHLIGHTING
-                    }
-                } else {
-                    DrawFlag::DEFAULT
-                }
-            } else {
-                DrawFlag::DEFAULT
-            },
+            get_draw_flag(self.state.hover_index, 0, Some(self.containers[0].is_focused()))
         );
         self.components[0].render(
             frame,
             button_areas[0],
-            if let Some(index) = self.hover_index {
-                if index == 1 {
-                    DrawFlag::HIGHLIGHTING
-                } else {
-                    DrawFlag::DEFAULT
-                }
-            } else {
-                DrawFlag::DEFAULT
-            },
+            get_draw_flag(self.state.hover_index, 1, None)
         );
         self.components[1].render(
             frame,
             button_areas[1],
-            if let Some(index) = self.hover_index {
-                if index == 2 {
-                    DrawFlag::HIGHLIGHTING
-                } else {
-                    DrawFlag::DEFAULT
-                }
-            } else {
-                DrawFlag::DEFAULT
-            },
+            get_draw_flag(self.state.hover_index, 2, None)
         );
     }
 }

@@ -1,11 +1,10 @@
 use crate::app::dialog::CreateGlyphDialog;
 use crate::app::widget::LineButton;
 use crate::app::Convertible;
-use crate::drawer::{DrawFlag, Drawable};
+use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use ratatui::layout::{Constraint, Rect};
 use ratatui::widgets::{Block, BorderType, Clear, Widget};
 use ratatui::Frame;
-
 impl Drawable for CreateGlyphDialog {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
         let dialog_area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
@@ -18,27 +17,11 @@ impl Drawable for CreateGlyphDialog {
 
         ).title_bottom(
             (*self.components[0]).as_any().downcast_ref::<LineButton>().unwrap().as_line(
-                if let Some(index) = self.hover_index {
-                    if index == 1 {
-                        DrawFlag::HIGHLIGHTING
-                    } else {
-                        DrawFlag::DEFAULT
-                    }
-                } else {
-                    DrawFlag::DEFAULT
-                }
+                get_draw_flag(self.state.hover_index, 1, None)
             ).right_aligned()
         ).title_bottom(
             (*self.components[1]).as_any().downcast_ref::<LineButton>().unwrap().as_line(
-                if let Some(index) = self.hover_index {
-                    if index == 2 {
-                        DrawFlag::HIGHLIGHTING
-                    } else {
-                        DrawFlag::DEFAULT
-                    }
-                } else {
-                    DrawFlag::DEFAULT
-                }
+                get_draw_flag(self.state.hover_index, 2, None)
             ).right_aligned()
         );
         let inner_dialog_area = dialog_frame.inner(dialog_area);
@@ -47,20 +30,7 @@ impl Drawable for CreateGlyphDialog {
         self.containers[0].render(
             frame,
             inner_dialog_area,
-            if let Some(index) = self.hover_index {
-                if index == 0 {
-                    if self.containers[0].is_focused(){
-                        DrawFlag::FOCUSED
-                    } else {
-                        DrawFlag::HIGHLIGHTING
-                    }
-
-                } else {
-                    DrawFlag::DEFAULT
-                }
-            } else {
-                DrawFlag::DEFAULT
-            }
+            get_draw_flag(self.state.hover_index, 0, Some(self.containers[0].is_focused()))
         );
     }
 }

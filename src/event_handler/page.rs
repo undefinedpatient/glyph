@@ -12,22 +12,22 @@ impl Interactable for EntrancePage {
         match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Tab = key.code {
-                    if let Some(index) = self.hover_index {
-                        self.hover_index = Some((index + 1usize) % self.components.len());
+                    if let Some(index) = self.state.hover_index {
+                        self.state.hover_index = Some((index + 1usize) % self.components.len());
                     } else {
-                        self.hover_index = Some(0);
+                        self.state.hover_index = Some(0);
                     }
                     return Ok(Vec::new());
                 }
                 if let KeyCode::BackTab = key.code {
-                    if let Some(index) = self.hover_index {
+                    if let Some(index) = self.state.hover_index {
                         if index == 0 {
-                            self.hover_index = Some(self.components.len() - 1usize);
+                            self.state.hover_index = Some(self.components.len() - 1usize);
                         } else {
-                            self.hover_index = Some(index - 1usize);
+                            self.state.hover_index = Some(index - 1usize);
                         }
                     } else {
-                        self.hover_index = Some(self.components.len() - 1usize);
+                        self.state.hover_index = Some(self.components.len() - 1usize);
                     }
                     return Ok(Vec::new());
                 }
@@ -35,7 +35,7 @@ impl Interactable for EntrancePage {
                     return Ok(vec![Command::PushPopup(Box::new(ExitConfirmPopup::new(true)))]);
                 }
                 if let KeyCode::Enter = key.code {
-                    if let Some(index) = self.hover_index {
+                    if let Some(index) = self.state.hover_index {
                         return self.components[index].as_mut().handle(key, None);
                     }
                 }
@@ -51,25 +51,25 @@ impl Interactable for CreateGlyphPage {
             match key.kind {
                 KeyEventKind::Press => {
                     if let KeyCode::Tab = key.code {
-                        if let Some(index) = self.hover_index {
-                            self.hover_index = Some(
+                        if let Some(index) = self.state.hover_index {
+                            self.state.hover_index = Some(
                                 (index + 1usize) % (self.components.len() + self.containers.len()),
                             );
                         } else {
-                            self.hover_index = Some(0);
+                            self.state.hover_index = Some(0);
                         }
                         return Ok(Vec::new());
                     }
                     if let KeyCode::BackTab = key.code {
-                        if let Some(index) = self.hover_index {
+                        if let Some(index) = self.state.hover_index {
                             if index == 0 {
-                                self.hover_index =
+                                self.state.hover_index =
                                     Some((self.components.len() + self.containers.len()) - 1usize);
                             } else {
-                                self.hover_index = Some(index - 1usize);
+                                self.state.hover_index = Some(index - 1usize);
                             }
                         } else {
-                            self.hover_index =
+                            self.state.hover_index =
                                 Some((self.components.len() + self.containers.len()) - 1usize);
                         }
                         return Ok(Vec::new());
@@ -78,7 +78,7 @@ impl Interactable for CreateGlyphPage {
                         return Ok(vec![Command::PopPage]);
                     }
                     if let KeyCode::Enter = key.code {
-                        if let Some(index) = self.hover_index {
+                        if let Some(index) = self.state.hover_index {
                             match index {
                                 0 => { // Directory List
                                     self.containers[index].set_focus(true);
