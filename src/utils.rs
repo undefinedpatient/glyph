@@ -1,5 +1,6 @@
 use std::fs;
-use std::fs::DirEntry;
+use std::fs::{DirEntry, ReadDir};
+use std::io::Error;
 use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::Result;
@@ -55,6 +56,19 @@ pub fn create_glyph(path_buf: &PathBuf, glyph_name: &str) -> Result<()> {
     Ok(())
 }
 
+/*
+    Check if the directory contains a valid Glyph struct, aka having a correct structured glyph.toml
+ */
 pub fn is_valid_glyph(path_buf: &PathBuf) -> Result<bool> {
+    if !path_buf.exists() {
+        return Ok(false);
+    }
+    let mut read_dir: ReadDir = fs::read_dir(path_buf)?;
+    for entry_result in read_dir {
+        let entry: DirEntry = entry_result?;
+        if entry.file_type()?.is_file() && entry.file_name() == "glyph.toml"{
+            return Ok(true);
+        }
+    }
     Ok(false)
 }

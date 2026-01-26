@@ -1,11 +1,13 @@
+use std::path::PathBuf;
+use color_eyre::owo_colors::OwoColorize;
 use crate::app::widget::{DirectoryList, LineButton, SimpleButton, TextField, TextFieldInputMode};
 use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
-use crate::utils::get_dir_names;
+use crate::utils::{get_dir_names, is_valid_glyph};
 use ratatui::layout::{Constraint, Offset, Position, Rect};
 use ratatui::prelude::Stylize;
 use ratatui::style::{Color, Style};
-use ratatui::text::Line;
+use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Clear, Widget};
 use ratatui::Frame;
 
@@ -78,12 +80,21 @@ impl Drawable for DirectoryList {
             .iter()
             .enumerate()
             .map(|(i, item)| {
+                let mut line: Line;
                 if let Some(index) = self.hover_index {
                     if index == i {
-                        return Line::from(String::from("> ") + &*item.clone()).bold();
+                        line = Line::from(String::from("> ") + &*item.clone()).bold();
+                    } else {
+                        line = Line::from(String::from("  ") + &*item.clone());
                     }
+                } else {
+                    line = Line::from(String::from("  ") + &*item.clone());
                 }
-                return Line::from(String::from("  ") + &*item.clone());
+                let result  =is_valid_glyph(&PathBuf::from(item));
+                if result.is_ok() && result.unwrap() {
+                    line.spans.push(Span::from("*").italic());
+                }
+                line
             })
             .collect();
 

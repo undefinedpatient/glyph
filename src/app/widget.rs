@@ -1,6 +1,6 @@
 use crate::app::Command;
 use crate::drawer::DrawFlag;
-use crate::utils::get_dir_names;
+use crate::utils::{get_dir_names, is_valid_glyph};
 use color_eyre::eyre::Result;
 use ratatui::style::Stylize;
 use ratatui::text::Line;
