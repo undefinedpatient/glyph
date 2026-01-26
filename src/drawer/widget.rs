@@ -10,7 +10,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Clear, Widget};
 use ratatui::Frame;
 
 impl Drawable for SimpleButton {
-    fn render(&self, frame: &mut Frame,area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
         match draw_flag {
             DrawFlag::HIGHLIGHTING => {
                 Line::from(["[", self.label.as_str(), "]"].concat())
@@ -19,7 +19,9 @@ impl Drawable for SimpleButton {
                     .render(area, frame.buffer_mut());
             }
             _ => {
-                Line::from(self.label.as_str()).centered().render(area, frame.buffer_mut());
+                Line::from(self.label.as_str())
+                    .centered()
+                    .render(area, frame.buffer_mut());
             }
         }
     }
@@ -30,10 +32,12 @@ impl Drawable for LineButton {
         let text = self.label.clone().to_string();
         match draw_flag {
             DrawFlag::HIGHLIGHTING => {
-                Line::from([" ",text.as_str()," "].concat()).render(area, frame.buffer_mut());
-            },
+                Line::from([" ", text.as_str(), " "].concat()).render(area, frame.buffer_mut());
+            }
             _ => {
-                Line::from(["[",text.as_str(),"]"].concat()).bold().render(area, frame.buffer_mut());
+                Line::from(["[", text.as_str(), "]"].concat())
+                    .bold()
+                    .render(area, frame.buffer_mut());
             }
         }
     }
@@ -84,7 +88,7 @@ impl Drawable for DirectoryList {
             .collect();
 
         for (i, line) in list_items[self.offset..].iter().enumerate() {
-            if i*self.line_height >= inner_area.height as usize {
+            if i * self.line_height >= inner_area.height as usize {
                 break;
             }
             line.render(
@@ -98,36 +102,31 @@ impl Drawable for DirectoryList {
     }
 }
 /*
-    Text Field
- */
+   Text Field
+*/
 
 impl Drawable for TextField {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
-        let text_field_area = area.centered(
-            Constraint::Min(18),
-            Constraint::Min(3),
-        );
+        let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
         let text = self.chars.iter().collect::<String>();
         let text_line: Line = Line::from(text);
-        let text_field_block: Block = Block::bordered().title(self.label.as_str())
-            .border_type(
-                match draw_flag {
-                    DrawFlag::DEFAULT => BorderType::Plain,
-                    DrawFlag::HIGHLIGHTING => BorderType::Double,
-                    DrawFlag::FOCUSED => BorderType::Thick,
-                    _ => BorderType::LightDoubleDashed,
-                }
-            )
-            .border_style(
-                match self.input_mode {
-                    TextFieldInputMode::Normal => Style::default().fg(Color::White),
-                    TextFieldInputMode::Edit => Style::default().fg(Color::Yellow),
-                }
-            );
+        let text_field_block: Block = Block::bordered()
+            .title(self.label.as_str())
+            .border_type(match draw_flag {
+                DrawFlag::DEFAULT => BorderType::Plain,
+                DrawFlag::HIGHLIGHTING => BorderType::Double,
+                DrawFlag::FOCUSED => BorderType::Thick,
+                _ => BorderType::LightDoubleDashed,
+            })
+            .border_style(match self.input_mode {
+                TextFieldInputMode::Normal => Style::default().fg(Color::White),
+                TextFieldInputMode::Edit => Style::default().fg(Color::Yellow),
+            });
         let text_line_area: Rect = text_field_block.inner(text_field_area);
         if self.is_focused() {
-            let cursor_position: Position = text_field_area.as_position().offset(Offset{ x: 1 + self.cursor_index as i32,
-                y: 1
+            let cursor_position: Position = text_field_area.as_position().offset(Offset {
+                x: 1 + self.cursor_index as i32,
+                y: 1,
             });
             frame.set_cursor_position(cursor_position);
         }

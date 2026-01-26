@@ -14,9 +14,9 @@ use ratatui::Terminal;
 mod app;
 mod drawer;
 mod event_handler;
-mod utils;
 mod focus_handler;
 mod state;
+mod utils;
 
 use app::Application;
 use drawer::draw;

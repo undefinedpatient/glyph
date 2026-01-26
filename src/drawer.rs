@@ -1,15 +1,14 @@
+mod dialog;
 mod page;
 mod popup;
 mod widget;
-mod dialog;
 
-use std::any::Any;
+use crate::app::Application;
 use ratatui::layout::Rect;
 use ratatui::style::Stylize;
 use ratatui::widgets::{StatefulWidget, Widget};
 use ratatui::Frame;
-use crate::app::Application;
-
+use std::any::Any;
 
 pub enum DrawFlag {
     DEFAULT = 0b0000_0000,
@@ -26,7 +25,8 @@ pub fn draw(frame: &mut Frame, app: &mut Application) {
         break;
     }
     for dialog in (*app.dialog_states).iter_mut().rev() {
-        dialog.as_drawable_mut()
+        dialog
+            .as_drawable_mut()
             .render(frame, frame.area(), DrawFlag::DEFAULT);
         break;
     }
@@ -38,9 +38,13 @@ pub fn draw(frame: &mut Frame, app: &mut Application) {
 }
 
 /*
-    Helper Functions
- */
-fn get_draw_flag(current_hover_index: Option<usize>, widget_index: usize, include_focus: Option<bool>) -> DrawFlag {
+   Helper Functions
+*/
+fn get_draw_flag(
+    current_hover_index: Option<usize>,
+    widget_index: usize,
+    include_focus: Option<bool>,
+) -> DrawFlag {
     if let Some(should_focus) = include_focus {
         if should_focus {
             return DrawFlag::FOCUSED;

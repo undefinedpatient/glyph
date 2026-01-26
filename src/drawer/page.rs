@@ -1,4 +1,4 @@
-use crate::app::page::{CreateGlyphPage, EntrancePage};
+use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphPage, OpenGlyphPage};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect};
@@ -51,7 +51,7 @@ impl Drawable for EntrancePage {
         for (i, button_interactable) in (&self.components).iter().enumerate() {
             if let Some(ci) = self.state.hover_index {
                 if i == ci {
-                    button_interactable.render(frame,button_rects[i], DrawFlag::HIGHLIGHTING);
+                    button_interactable.render(frame, button_rects[i], DrawFlag::HIGHLIGHTING);
                 } else {
                     button_interactable.render(frame, button_rects[i], DrawFlag::DEFAULT);
                 }
@@ -66,8 +66,7 @@ impl Drawable for CreateGlyphPage {
            Outer Frame
         */
         let page_frame: Block = match draw_flag {
-            DrawFlag::DEFAULT => Block::bordered()
-                .title("Create glyph page"),
+            DrawFlag::DEFAULT => Block::bordered().title("Create glyph page"),
             DrawFlag::HIGHLIGHTING => Block::bordered()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Double)
@@ -94,17 +93,78 @@ impl Drawable for CreateGlyphPage {
         self.containers[0].render(
             frame,
             file_explorer_area,
-            get_draw_flag(self.state.hover_index, 0, Some(self.containers[0].is_focused()))
+            get_draw_flag(
+                self.state.hover_index,
+                0,
+                Some(self.containers[0].is_focused()),
+            ),
         );
         self.components[0].render(
             frame,
             button_areas[0],
-            get_draw_flag(self.state.hover_index, 1, None)
+            get_draw_flag(self.state.hover_index, 1, None),
         );
         self.components[1].render(
             frame,
             button_areas[1],
-            get_draw_flag(self.state.hover_index, 2, None)
+            get_draw_flag(self.state.hover_index, 2, None),
         );
+    }
+}
+impl Drawable for OpenGlyphPage {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+        /*
+           Outer Frame
+        */
+        let page_frame: Block = match draw_flag {
+            DrawFlag::DEFAULT => Block::bordered().title("Open Glyph"),
+            DrawFlag::HIGHLIGHTING => Block::bordered()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Double)
+                .title("Open Glyph"),
+            DrawFlag::FOCUSED => Block::bordered()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Double)
+                .title("Open Glyph"),
+        };
+        /*
+           Chucks
+        */
+        let inner_area: Rect = page_frame.inner(area);
+        page_frame.render(area, frame.buffer_mut());
+        let chunks = Layout::vertical([Constraint::Percentage(50), Constraint::Max(3)])
+            .flex(Flex::Center)
+            .spacing(3)
+            .split(inner_area);
+
+        let file_explorer_area = chunks[0].centered(Constraint::Max(42), Constraint::Min(42));
+        let button_areas = Layout::horizontal([Constraint::Max(20), Constraint::Max(20)])
+            .flex(Flex::Center)
+            .split(chunks[1]);
+        self.containers[0].render(
+            frame,
+            file_explorer_area,
+            get_draw_flag(
+                self.state.hover_index,
+                0,
+                Some(self.containers[0].is_focused()),
+            ),
+        );
+        self.components[0].render(
+            frame,
+            button_areas[0],
+            get_draw_flag(self.state.hover_index, 1, None),
+        );
+        self.components[1].render(
+            frame,
+            button_areas[1],
+            get_draw_flag(self.state.hover_index, 2, None),
+        );
+    }
+}
+
+impl Drawable for GlyphPage {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+        
     }
 }

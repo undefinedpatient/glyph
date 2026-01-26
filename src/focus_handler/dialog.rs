@@ -27,7 +27,7 @@ impl Focusable for CreateGlyphDialog {
         None
     }
     fn focused_child_index(&self) -> Option<usize> {
-        for (index, container ) in self.containers.iter().enumerate() {
+        for (index, container) in self.containers.iter().enumerate() {
             if container.is_focused() {
                 return Some(index);
             }

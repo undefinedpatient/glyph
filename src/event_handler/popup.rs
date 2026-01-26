@@ -5,7 +5,11 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
 
 impl Interactable for MessagePopup {
-    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        data: Option<&mut dyn Any>,
+    ) -> color_eyre::Result<Vec<Command>> {
         return match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Enter = key.code {
@@ -21,7 +25,11 @@ impl Interactable for MessagePopup {
     }
 }
 impl Interactable for ExitConfirmPopup {
-    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        data: Option<&mut dyn Any>,
+    ) -> color_eyre::Result<Vec<Command>> {
         return match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Tab = key.code {

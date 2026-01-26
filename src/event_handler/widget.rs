@@ -1,14 +1,17 @@
 use crate::app::widget::{DirectoryList, LineButton, SimpleButton, TextField, TextFieldInputMode};
-use crate::app::{Command};
+use crate::app::Command;
 use crate::event_handler::{Focusable, Interactable};
 use crate::utils::get_dir_names;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::any::Any;
 use std::path::PathBuf;
-use crate::app::popup::MessagePopup;
 
 impl Interactable for SimpleButton {
-    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        data: Option<&mut dyn Any>,
+    ) -> color_eyre::Result<Vec<Command>> {
         let Some(mut f) = self.on_interact.take() else {
             return Ok(Vec::new());
         };
@@ -18,7 +21,11 @@ impl Interactable for SimpleButton {
     }
 }
 impl Interactable for LineButton {
-    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        data: Option<&mut dyn Any>,
+    ) -> color_eyre::Result<Vec<Command>> {
         let Some(mut f) = self.on_interact.take() else {
             return Ok(Vec::new());
         };
@@ -28,7 +35,11 @@ impl Interactable for LineButton {
     }
 }
 impl Interactable for DirectoryList {
-    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        data: Option<&mut dyn Any>,
+    ) -> color_eyre::Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
             Ok(Vec::new())
@@ -40,7 +51,7 @@ impl Interactable for DirectoryList {
                             'j' => {
                                 self.next_entry();
                                 Ok(Vec::new())
-                            },
+                            }
                             'k' => {
                                 self.previous_entry();
                                 Ok(Vec::new())
@@ -57,10 +68,8 @@ impl Interactable for DirectoryList {
                                 }
                                 Ok(Vec::new())
                             }
-                            _ => {
-                                Ok(Vec::new())
-                            }
-                        }
+                            _ => Ok(Vec::new()),
+                        };
                     }
                     if let KeyCode::Tab = key.code {
                         self.next_entry();
@@ -99,14 +108,16 @@ impl Interactable for DirectoryList {
     }
 }
 
-
 /*
-    Text Field
- */
-
+   Text Field
+*/
 
 impl Interactable for TextField {
-    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        data: Option<&mut dyn Any>,
+    ) -> color_eyre::Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
             Ok(Vec::new())
@@ -116,7 +127,7 @@ impl Interactable for TextField {
                     if let KeyCode::Esc = key.code {
                         self.switch_mode(TextFieldInputMode::Normal);
                         self.set_focus(false);
-                        let mut name= data.unwrap().downcast_mut::<String>().unwrap();
+                        let mut name = data.unwrap().downcast_mut::<String>().unwrap();
                         *name = self.chars.iter().collect::<String>();
                         return Ok(Vec::new());
                     }
@@ -182,6 +193,5 @@ impl Interactable for TextField {
                 }
             }
         }
-
     }
 }

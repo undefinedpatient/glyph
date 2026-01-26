@@ -1,17 +1,21 @@
+mod dialog;
 mod page;
 mod popup;
 mod widget;
-mod dialog;
 
 use crate::app::popup::MessagePopup;
 use crate::app::{Application, Command, Container, Convertible};
 use crate::drawer::Drawable;
+use crate::utils::create_glyph;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
-use crate::utils::create_glyph;
 
 pub trait Interactable: Convertible {
-    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>>;
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        data: Option<&mut dyn Any>,
+    ) -> color_eyre::Result<Vec<Command>>;
 }
 pub trait Focusable {
     fn is_focused(&self) -> bool;
@@ -27,7 +31,9 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
             .as_interactable_mut()
             .handle(key, None)
             .unwrap_or_else(|report| {
-                return vec![Command::PushPopup(Box::new(MessagePopup::new(report.to_string().as_str())))];
+                return vec![Command::PushPopup(Box::new(MessagePopup::new(
+                    report.to_string().as_str(),
+                )))];
             });
         while !commands.is_empty() {
             app.q_commands.push(commands.pop().unwrap());

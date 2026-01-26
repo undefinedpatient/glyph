@@ -1,10 +1,10 @@
 use std::any::Any;
 use std::path::PathBuf;
 
+pub mod dialog;
 pub mod page;
 pub mod popup;
 pub mod widget;
-pub mod dialog;
 
 use crate::drawer::Drawable;
 use crate::event_handler::{Focusable, Interactable};
@@ -28,7 +28,6 @@ pub trait Convertible {
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 impl<T: Any> Convertible for T {
-    
     fn as_any(&self) -> &dyn Any
     where
         Self: Sized,

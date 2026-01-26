@@ -1,8 +1,7 @@
-use std::path::Components;
 use crate::app::{Component, Container};
 
-pub mod page;
 pub mod dialog;
+pub mod page;
 pub mod popup;
 pub mod widget;
 
@@ -21,7 +20,7 @@ pub mod widget;
 //                 ref_containers: containers,
 //                 ref_components: components,
 //                 size: containers.unwrap_or(&Vec::new()).len()+components.unwrap_or(&Vec::new()).len(),
-//                 
+//
 //             }
 //         }
 //     pub fn focus_next(&mut self) {
@@ -36,5 +35,5 @@ pub mod widget;
 //         }
 //         self.focus_index = Some(self.focus_index.unwrap() - 1);
 //     }
-//     
+//
 // }

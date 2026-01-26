@@ -12,8 +12,12 @@ impl Focusable for DirectoryList {
     fn focused_child_ref(&self) -> Option<&dyn Container> {
         None
     }
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> { None }
-    fn focused_child_index(&self) -> Option<usize> { None }
+    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
+        None
+    }
+    fn focused_child_index(&self) -> Option<usize> {
+        None
+    }
 }
 impl Focusable for TextField {
     fn is_focused(&self) -> bool {
@@ -25,6 +29,10 @@ impl Focusable for TextField {
     fn focused_child_ref(&self) -> Option<&dyn Container> {
         None
     }
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> { None }
-    fn focused_child_index(&self) -> Option<usize> { None }
+    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
+        None
+    }
+    fn focused_child_index(&self) -> Option<usize> {
+        None
+    }
 }

@@ -7,9 +7,8 @@ use ratatui::text::Line;
 use std::any::Any;
 use std::path::PathBuf;
 /*
-    Button
- */
-
+   Button
+*/
 
 pub struct SimpleButton {
     pub label: String,
@@ -22,7 +21,10 @@ impl SimpleButton {
             on_interact: None,
         }
     }
-    pub fn on_interact(&mut self, f: Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>) -> Self {
+    pub fn on_interact(
+        &mut self,
+        f: Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>,
+    ) -> Self {
         Self {
             label: self.label.clone(),
             on_interact: Some(f),
@@ -41,7 +43,10 @@ impl LineButton {
             on_interact: None,
         }
     }
-    pub fn on_interact(&mut self, f: Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>) -> Self {
+    pub fn on_interact(
+        &mut self,
+        f: Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>,
+    ) -> Self {
         Self {
             label: self.label.clone(),
             on_interact: Some(f),
@@ -51,19 +56,14 @@ impl LineButton {
     pub fn as_line(&self, draw_flag: DrawFlag) -> Line<'_> {
         let text = self.label.clone().to_string();
         match draw_flag {
-            DrawFlag::HIGHLIGHTING => {
-                Line::from(["[",text.as_str(),"]"].concat()).bold()
-            },
-            _ => {
-                Line::from([" ",text.as_str()," "].concat())
-            }
+            DrawFlag::HIGHLIGHTING => Line::from(["[", text.as_str(), "]"].concat()).bold(),
+            _ => Line::from([" ", text.as_str(), " "].concat()),
         }
     }
 }
 /*
-    Directory Lists
- */
-
+   Directory Lists
+*/
 
 pub struct DirectoryList {
     pub is_focused: bool,
@@ -113,15 +113,13 @@ impl DirectoryList {
     }
 }
 
-
 /*
-    Text Field
- */
-
+   Text Field
+*/
 
 pub enum TextFieldInputMode {
     Normal,
-    Edit
+    Edit,
 }
 pub struct TextField {
     pub is_focused: bool,
@@ -169,29 +167,34 @@ impl TextField {
         if self.chars.len() == 0 {
             return;
         }
-        let (index, ch) = self.chars.iter().enumerate().find(
-            |(i, item)| {
+        let (index, ch) = self
+            .chars
+            .iter()
+            .enumerate()
+            .find(|(i, item)| {
                 if **item == ' ' && *i > self.cursor_index {
                     return true;
                 }
                 false
-            }
-        ).unwrap_or_else(||{(self.chars.len(), self.chars.last().unwrap())});
+            })
+            .unwrap_or_else(|| (self.chars.len(), self.chars.last().unwrap()));
         self.cursor_index = index;
     }
     pub fn previous_word(&mut self) {
         if self.chars.len() == 0 {
             return;
         }
-        let (index, ch) = self.chars.iter().enumerate().rfind(
-            |(i, item)| {
+        let (index, ch) = self
+            .chars
+            .iter()
+            .enumerate()
+            .rfind(|(i, item)| {
                 if **item == ' ' && *i < self.cursor_index {
                     return true;
                 }
                 false
-            }
-        ).unwrap_or_else(||{(0, self.chars.last().unwrap())});
+            })
+            .unwrap_or_else(|| (0, self.chars.last().unwrap()));
         self.cursor_index = index;
-
     }
 }
