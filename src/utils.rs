@@ -46,20 +46,21 @@ pub fn get_dir_names(path: &Path) -> Result<Vec<String>> {
     Ok(file_names)
 }
 
-pub fn create_glyph(path_buf: &PathBuf, glyph_name: &str) -> Result<()> {
-    Connection::open_in_memory()?;
-    Ok(())
-}
-pub fn init_db(path_buf: &PathBuf) -> Result<Connection> {
-    let mut c = Connection::open(path_buf)?;
+pub fn init_glyph_db(path_to_db: &PathBuf) -> Result<Connection> {
+    let mut c = Connection::open(path_to_db)?;
     c.execute_batch(
-    " CREATE TABLE IF NOT EXISTS entries (
+    "
+            CREATE TABLE IF NOT EXISTS entries (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             title       TEXT NOT NULL COLLATE NOCASE,
             content     TEXT NOT NULL DEFAULT '',
             created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
             updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-        );"
+        );
+
+        END;
+
+        "
     )?;
     Ok(c)
 }

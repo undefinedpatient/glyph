@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::path::PathBuf;
+use rusqlite::Connection;
 
 pub mod dialog;
 pub mod page;
@@ -19,8 +20,8 @@ pub enum Command {
     PopDialog,
     PushPopup(Box<dyn Container>),
     PopPopup,
-    Data(Box<dyn Any>),
-    CreateGlyph(PathBuf, String),
+    OpenGlyph(PathBuf), // Path to Glyph DB
+    CreateGlyph(PathBuf, String), // Path to directory, name of DB
 }
 pub trait Convertible {
     fn as_any(&self) -> &dyn Any;
@@ -167,7 +168,7 @@ impl Application {
             page_states: vec![Box::new(EntrancePage::new())],
             dialog_states: Vec::new(),
             popup_states: Vec::new(),
-            state: GlobalState { should_quit: false },
+            state: GlobalState { should_quit: false, db_connection: None},
             q_commands: Vec::new(),
         }
     }

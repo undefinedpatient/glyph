@@ -1,33 +1,25 @@
+use ratatui::style::Color;
 use crate::app::Container;
+use crate::drawer::Drawable;
 use crate::event_handler::Focusable;
 
 pub struct MessagePopup {
     pub is_focused: bool,
+    pub color: Color,
     pub message: String,
 }
 impl MessagePopup {
-    pub fn new(message: &str) -> Self {
+    pub fn new(message: &str, color: Color) -> Self {
         Self {
             is_focused: false,
+            color,
             message: String::from(message),
         }
     }
 }
-impl Focusable for MessagePopup {
-    fn is_focused(&self) -> bool {
-        self.is_focused
-    }
-    fn set_focus(&mut self, value: bool) -> () {
-        self.is_focused = value;
-    }
-    fn focused_child_ref(&self) -> Option<&dyn Container> {
-        None
-    }
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
-        None
-    }
-    fn focused_child_index(&self) -> Option<usize> {
-        None
+impl From<MessagePopup> for Box<dyn Container>{
+    fn from(container: MessagePopup) -> Self {
+        Box::new(container)
     }
 }
 pub struct ExitConfirmPopup {
@@ -42,20 +34,8 @@ impl ExitConfirmPopup {
         }
     }
 }
-impl Focusable for ExitConfirmPopup {
-    fn is_focused(&self) -> bool {
-        self.is_focused
-    }
-    fn set_focus(&mut self, value: bool) -> () {
-        self.is_focused = value;
-    }
-    fn focused_child_ref(&self) -> Option<&dyn Container> {
-        None
-    }
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
-        None
-    }
-    fn focused_child_index(&self) -> Option<usize> {
-        None
+impl From<ExitConfirmPopup> for Box<dyn Container>{
+    fn from(container: ExitConfirmPopup) -> Self {
+        Box::new(container)
     }
 }

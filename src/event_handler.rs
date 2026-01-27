@@ -6,10 +6,11 @@ mod widget;
 use crate::app::popup::MessagePopup;
 use crate::app::{Application, Command, Container, Convertible};
 use crate::drawer::Drawable;
-use crate::utils::create_glyph;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
 use color_eyre::owo_colors::OwoColorize;
+use ratatui::style::Color;
+use crate::utils::init_glyph_db;
 
 pub trait Interactable: Convertible {
     fn handle(
@@ -32,9 +33,9 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
             .as_interactable_mut()
             .handle(key, None)
             .unwrap_or_else(|report| {
-                return vec![Command::PushPopup(Box::new(MessagePopup::new(
-                    report.to_string().as_str(),
-                )))];
+                return vec![Command::PushPopup(
+                    MessagePopup::new( report.to_string().as_str(), Color::Red).into()
+                )];
             });
         app.q_commands.append(&mut commands);
     }
@@ -60,12 +61,28 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
                 app.popup_states.pop();
             }
             Command::CreateGlyph(path_buf, name) => {
-                create_glyph(&path_buf, &name);
+                let result = init_glyph_db(&path_buf.join(name));
+                if result.is_err() {
+                    app.popup_states.push(
+                        MessagePopup::new(result.err().unwrap().to_string().as_str(), Color::Red).into()
+                    )
+                } else {
+                    app.state.db_connection = Some(result.unwrap());
+                }
+            }
+            Command::OpenGlyph(path_buf) => {
+                let result = init_glyph_db(&path_buf);
+                if result.is_err() {
+                    app.popup_states.push(
+                        MessagePopup::new(result.err().unwrap().to_string().as_str(), Color::Red).into()
+                    )
+                } else {
+                    app.state.db_connection = Some(result.unwrap());
+                }
             }
             Command::Quit => {
                 app.state.should_quit = true;
             }
-            Command::Data(data) => {}
             _ => {}
         }
     }

@@ -6,7 +6,6 @@ use ratatui::style::Stylize;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Clear, Padding, Paragraph, Widget, Wrap};
 use ratatui::Frame;
-
 impl Drawable for MessagePopup {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
         let popup_area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));

@@ -13,17 +13,17 @@ impl EntrancePage {
     pub fn new() -> Self {
         Self {
             components: vec![
-                Box::new(SimpleButton::new("Create").on_interact(Box::new(|_| {
+                SimpleButton::new("Create").on_interact(Box::new(|_| {
                     Ok(vec![Command::PushPage(Box::new(CreateGlyphPage::new()))])
-                }))),
-                Box::new(SimpleButton::new("Open").on_interact(Box::new(|_| {
+                })).into(),
+                SimpleButton::new("Open").on_interact(Box::new(|_| {
                     Ok(vec![Command::PushPage(Box::new(OpenGlyphPage::new()))])
-                }))),
-                Box::new(SimpleButton::new("Quit").on_interact(Box::new(|_| {
+                })).into(),
+                SimpleButton::new("Quit").on_interact(Box::new(|_| {
                     Ok(vec![Command::PushPopup(Box::new(ExitConfirmPopup::new(
                         true,
                     )))])
-                }))),
+                })).into(),
             ],
             state: EntrancePageState {
                 is_focused: true,
@@ -43,20 +43,16 @@ impl CreateGlyphPage {
         Self {
             containers: vec![Box::new(DirectoryList::new("Directory", false))],
             components: vec![
-                Box::new(
-                    SimpleButton::new("Back").on_interact(Box::new(|_| Ok(vec![Command::PopPage]))),
-                ),
-                Box::new(
-                    SimpleButton::new("Create").on_interact(Box::new(|state_data| {
-                        let state = state_data
-                            .unwrap()
-                            .downcast_mut::<CreateGlyphPageState>()
-                            .unwrap();
-                        Ok(vec![Command::PushDialog(Box::new(CreateGlyphDialog::new(
-                            state.path_to_create.clone(),
-                        )))])
-                    })),
-                ),
+                SimpleButton::new("Back").on_interact(Box::new(|_| Ok(vec![Command::PopPage]))).into(),
+                SimpleButton::new("Create").on_interact(Box::new(|state_data| {
+                    let state = state_data
+                        .unwrap()
+                        .downcast_mut::<CreateGlyphPageState>()
+                        .unwrap();
+                    Ok(vec![Command::PushDialog(Box::new(CreateGlyphDialog::new(
+                        state.path_to_create.clone(),
+                    )))])
+                })).into(),
             ],
             state: CreateGlyphPageState {
                 is_focused: true,
@@ -77,30 +73,27 @@ impl OpenGlyphPage {
         Self {
             containers: vec![Box::new(DirectoryList::new("Directory", true))],
             components: vec![
-                Box::new(
-                    SimpleButton::new("Back")
-                        .on_interact(Box::new(|_| Ok(vec![Command::PopPage]))),
-                ),
-                Box::new(
-                    SimpleButton::new("Open").on_interact(Box::new(
-                            |state_data|
-                                {
-                                    let state = state_data
-                                        .unwrap()
-                                        .downcast_mut::<OpenGlyphPageState>()
-                                        .unwrap();
+                SimpleButton::new("Back")
+                    .on_interact(Box::new(|_| Ok(vec![Command::PopPage]))).into(),
+                SimpleButton::new("Open").on_interact(Box::new(
+                    |state_data|
+                        {
+                            let state = state_data
+                                .unwrap()
+                                .downcast_mut::<OpenGlyphPageState>()
+                                .unwrap();
 
-                                    Ok(vec![
-                                        Command::PushPage(
-                                            Box::new(
-                                                GlyphPage::new(state.path_to_open.clone())
-                                            )
-                                        ),
-                                        Command::PopPage,
-                                    ])
-                                }
-                        )),
+                            Ok(vec![
+                                Command::PushPage(
+                                    Box::new(
+                                        GlyphPage::new(state.path_to_open.clone())
+                                    )
+                                ),
+                                Command::PopPage,
+                            ])
+                        }
                 ),
+                ).into(),
             ],
             state: OpenGlyphPageState {
                 is_focused: true,

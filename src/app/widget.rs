@@ -1,4 +1,4 @@
-use crate::app::Command;
+use crate::app::{Command, Component};
 use crate::drawer::DrawFlag;
 use crate::utils::{get_dir_names, get_file_names};
 use color_eyre::eyre::Result;
@@ -31,7 +31,11 @@ impl SimpleButton {
         }
     }
 }
-
+impl From<SimpleButton> for Box<dyn Component> {
+    fn from(component: SimpleButton) -> Self {
+        Box::new(component)
+    }
+}
 pub struct LineButton {
     pub label: String,
     pub on_interact: Option<Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
@@ -59,6 +63,11 @@ impl LineButton {
             DrawFlag::HIGHLIGHTING => Line::from(["[", text.as_str(), "]"].concat()).bold(),
             _ => Line::from([" ", text.as_str(), " "].concat()),
         }
+    }
+}
+impl From<LineButton> for Box<dyn Component> {
+    fn from(component: LineButton) -> Self {
+        Box::new(component)
     }
 }
 /*
@@ -115,6 +124,11 @@ impl DirectoryList {
     }
 }
 
+impl From<DirectoryList> for Box<dyn Component> {
+    fn from(component: DirectoryList) -> Self {
+        Box::new(component)
+    }
+}
 /*
    Text Field
 */
@@ -198,6 +212,12 @@ impl TextField {
             })
             .unwrap_or_else(|| (0, self.chars.last().unwrap()));
         self.cursor_index = index;
+    }
+}
+
+impl From<TextField> for Box<dyn Component> {
+    fn from(component: TextField) -> Self {
+        Box::new(component)
     }
 }
 
