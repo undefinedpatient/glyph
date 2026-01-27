@@ -4,6 +4,7 @@ use crate::app::widget::{DirectoryList, SimpleButton};
 use crate::app::{Command, Component, Container};
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphPageState, OpenGlyphPageState};
 use std::path::PathBuf;
+use crate::utils::init_glyph_db;
 
 pub struct EntrancePage {
     pub components: Vec<Box<dyn Component>>,
@@ -41,7 +42,7 @@ pub struct CreateGlyphPage {
 impl CreateGlyphPage {
     pub fn new() -> Self {
         Self {
-            containers: vec![Box::new(DirectoryList::new("Directory", false))],
+            containers: vec![Box::new(DirectoryList::new("Directory", false,true))],
             components: vec![
                 SimpleButton::new("Back").on_interact(Box::new(|_| Ok(vec![Command::PopPage]))).into(),
                 SimpleButton::new("Create").on_interact(Box::new(|state_data| {
@@ -71,7 +72,7 @@ pub struct OpenGlyphPage {
 impl OpenGlyphPage {
     pub fn new() -> Self {
         Self {
-            containers: vec![Box::new(DirectoryList::new("Directory", true))],
+            containers: vec![Box::new(DirectoryList::new("Directory", true,false))],
             components: vec![
                 SimpleButton::new("Back")
                     .on_interact(Box::new(|_| Ok(vec![Command::PopPage]))).into(),
@@ -82,7 +83,7 @@ impl OpenGlyphPage {
                                 .unwrap()
                                 .downcast_mut::<OpenGlyphPageState>()
                                 .unwrap();
-
+                            let connection = init_glyph_db(&state.path_to_open)?;
                             Ok(vec![
                                 Command::PushPage(
                                     Box::new(

@@ -1,7 +1,7 @@
 use crate::app::widget::{DirectoryList, LineButton, SimpleButton, TextField, TextFieldInputMode};
 use crate::app::Command;
 use crate::event_handler::{Focusable, Interactable};
-use crate::utils::get_dir_names;
+use crate::utils::{get_dir_names, get_file_names};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::any::Any;
 use std::path::PathBuf;
@@ -68,6 +68,15 @@ impl Interactable for DirectoryList {
                                 }
                                 Ok(Vec::new())
                             }
+                            ' ' => {
+                                if let Some(hovered_index) = self.hovered_index {
+                                    if self.select_dir || hovered_index >= self.get_num_dirs() {
+                                        self.selected_index = self.hovered_index;
+                                    }
+
+                                }
+                                Ok(Vec::new())
+                            }
                             _ => Ok(Vec::new()),
                         };
                     }
@@ -80,13 +89,21 @@ impl Interactable for DirectoryList {
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Esc = key.code {
-                        self.set_focus(false);
                         let mut parent_data = data.unwrap().downcast_mut::<PathBuf>().unwrap();
-                        *parent_data = self.current_path.clone();
+                        if let Some(selected_index) = self.selected_index {
+                            let mut entries = get_dir_names(parent_data.as_path()).unwrap_or(Vec::new());
+                            entries.append(&mut get_file_names(parent_data.as_path()).unwrap_or(Vec::new()));
+                            *parent_data = self.current_path.join(entries[selected_index].clone());
+                        } else {
+                            *parent_data = self.current_path.clone();
+                        }
+                        self.set_focus(false);
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Enter = key.code {
-                        if let Some(index) = self.hover_index {
+                        self.selected_index = None;
+                        self.hovered_index = Some(0);
+                        if let Some(index) = self.hovered_index {
                             // "cd .."
                             if index == 0 {
                                 if let Some(path_buf) = (&self.current_path).parent() {

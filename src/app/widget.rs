@@ -79,41 +79,55 @@ pub struct DirectoryList {
     pub label: String,
     pub line_height: usize,
     pub current_path: PathBuf,
-    pub hover_index: Option<usize>,
+    pub hovered_index: Option<usize>,
+    pub selected_index: Option<usize>,
     pub offset: usize,
     pub show_files: bool,
+    pub select_dir: bool
 }
 impl DirectoryList {
-    pub(crate) fn new(label: &str, show_files: bool) -> Self {
+    pub(crate) fn new(label: &str, show_files: bool, select_dir: bool) -> Self {
         Self {
             is_focused: false,
             label: label.to_string(),
             line_height: 1,
             current_path: std::env::current_dir().unwrap(),
-            hover_index: None,
+            hovered_index: None,
+            selected_index: None,
             offset: 0,
             show_files: show_files,
+            select_dir
         }
     }
-    pub fn get_num_entry(&self) -> usize {
-        get_dir_names(&self.current_path).unwrap().len() + get_file_names(&self.current_path).unwrap().len()
+    pub fn get_num_files(&self) -> usize {
+        get_file_names(&self.current_path).unwrap().len()
+    }
+    pub fn get_num_dirs(&self) -> usize {
+        get_dir_names(&self.current_path).unwrap().len()
+    }
+    pub fn get_num_entries(&self) -> usize {
+        if self.show_files {
+            self.get_num_files() + self.get_num_dirs()
+        } else {
+            self.get_num_dirs()
+        }
     }
     pub fn next_entry(&mut self) -> () {
-        if let Some(index) = self.hover_index {
-            self.hover_index = Some((index + 1usize) % self.get_num_entry());
+        if let Some(index) = self.hovered_index {
+            self.hovered_index = Some((index + 1usize) % self.get_num_entries());
         } else {
-            self.hover_index = Some(0);
+            self.hovered_index = Some(0);
         }
     }
     pub fn previous_entry(&mut self) -> () {
-        if let Some(index) = self.hover_index {
+        if let Some(index) = self.hovered_index {
             if index == 0 {
-                self.hover_index = Some(self.get_num_entry() - 1usize);
+                self.hovered_index = Some(self.get_num_entries() - 1usize);
             } else {
-                self.hover_index = Some(index - 1usize);
+                self.hovered_index = Some(index - 1usize);
             }
         } else {
-            self.hover_index = Some(self.get_num_entry() - 1usize);
+            self.hovered_index = Some(self.get_num_entries() - 1usize);
         }
     }
     pub fn page_up(&mut self) {

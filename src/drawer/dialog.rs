@@ -7,7 +7,7 @@ use ratatui::widgets::{Block, BorderType, Clear, Widget};
 use ratatui::Frame;
 impl Drawable for CreateGlyphDialog {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
-        let dialog_area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
+        let dialog_area: Rect = area.centered(Constraint::Length(42), Constraint::Length(5));
         let dialog_frame = Block::bordered()
             .border_type(match draw_flag {
                 DrawFlag::DEFAULT => BorderType::Plain,

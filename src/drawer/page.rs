@@ -86,7 +86,7 @@ impl Drawable for CreateGlyphPage {
             .spacing(3)
             .split(inner_area);
 
-        let file_explorer_area = chunks[0].centered(Constraint::Max(42), Constraint::Min(42));
+        let file_explorer_area = chunks[0].centered(Constraint::Max(64), Constraint::Min(42));
         let button_areas = Layout::horizontal([Constraint::Max(20), Constraint::Max(20)])
             .flex(Flex::Center)
             .split(chunks[1]);
@@ -137,7 +137,7 @@ impl Drawable for OpenGlyphPage {
             .spacing(3)
             .split(inner_area);
 
-        let file_explorer_area = chunks[0].centered(Constraint::Max(42), Constraint::Min(42));
+        let file_explorer_area = chunks[0].centered(Constraint::Max(64), Constraint::Min(42));
         let button_areas = Layout::horizontal([Constraint::Max(20), Constraint::Max(20)])
             .flex(Flex::Center)
             .split(chunks[1]);

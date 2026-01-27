@@ -1,3 +1,4 @@
+use std::ops::Add;
 use crate::app::widget::{LineButton, TextField};
 use crate::app::{Command, Component, Container};
 use crate::state::dialog::CreateGlyphDialogState;
@@ -27,7 +28,7 @@ impl CreateGlyphDialog {
                     commands.push(Command::PopDialog);
                     commands.push(Command::CreateGlyph(
                         state.path_buf.clone(),
-                        state.new_glyph_name.clone(),
+                        state.new_glyph_name.clone().add(".glyph"),
                     ));
                     Ok(commands)
                 })).into(),

@@ -58,17 +58,17 @@ impl Drawable for DirectoryList {
             DrawFlag::DEFAULT => Block::default()
                 .borders(Borders::ALL)
                 .title(self.label.as_str())
-                .title_bottom(current_path.as_str()),
+                .title_top(Span::from(current_path.as_str()).into_right_aligned_line()),
             DrawFlag::HIGHLIGHTING => Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Double)
                 .title(self.label.as_str())
-                .title_bottom(current_path.as_str()),
+                .title_top(Span::from(current_path.as_str()).into_right_aligned_line()),
             DrawFlag::FOCUSED => Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Thick)
                 .title(self.label.as_str())
-                .title_bottom(current_path.as_str()),
+                .title_top(Span::from(current_path.as_str()).into_right_aligned_line()),
         };
         /*
            Directory Widget
@@ -76,7 +76,7 @@ impl Drawable for DirectoryList {
         let inner_area: Rect = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
         let mut list: Vec<String> = get_dir_names(&self.current_path).unwrap_or(Vec::new());
-        let mut num_dir: usize = list.len();
+        let num_dir: usize = list.len();
         if self.show_files {
             list.append(&mut get_file_names(&self.current_path).unwrap_or(Vec::new()))
         }
@@ -85,14 +85,22 @@ impl Drawable for DirectoryList {
             .enumerate()
             .map(|(i, item)| {
                 let mut line: Line;
-                if let Some(index) = self.hover_index {
-                    if index == i {
-                        line = Line::from(String::from("> ") + &*item.clone()).bold();
+                // If Selected => " >"
+                if let Some(selected_index) = self.selected_index {
+                    if selected_index == i {
+                        line = Line::from(String::from(" >") + &*item.clone());
                     } else {
                         line = Line::from(String::from("  ") + &*item.clone());
                     }
                 } else {
                     line = Line::from(String::from("  ") + &*item.clone());
+                }
+
+                // If Hovered => Bold
+                if let Some(hovered_index) = self.hovered_index {
+                    if hovered_index == i {
+                        line = line.bold();
+                    }
                 }
                 if i != 0 && i < num_dir {
                     line.push_span(Span::raw("/"));
