@@ -9,6 +9,7 @@ use crate::drawer::Drawable;
 use crate::utils::create_glyph;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
+use color_eyre::owo_colors::OwoColorize;
 
 pub trait Interactable: Convertible {
     fn handle(
@@ -35,9 +36,7 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
                     report.to_string().as_str(),
                 )))];
             });
-        while !commands.is_empty() {
-            app.q_commands.push(commands.pop().unwrap());
-        }
+        app.q_commands.append(&mut commands);
     }
     while app.q_commands.len() > 0 {
         let command: Command = app.q_commands.pop().unwrap();

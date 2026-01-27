@@ -1,6 +1,6 @@
 use crate::app::Command;
 use crate::drawer::DrawFlag;
-use crate::utils::{get_dir_names, is_valid_glyph};
+use crate::utils::{get_dir_names, get_file_names};
 use color_eyre::eyre::Result;
 use ratatui::style::Stylize;
 use ratatui::text::Line;
@@ -72,9 +72,10 @@ pub struct DirectoryList {
     pub current_path: PathBuf,
     pub hover_index: Option<usize>,
     pub offset: usize,
+    pub show_files: bool,
 }
 impl DirectoryList {
-    pub(crate) fn new(label: &str) -> Self {
+    pub(crate) fn new(label: &str, show_files: bool) -> Self {
         Self {
             is_focused: false,
             label: label.to_string(),
@@ -82,10 +83,11 @@ impl DirectoryList {
             current_path: std::env::current_dir().unwrap(),
             hover_index: None,
             offset: 0,
+            show_files: show_files,
         }
     }
     pub fn get_num_entry(&self) -> usize {
-        get_dir_names(&self.current_path).unwrap().len()
+        get_dir_names(&self.current_path).unwrap().len() + get_file_names(&self.current_path).unwrap().len()
     }
     pub fn next_entry(&mut self) -> () {
         if let Some(index) = self.hover_index {
@@ -197,4 +199,12 @@ impl TextField {
             .unwrap_or_else(|| (0, self.chars.last().unwrap()));
         self.cursor_index = index;
     }
+}
+
+/*
+    Glyph Navigation Bar
+ */
+
+pub struct GlyphNavigationBar {
+    
 }

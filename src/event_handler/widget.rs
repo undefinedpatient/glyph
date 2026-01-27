@@ -94,9 +94,11 @@ impl Interactable for DirectoryList {
                                 }
                                 return Ok(Vec::new());
                             }
-                            self.current_path = self.current_path.join(PathBuf::from(
-                                get_dir_names(&self.current_path)?[index].to_string(),
-                            ));
+                            if index < get_dir_names(&self.current_path).unwrap_or(Vec::new()).len() {
+                                self.current_path = self.current_path.join(PathBuf::from(
+                                    get_dir_names(&self.current_path)?[index].to_string(),
+                                ));
+                            }
                             return Ok(Vec::new());
                         }
                     }

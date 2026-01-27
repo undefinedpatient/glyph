@@ -165,6 +165,26 @@ impl Drawable for OpenGlyphPage {
 
 impl Drawable for GlyphPage {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
-        
+        /*
+           Outer Frame
+        */
+        let page_frame: Block = match draw_flag {
+            DrawFlag::DEFAULT => Block::bordered().title("Glyph"),
+            DrawFlag::HIGHLIGHTING => Block::bordered()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Double)
+                .title("Open Glyph"),
+            DrawFlag::FOCUSED => Block::bordered()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Double)
+                .title("Open Glyph"),
+        };
+        let page_area: Rect = page_frame.inner(area);
+        let page_areas = Layout::vertical([
+            Constraint::Fill(1),
+            Constraint::Length(1)
+        ]).split(page_area);
+        let content_areas = Layout::horizontal([Constraint::Length(24), Constraint::Min(24)]).split(page_areas[0]);
+        page_frame.render(area, frame.buffer_mut());
     }
 }

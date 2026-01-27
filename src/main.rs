@@ -17,6 +17,7 @@ mod event_handler;
 mod focus_handler;
 mod state;
 mod utils;
+mod model;
 
 use app::Application;
 use drawer::draw;

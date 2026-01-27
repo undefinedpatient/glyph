@@ -4,13 +4,9 @@ use std::io::Error;
 use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::Result;
-use serde::{Deserialize, Serialize};
-use toml;
+use rusqlite::Connection;
+use crate::model::{Entry, Glyph};
 
-#[derive(Serialize, Deserialize)]
-struct GlyphConfig {
-    name: String,
-}
 
 pub fn get_file_names(path: &Path) -> Result<Vec<String>> {
     let mut file_names: Vec<String> = Vec::new();
@@ -18,6 +14,9 @@ pub fn get_file_names(path: &Path) -> Result<Vec<String>> {
     for entry_result in fs::read_dir(path)? {
         let entry: DirEntry = entry_result?;
         let path: PathBuf = entry.path();
+        if path.is_dir() {
+            continue;
+        }
         if let Some(file_name) = path.file_name() {
             if let Some(name) = file_name.to_str() {
                 file_names.push(name.to_string());
@@ -48,27 +47,35 @@ pub fn get_dir_names(path: &Path) -> Result<Vec<String>> {
 }
 
 pub fn create_glyph(path_buf: &PathBuf, glyph_name: &str) -> Result<()> {
-    fs::create_dir(path_buf.join(glyph_name))?;
-    let glyph_config: String = toml::to_string(&GlyphConfig {
-        name: glyph_name.to_string(),
-    })?;
-    fs::write(path_buf.join(glyph_name).join("glyph.toml"), glyph_config)?;
+    Connection::open_in_memory()?;
     Ok(())
 }
+pub fn init_db(path_buf: &PathBuf) -> Result<Connection> {
+    let mut c = Connection::open(path_buf)?;
+    c.execute_batch(
+    " CREATE TABLE IF NOT EXISTS entries (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            title       TEXT NOT NULL COLLATE NOCASE,
+            content     TEXT NOT NULL DEFAULT '',
+            created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+            updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+        );"
+    )?;
+    Ok(c)
+}
+pub fn create_entry(c: &Connection, title: &str, content: &str) -> Result<i64> {
+    c.execute(
+        "INSERT INTO entries (title, content) VALUES (?1, ?2)",
+        (title, content)
+    )?;
+    let id = c.last_insert_rowid();
+    return Ok(id);
+}
 
-/*
-    Check if the directory contains a valid Glyph struct, aka having a correct structured glyph.toml
- */
-pub fn is_valid_glyph(path_buf: &PathBuf) -> Result<bool> {
-    if !path_buf.exists() {
-        return Ok(false);
-    }
-    let mut read_dir: ReadDir = fs::read_dir(path_buf)?;
-    for entry_result in read_dir {
-        let entry: DirEntry = entry_result?;
-        if entry.file_type()?.is_file() && entry.file_name() == "glyph.toml"{
-            return Ok(true);
-        }
-    }
-    Ok(false)
+pub fn load_entry(path_buf: &PathBuf) -> Entry {
+    todo!()
+}
+
+pub fn load_glyph(path_buf: &PathBuf) -> Glyph {
+    todo!()
 }

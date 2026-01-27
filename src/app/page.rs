@@ -41,7 +41,7 @@ pub struct CreateGlyphPage {
 impl CreateGlyphPage {
     pub fn new() -> Self {
         Self {
-            containers: vec![Box::new(DirectoryList::new("Directory"))],
+            containers: vec![Box::new(DirectoryList::new("Directory", false))],
             components: vec![
                 Box::new(
                     SimpleButton::new("Back").on_interact(Box::new(|_| Ok(vec![Command::PopPage]))),
@@ -75,7 +75,7 @@ pub struct OpenGlyphPage {
 impl OpenGlyphPage {
     pub fn new() -> Self {
         Self {
-            containers: vec![Box::new(DirectoryList::new("Directory"))],
+            containers: vec![Box::new(DirectoryList::new("Directory", true))],
             components: vec![
                 Box::new(
                     SimpleButton::new("Back")
@@ -95,7 +95,8 @@ impl OpenGlyphPage {
                                             Box::new(
                                                 GlyphPage::new(state.path_to_open.clone())
                                             )
-                                        )
+                                        ),
+                                        Command::PopPage,
                                     ])
                                 }
                         )),

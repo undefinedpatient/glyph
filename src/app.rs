@@ -20,7 +20,6 @@ pub enum Command {
     PushPopup(Box<dyn Container>),
     PopPopup,
     Data(Box<dyn Any>),
-    CreateGlyphRequest(String), // Sent from dialog with the desired Glyph Name
     CreateGlyph(PathBuf, String),
 }
 pub trait Convertible {

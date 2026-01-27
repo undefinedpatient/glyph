@@ -186,6 +186,52 @@ impl Interactable for OpenGlyphPage {
 
 impl Interactable for GlyphPage {
     fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
-        Ok(vec![Command::PopPage])
+        if self.focused_child_ref().is_none() {
+            match key.kind {
+                KeyEventKind::Press => {
+                    if let KeyCode::Tab = key.code {
+                        if let Some(index) = self.state.hover_index {
+                            self.state.hover_index = Some(
+                                (index + 1usize) % (self.components.len() + self.containers.len()),
+                            );
+                        } else {
+                            self.state.hover_index = Some(0);
+                        }
+                        return Ok(Vec::new());
+                    }
+                    if let KeyCode::BackTab = key.code {
+                        if let Some(index) = self.state.hover_index {
+                            if index == 0 {
+                                self.state.hover_index =
+                                    Some((self.components.len() + self.containers.len()) - 1usize);
+                            } else {
+                                self.state.hover_index = Some(index - 1usize);
+                            }
+                        } else {
+                            self.state.hover_index =
+                                Some((self.components.len() + self.containers.len()) - 1usize);
+                        }
+                        return Ok(Vec::new());
+                    }
+                    if let KeyCode::Esc = key.code {
+                        return Ok(vec![Command::PopPage]);
+                    }
+                    if let KeyCode::Enter = key.code {
+                        if let Some(index) = self.state.hover_index {
+                            match index {
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+            Ok(Vec::new())
+        } else {
+            let index: usize = self.focused_child_index().unwrap();
+            let mut result =
+                self.containers[index].handle(key, Some(&mut self.state));
+            result
+        }
     }
 }

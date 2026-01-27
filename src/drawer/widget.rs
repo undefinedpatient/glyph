@@ -3,7 +3,7 @@ use color_eyre::owo_colors::OwoColorize;
 use crate::app::widget::{DirectoryList, LineButton, SimpleButton, TextField, TextFieldInputMode};
 use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
-use crate::utils::{get_dir_names, is_valid_glyph};
+use crate::utils::{get_dir_names, get_file_names};
 use ratatui::layout::{Constraint, Offset, Position, Rect};
 use ratatui::prelude::Stylize;
 use ratatui::style::{Color, Style};
@@ -75,8 +75,12 @@ impl Drawable for DirectoryList {
         */
         let inner_area: Rect = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
-        let list_items: Vec<Line> = get_dir_names(&self.current_path)
-            .unwrap_or(Vec::new())
+        let mut list: Vec<String> = get_dir_names(&self.current_path).unwrap_or(Vec::new());
+        let mut num_dir: usize = list.len();
+        if self.show_files {
+            list.append(&mut get_file_names(&self.current_path).unwrap_or(Vec::new()))
+        }
+        let list_items: Vec<Line> = list
             .iter()
             .enumerate()
             .map(|(i, item)| {
@@ -90,9 +94,8 @@ impl Drawable for DirectoryList {
                 } else {
                     line = Line::from(String::from("  ") + &*item.clone());
                 }
-                let result  =is_valid_glyph(&PathBuf::from(item));
-                if result.is_ok() && result.unwrap() {
-                    line.spans.push(Span::from("*").italic());
+                if i != 0 && i < num_dir {
+                    line.push_span(Span::raw("/"));
                 }
                 line
             })
