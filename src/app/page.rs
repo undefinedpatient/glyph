@@ -1,6 +1,6 @@
 use crate::app::dialog::CreateGlyphDialog;
 use crate::app::popup::ExitConfirmPopup;
-use crate::app::widget::{DirectoryList, SimpleButton};
+use crate::app::widget::{DirectoryList, GlyphNavigationBar, SimpleButton};
 use crate::app::{Command, Component, Container};
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphPageState, OpenGlyphPageState};
 use std::path::PathBuf;
@@ -115,7 +115,9 @@ pub struct GlyphPage {
 impl GlyphPage {
     pub fn new(root: PathBuf) -> Self {
         Self {
-            containers: Vec::new(),
+            containers: vec![
+                GlyphNavigationBar::new().into()
+            ],
             components: Vec::new(),
             state: GlyphPageState {
                 is_focused: false,

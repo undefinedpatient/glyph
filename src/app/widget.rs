@@ -1,11 +1,13 @@
-use crate::app::{Command, Component};
+use crate::app::{Command, Component, Container};
 use crate::drawer::DrawFlag;
 use crate::utils::{get_dir_names, get_file_names};
 use color_eyre::eyre::Result;
 use ratatui::style::Stylize;
 use ratatui::text::Line;
 use std::any::Any;
+use std::collections::VecDeque;
 use std::path::PathBuf;
+use crate::state::widget::GlyphNavigationBarState;
 /*
    Button
 */
@@ -240,5 +242,23 @@ impl From<TextField> for Box<dyn Component> {
  */
 
 pub struct GlyphNavigationBar {
-    
+    pub state: GlyphNavigationBarState
+}
+
+impl GlyphNavigationBar {
+    pub fn new() -> Self {
+        Self {
+            state: GlyphNavigationBarState {
+                is_focused: false,
+                hovered_index: None,
+                entries: Vec::new(),
+            }
+        }
+    }
+}
+
+impl From<GlyphNavigationBar> for Box<dyn Container> {
+    fn from(component: GlyphNavigationBar) -> Self {
+        Box::new(component)
+    }
 }

@@ -1,4 +1,4 @@
-use crate::app::widget::{DirectoryList, LineButton, SimpleButton, TextField, TextFieldInputMode};
+use crate::app::widget::{DirectoryList, GlyphNavigationBar, LineButton, SimpleButton, TextField, TextFieldInputMode};
 use crate::app::Command;
 use crate::event_handler::{Focusable, Interactable};
 use crate::utils::{get_dir_names, get_file_names};
@@ -212,5 +212,15 @@ impl Interactable for TextField {
                 }
             }
         }
+    }
+}
+
+/*
+    Navigation Bar
+ */
+
+impl Interactable for GlyphNavigationBar {
+    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
+        todo!()
     }
 }

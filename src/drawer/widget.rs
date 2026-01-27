@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 use color_eyre::owo_colors::OwoColorize;
-use crate::app::widget::{DirectoryList, LineButton, SimpleButton, TextField, TextFieldInputMode};
+use crate::app::widget::{DirectoryList, GlyphNavigationBar, LineButton, SimpleButton, TextField, TextFieldInputMode};
 use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use crate::utils::{get_dir_names, get_file_names};
@@ -155,5 +155,32 @@ impl Drawable for TextField {
         Clear.render(text_field_area, frame.buffer_mut());
         text_field_block.render(text_field_area, frame.buffer_mut());
         text_line.render(text_line_area, frame.buffer_mut());
+    }
+}
+
+/*
+    Navigation Bar
+ */
+
+impl Drawable for GlyphNavigationBar {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+        /*
+           Container Frame
+        */
+        let widget_frame: Block = match draw_flag {
+            DrawFlag::DEFAULT => Block::default()
+                .borders(Borders::ALL)
+                .title("Entries"),
+            DrawFlag::HIGHLIGHTING => Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Double)
+                .title("Entries"),
+            DrawFlag::FOCUSED => Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Thick)
+                .title("Entries"),
+        };
+        let inner_area: Rect = widget_frame.inner(area);
+        widget_frame.render(area, frame.buffer_mut());
     }
 }

@@ -1,6 +1,6 @@
 pub mod dialog;
 pub mod page;
-mod widget;
+pub mod widget;
 
 // Global State of the Application
 pub struct GlobalState {

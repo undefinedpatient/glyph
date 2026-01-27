@@ -185,6 +185,9 @@ impl Drawable for GlyphPage {
             Constraint::Length(1)
         ]).split(page_area);
         let content_areas = Layout::horizontal([Constraint::Length(24), Constraint::Min(24)]).split(page_areas[0]);
+
+
         page_frame.render(area, frame.buffer_mut());
+        self.containers[0].render(frame, content_areas[0], DrawFlag::DEFAULT);
     }
 }
