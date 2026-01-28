@@ -5,6 +5,7 @@ use crate::model::GlyphRepository;
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphNavigationBarState, GlyphPageState, OpenGlyphPageState};
 use crate::utils::cycle_offset;
 use rusqlite::Connection;
+use crate::state::AppState;
 use crate::state::widget::DirectoryListState;
 
 pub struct EntrancePage {
@@ -24,7 +25,16 @@ impl EntrancePage {
                 Button::new("Quit").on_interact(Box::new(|_| {
                     Ok(vec![Command::PushPopup(Box::new(ConfirmPopup::new(
                         "Exit Glyph?"
-                    )))])
+                    ).on_confirm(
+                        Box::new(
+                            |app_state| {
+                                let _app_state = app_state.unwrap().downcast_mut::<AppState>().unwrap();
+                                _app_state.should_quit = true;
+                                Ok(Vec::new())
+                            }
+                        )
+                    )
+                    ))])
                 })).into(),
             ],
             state: EntrancePageState {

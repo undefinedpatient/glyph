@@ -6,7 +6,7 @@ use std::any::Any;
 
 /*
 
-    All popup on_xxx() function only takes app's state.
+    All popup's on_xxx() function only takes app's state.
 
  */
 

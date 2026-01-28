@@ -9,6 +9,7 @@ use crate::state::page::{CreateGlyphPageState, GlyphPageState};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
+use crate::state::AppState;
 
 impl Interactable for EntrancePage {
     fn handle(
@@ -27,8 +28,17 @@ impl Interactable for EntrancePage {
                 if let KeyCode::Esc = key.code {
                     return Ok(vec![Command::PushPopup(Box::new(
                         ConfirmPopup::new(
-                        "Exit Glyph?"
+                            "Exit Glyph?"
                         )
+                            .on_confirm(
+                                Box::new(
+                                    |app_state| {
+                                        let _app_state = app_state.unwrap().downcast_mut::<AppState>().unwrap();
+                                        _app_state.should_quit = true;
+                                        Ok(Vec::new())
+                                    }
+                                )
+                            )
                     ))]);
                 }
                 if let KeyCode::Enter = key.code {
@@ -103,7 +113,7 @@ impl Interactable for CreateGlyphPage {
                                     return self.components[0].handle(key, None);
                                 }
                                 2 => {
-                                    // Confirm Button
+                                    // Create Button
                                     self.dialogs.push(
                                         TextInputDialog::new( "Glyph Name", "untitled_glyph", )
                                             .on_submit( Box::new(|parent_state, state| {

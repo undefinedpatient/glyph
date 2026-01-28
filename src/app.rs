@@ -8,7 +8,7 @@ pub mod widget;
 
 use crate::drawer::Drawable;
 use crate::event_handler::{Focusable, Interactable};
-use crate::state::GlobalState;
+use crate::state::AppState;
 use page::EntrancePage;
 
 pub enum Command {
@@ -142,7 +142,7 @@ pub struct Application {
     pub page_states: Vec<Box<dyn Container>>,
     pub popup_states: Vec<Box<dyn Container>>,
     pub q_commands: Vec<Command>,
-    pub state: GlobalState,
+    pub state: AppState,
 }
 
 impl Application {
@@ -150,7 +150,7 @@ impl Application {
         Application {
             page_states: vec![Box::new(EntrancePage::new())],
             popup_states: Vec::new(),
-            state: GlobalState { should_quit: false},
+            state: AppState { should_quit: false},
             q_commands: Vec::new(),
         }
     }
