@@ -50,7 +50,7 @@ impl Drawable for EntrancePage {
         block.render(area, frame.buffer_mut());
         title.render(rects[0], frame.buffer_mut());
         for (i, button_interactable) in (&self.components).iter().enumerate() {
-            if let Some(ci) = self.state.hover_index {
+            if let Some(ci) = self.state.hovered_index {
                 if i == ci {
                     button_interactable.render(frame, button_rects[i], DrawFlag::HIGHLIGHTING);
                 } else {
@@ -95,7 +95,7 @@ impl Drawable for CreateGlyphPage {
             frame,
             file_explorer_area,
             get_draw_flag(
-                self.state.hover_index,
+                self.state.hovered_index,
                 0,
                 Some(self.containers[0].is_focused()),
             ),
@@ -103,13 +103,25 @@ impl Drawable for CreateGlyphPage {
         self.components[0].render(
             frame,
             button_areas[0],
-            get_draw_flag(self.state.hover_index, 1, None),
+            get_draw_flag(self.state.hovered_index, 1, None),
         );
         self.components[1].render(
             frame,
             button_areas[1],
-            get_draw_flag(self.state.hover_index, 2, None),
+            get_draw_flag(self.state.hovered_index, 2, None),
         );
+        /*
+            Dialog
+         */
+        if !self.dialogs.is_empty() {
+            for (i, dialog) in self.dialogs.iter().enumerate() {
+                if i == self.dialogs.len() - 1 {
+                    dialog.render(frame, area, DrawFlag::FOCUSED);
+                } else {
+                    dialog.render(frame, area, DrawFlag::DEFAULT);
+                }
+            }
+        }
     }
 }
 impl Drawable for OpenGlyphPage {
@@ -146,7 +158,7 @@ impl Drawable for OpenGlyphPage {
             frame,
             file_explorer_area,
             get_draw_flag(
-                self.state.hover_index,
+                self.state.hovered_index,
                 0,
                 Some(self.containers[0].is_focused()),
             ),
@@ -154,12 +166,12 @@ impl Drawable for OpenGlyphPage {
         self.components[0].render(
             frame,
             button_areas[0],
-            get_draw_flag(self.state.hover_index, 1, None),
+            get_draw_flag(self.state.hovered_index, 1, None),
         );
         self.components[1].render(
             frame,
             button_areas[1],
-            get_draw_flag(self.state.hover_index, 2, None),
+            get_draw_flag(self.state.hovered_index, 2, None),
         );
     }
 }
@@ -190,6 +202,20 @@ impl Drawable for GlyphPage {
 
 
         page_frame.render(chunks[0], frame.buffer_mut());
-        self.containers[0].render(frame, content_areas[0], get_draw_flag(self.state.hover_index, 0, Some(self.containers[0].is_focused())));
+        self.containers[0].render(frame, content_areas[0], get_draw_flag(self.state.hovered_index, 0, Some(self.containers[0].is_focused())));
+
+
+        /*
+            Dialog
+         */
+        if !self.dialogs.is_empty() {
+            for (i, dialog) in self.dialogs.iter().enumerate() {
+                if i == self.dialogs.len() - 1 {
+                    dialog.render(frame, area, DrawFlag::FOCUSED);
+                } else {
+                    dialog.render(frame, area, DrawFlag::DEFAULT);
+                }
+            }
+        }
     }
 }

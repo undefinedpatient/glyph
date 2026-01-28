@@ -6,7 +6,6 @@ mod widget;
 use crate::app::popup::MessagePopup;
 use crate::app::{Application, Command, Container, Convertible};
 use crate::drawer::Drawable;
-use crate::utils::init_glyph_db;
 use color_eyre::owo_colors::OwoColorize;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::style::Color;
@@ -28,17 +27,31 @@ pub trait Focusable {
 }
 pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
     handle_global_events(key, app);
-    if let Some(stateful) = (*app).view_to_focus_mut() {
-        let mut commands: Vec<Command> = (*stateful)
-            .as_interactable_mut()
-            .handle(key, None)
-            .unwrap_or_else(|report| {
+    if (*app).view_to_focus_mut().is_none() {
+        return;
+    }
+    
+    // Retrieve the Command from Page/Popup
+    let mut commands: Vec<Command> = Vec::new();
+    if let Some(popup_index) = (*app).focused_popup_index() {
+        commands = (*app).popup_states[popup_index].handle(key, Some(&mut app.state)).unwrap_or_else(
+            |report|{
                 return vec![Command::PushPopup(
                     MessagePopup::new( report.to_string().as_str(), Color::Red).into()
-                )];
-            });
-        app.q_commands.append(&mut commands);
+                )]}
+        );
+    } else if let Some(page_index) = (*app).focused_page_index() {
+        commands = (*app).page_states[page_index].handle(key, Some(&mut app.state)).unwrap_or_else(
+            |report|{
+                return vec![Command::PushPopup(
+                    MessagePopup::new( report.to_string().as_str(), Color::Red).into()
+                )]}
+
+        );
     }
+    app.q_commands.append(&mut commands);
+    
+    // Process the Command
     while app.q_commands.len() > 0 {
         let command: Command = app.q_commands.pop().unwrap();
         match command {
@@ -48,37 +61,11 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
             Command::PopPage => {
                 app.page_states.pop();
             }
-            Command::PushDialog(view) => {
-                app.dialog_states.push(view);
-            }
-            Command::PopDialog => {
-                app.dialog_states.pop();
-            }
             Command::PushPopup(popup) => {
                 app.popup_states.push(popup);
             }
             Command::PopPopup => {
                 app.popup_states.pop();
-            }
-            Command::CreateGlyph(path_buf, name) => {
-                let result = init_glyph_db(&path_buf.join(name));
-                if result.is_err() {
-                    app.popup_states.push(
-                        MessagePopup::new(result.err().unwrap().to_string().as_str(), Color::Red).into()
-                    )
-                } else {
-                    app.state.db_connection = Some(result.unwrap());
-                }
-            }
-            Command::OpenGlyph(path_buf) => {
-                let result = init_glyph_db(&path_buf);
-                if result.is_err() {
-                    app.popup_states.push(
-                        MessagePopup::new(result.err().unwrap().to_string().as_str(), Color::Red).into()
-                    )
-                } else {
-                    app.state.db_connection = Some(result.unwrap());
-                }
             }
             Command::Data(data) => {
                 // Do nothing to data
@@ -86,7 +73,12 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
             Command::Quit => {
                 app.state.should_quit = true;
             }
-            _ => {}
+            _ => {
+                app.page_states.push(
+                    MessagePopup::new( "Unexpected Command!", Color::Red).into()
+                );
+
+            }
         }
     }
 }

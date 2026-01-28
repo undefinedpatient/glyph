@@ -5,5 +5,4 @@ pub mod widget;
 // Global State of the Application
 pub struct GlobalState {
     pub should_quit: bool,
-    pub db_connection: Option<rusqlite::Connection>,
 }

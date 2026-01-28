@@ -24,12 +24,6 @@ pub fn draw(frame: &mut Frame, app: &mut Application) {
             .render(frame, frame.area(), DrawFlag::DEFAULT);
         break;
     }
-    for dialog in (*app.dialog_states).iter_mut().rev() {
-        dialog
-            .as_drawable_mut()
-            .render(frame, frame.area(), DrawFlag::DEFAULT);
-        break;
-    }
     for popup in (*app.popup_states).iter_mut() {
         popup
             .as_drawable_mut()

@@ -3,9 +3,11 @@ use crate::app::popup::MessagePopup;
 use crate::app::widget::{Button, DirectoryList, GlyphNavigationBar, LineButton, TextField};
 use crate::app::Command;
 use crate::event_handler::{Focusable, Interactable};
+use crate::state::page::GlyphPageState;
 use crate::utils::{get_dir_names, get_file_names};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::style::Color;
+use rusqlite::Connection;
 use std::any::Any;
 use std::path::PathBuf;
 
@@ -193,38 +195,44 @@ impl Interactable for GlyphNavigationBar {
                     if let KeyCode::Char(c) = key.code {
                         match c {
                             'a' => {
-                                Ok(
-                                    vec![
-                                        Command::PushDialog(
-                                            TextInputDialog::new(
-                                                "Entry Name",
-                                                "untitled_entry",
-                                                Box::new(|text| {
-                                                    Ok(
-                                                        vec![
-                                                            Command::PushPopup(
-                                                                MessagePopup::new(text.as_str(), Color::White).into()
-                                                            )
-                                                        ]
-                                                    )
-                                                })
-                                            ).into()
-                                        )
-                                    ]
-                                )
+                                if key.modifiers.contains(KeyModifiers::SHIFT) {
+                                    let state: &mut GlyphPageState = data.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                    let connection: &Connection = &state.connection;
+                                    return Ok(
+                                        vec![
+                                            Command::PushDialog(
+                                                TextInputDialog::new(
+                                                    "Entry Name",
+                                                    "untitled",
+                                                    Box::new(|text, data| {
+                                                        // let result = EntryRepository::create_entry(
+                                                        //     connection, text.as_str(), ""
+                                                        // );
+                                                        Ok(
+                                                            vec![
+                                                                Command::PushPopup(
+                                                                    MessagePopup::new(text.as_str(), Color::White).into()
+                                                                ),
+                                                            ]
+                                                        )
+                                                    })
+                                                ).into()
+                                            )
+                                        ]
+                                    );
+                                } else {
+                                }
                             }
                             _ => {
-                                Ok(Vec::new())
                             }
                         }
                     } else {
-                        Ok(Vec::new())
                     }
                 }
                 _=>{
-                    Ok(Vec::new())
                 }
             }
+            Ok(Vec::new())
         }
     }
 }

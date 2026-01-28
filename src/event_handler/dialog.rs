@@ -1,4 +1,4 @@
-use crate::app::dialog::{CreateGlyphDialog, TextInputDialog};
+use crate::app::dialog::TextInputDialog;
 use crate::app::Command;
 use crate::event_handler::{Focusable, Interactable};
 use color_eyre::Report;
@@ -6,75 +6,6 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use rusqlite::fallible_iterator::FallibleIterator;
 use std::any::Any;
 
-impl Interactable for CreateGlyphDialog {
-    fn handle(
-        &mut self,
-        key: &KeyEvent,
-        data: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>> {
-        if self.focused_child_mut().is_none() {
-            match key.kind {
-                KeyEventKind::Press => {
-                    if let KeyCode::Esc = key.code {
-                        return Ok(vec![Command::PopDialog]);
-                    }
-                    if let KeyCode::Tab = key.code {
-                        if let Some(index) = self.state.hovered_index {
-                            self.state.hovered_index = Some(
-                                (index + 1usize) % (self.components.len() + self.containers.len()),
-                            );
-                        } else {
-                            self.state.hovered_index = Some(0);
-                        }
-                        return Ok(Vec::new());
-                    }
-                    if let KeyCode::BackTab = key.code {
-                        if let Some(index) = self.state.hovered_index {
-                            if index == 0 {
-                                self.state.hovered_index =
-                                    Some((self.components.len() + self.containers.len()) - 1usize);
-                            } else {
-                                self.state.hovered_index = Some(index - 1usize);
-                            }
-                        } else {
-                            self.state.hovered_index =
-                                Some((self.components.len() + self.containers.len()) - 1usize);
-                        }
-                        return Ok(Vec::new());
-                    }
-                    if let KeyCode::Enter = key.code {
-                        if let Some(index) = self.state.hovered_index {
-                            return match index {
-                                0 => {
-                                    // Text Field
-                                    self.containers[0].set_focus(true);
-                                    Ok(Vec::new())
-                                }
-                                1 => {
-                                    // Back Button
-                                    self.components[0].handle(key, None)
-                                }
-                                2 => {
-                                    // Confirm Button
-                                    self.components[1].handle(key, Some(&mut self.state))
-                                    
-                                }
-                                _ => Ok(Vec::new()),
-                            };
-                        }
-                    }
-                    Ok(Vec::new())
-                }
-                _ => Ok(Vec::new()),
-            }
-        } else {
-            let index: usize = self.focused_child_index().unwrap();
-            let mut result =
-                self.containers[index].handle(key, Some(&mut self.state.text_input));
-            result
-        }
-    }
-}
 
 impl Interactable for TextInputDialog {
     fn handle(
@@ -89,28 +20,10 @@ impl Interactable for TextInputDialog {
                         return Ok(vec![Command::PopDialog]);
                     }
                     if let KeyCode::Tab = key.code {
-                        if let Some(index) = self.state.hovered_index {
-                            self.state.hovered_index = Some(
-                                (index + 1usize) % (self.components.len() + self.containers.len()),
-                            );
-                        } else {
-                            self.state.hovered_index = Some(0);
-                        }
-                        return Ok(Vec::new());
+                        self.cycle_hover(1)
                     }
                     if let KeyCode::BackTab = key.code {
-                        if let Some(index) = self.state.hovered_index {
-                            if index == 0 {
-                                self.state.hovered_index =
-                                    Some((self.components.len() + self.containers.len()) - 1usize);
-                            } else {
-                                self.state.hovered_index = Some(index - 1usize);
-                            }
-                        } else {
-                            self.state.hovered_index =
-                                Some((self.components.len() + self.containers.len()) - 1usize);
-                        }
-                        return Ok(Vec::new());
+                        self.cycle_hover(-1);
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.state.hovered_index {
@@ -129,7 +42,7 @@ impl Interactable for TextInputDialog {
                                     if let Some(callback) = self.on_submit.take() {
                                         // Now 'callback' is owned, so we can call it
                                         let input = self.state.text_input.clone();
-                                        let callback_result = callback(input);
+                                        let callback_result = callback(input, data);
                                         if callback_result.is_err() {
                                             callback_result
                                         } else {

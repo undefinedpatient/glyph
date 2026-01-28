@@ -181,43 +181,6 @@ impl TextField {
         }
         self.chars.remove(self.cursor_index);
     }
-    // pub fn move_to_end_char(&mut self) {
-    //     self.cursor_index = self.chars.len();
-    // }
-    // pub fn next_word(&mut self) {
-    //     if self.chars.len() == 0 {
-    //         return;
-    //     }
-    //     let (index, ch) = self
-    //         .chars
-    //         .iter()
-    //         .enumerate()
-    //         .find(|(i, item)| {
-    //             if **item == ' ' && *i > self.cursor_index {
-    //                 return true;
-    //             }
-    //             false
-    //         })
-    //         .unwrap_or_else(|| (self.chars.len(), self.chars.last().unwrap()));
-    //     self.cursor_index = index;
-    // }
-    // pub fn previous_word(&mut self) {
-    //     if self.chars.len() == 0 {
-    //         return;
-    //     }
-    //     let (index, ch) = self
-    //         .chars
-    //         .iter()
-    //         .enumerate()
-    //         .rfind(|(i, item)| {
-    //             if **item == ' ' && *i < self.cursor_index {
-    //                 return true;
-    //             }
-    //             false
-    //         })
-    //         .unwrap_or_else(|| (0, self.chars.last().unwrap()));
-    //     self.cursor_index = index;
-    // }
 }
 
 impl From<TextField> for Box<dyn Component> {
@@ -231,12 +194,14 @@ impl From<TextField> for Box<dyn Component> {
  */
 
 pub struct GlyphNavigationBar {
+    pub dialogs: Vec<Box<dyn Container>>,
     pub state: GlyphNavigationBarState
 }
 
 impl GlyphNavigationBar {
     pub fn new() -> Self {
         Self {
+            dialogs: Vec::new(),
             state: GlyphNavigationBarState {
                 is_focused: false,
                 hovered_index: None,

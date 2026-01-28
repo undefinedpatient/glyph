@@ -2,11 +2,26 @@ use std::fs;
 use std::fs::DirEntry;
 use std::path::{Path, PathBuf};
 
-use crate::model::{Entry, Glyph};
 use color_eyre::eyre::Result;
-use rusqlite::Connection;
 
-
+pub fn cycle_add(value:u16, offset: u16, max: u16) -> u16 {
+    return ((value as u32 + offset as u32)%max as u32) as u16;
+}
+pub fn cycle_sub(value:u16, offset: u16, max: u16) -> u16 {
+    let offset = offset % max;
+    return if offset > value {
+        max - (offset - value)
+    } else {
+        value - offset
+    }
+}
+pub fn cycle_offset(value:u16, offset: i16, max: u16) -> u16 {
+    if offset.is_negative() {
+        cycle_sub(value, offset.abs() as u16, max)
+    } else {
+        cycle_add(value, offset as u16, max)
+    }
+}
 pub fn get_file_names(path: &Path) -> Result<Vec<String>> {
     let mut file_names: Vec<String> = Vec::new();
 
@@ -45,32 +60,3 @@ pub fn get_dir_names(path: &Path) -> Result<Vec<String>> {
     Ok(file_names)
 }
 
-pub fn init_glyph_db(path_to_db: &PathBuf) -> Result<Connection> {
-    let mut c = Connection::open(path_to_db)?;
-    c.execute(
-    "
-        CREATE TABLE IF NOT EXISTS entries (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            title       TEXT NOT NULL,
-            content     TEXT NOT NULL DEFAULT ''
-        )
-        "
-    , ())?;
-    Ok(c)
-}
-pub fn create_entry(c: &Connection, title: &str, content: &str) -> Result<i64> {
-    c.execute(
-        "INSERT INTO entries (title, content) VALUES (?1, ?2)",
-        (title, content)
-    )?;
-    let id = c.last_insert_rowid();
-    return Ok(id);
-}
-
-pub fn load_entry(path_buf: &PathBuf) -> Entry {
-    todo!()
-}
-
-pub fn load_glyph(path_buf: &PathBuf) -> Glyph {
-    todo!()
-}
