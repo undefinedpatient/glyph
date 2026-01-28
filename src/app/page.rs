@@ -1,10 +1,10 @@
-use crate::app::popup::ExitConfirmPopup;
-use crate::app::widget::{Button, DirectoryList, GlyphNavigationBar};
+use crate::app::popup::ConfirmPopup;
+use crate::app::widget::{Button, DirectoryList};
 use crate::app::{Command, Component, Container};
 use crate::model::GlyphRepository;
-use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphPageState, OpenGlyphPageState};
+use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphNavigationBarState, GlyphPageState, OpenGlyphPageState};
+use crate::utils::cycle_offset;
 use rusqlite::Connection;
-use crate::utils::{cycle_add, cycle_offset, cycle_sub};
 
 pub struct EntrancePage {
     pub components: Vec<Box<dyn Component>>,
@@ -21,8 +21,8 @@ impl EntrancePage {
                     Ok(vec![Command::PushPage(Box::new(OpenGlyphPage::new()))])
                 })).into(),
                 Button::new("Quit").on_interact(Box::new(|_| {
-                    Ok(vec![Command::PushPopup(Box::new(ExitConfirmPopup::new(
-                        true,
+                    Ok(vec![Command::PushPopup(Box::new(ConfirmPopup::new(
+                        "Exit Glyph?"
                     )))])
                 })).into(),
             ],
@@ -163,5 +163,32 @@ impl GlyphPage {
 impl From<GlyphPage> for Box<dyn Container> {
     fn from(container: GlyphPage) -> Self {
         Box::new(container)
+    }
+}
+
+/*
+    Glyph Navigation Bar (SubPage)
+ */
+
+pub struct GlyphNavigationBar {
+    pub dialogs: Vec<Box<dyn Container>>,
+    pub state: GlyphNavigationBarState
+}
+
+impl GlyphNavigationBar {
+    pub fn new() -> Self {
+        Self {
+            dialogs: Vec::new(),
+            state: GlyphNavigationBarState {
+                is_focused: false,
+                hovered_index: None,
+            }
+        }
+    }
+}
+
+impl From<GlyphNavigationBar> for Box<dyn Container> {
+    fn from(component: GlyphNavigationBar) -> Self {
+        Box::new(component)
     }
 }

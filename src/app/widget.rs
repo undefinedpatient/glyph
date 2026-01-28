@@ -1,18 +1,28 @@
-use crate::app::{Command, Component, Container};
+use crate::app::{Command, Component};
 use crate::drawer::DrawFlag;
-use crate::state::widget::GlyphNavigationBarState;
-use crate::utils::{get_dir_names, get_file_names};
+use crate::state::widget::TextFieldWidgetState;
+use crate::utils::{cycle_offset, get_dir_names, get_file_names};
 use color_eyre::eyre::Result;
 use ratatui::style::Stylize;
 use ratatui::text::Line;
 use std::any::Any;
 use std::path::PathBuf;
-/*
-   Button
-*/
 
+/*
+
+    All widget's on_xxx() function only takes its direct parent's state.
+
+ */
+
+
+
+/*
+    Button
+    - on_interact(parent_state)
+ */
 pub struct Button {
     pub label: String,
+
     pub on_interact: Option<Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 impl Button {
@@ -23,13 +33,11 @@ impl Button {
         }
     }
     pub fn on_interact(
-        &mut self,
+        mut self,
         f: Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>,
     ) -> Self {
-        Self {
-            label: self.label.clone(),
-            on_interact: Some(f),
-        }
+        self.on_interact = Some(f);
+        self
     }
 }
 impl From<Button> for Box<dyn Component> {
@@ -39,6 +47,7 @@ impl From<Button> for Box<dyn Component> {
 }
 pub struct LineButton {
     pub label: String,
+
     pub on_interact: Option<Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 impl LineButton {
@@ -49,13 +58,11 @@ impl LineButton {
         }
     }
     pub fn on_interact(
-        &mut self,
+        mut self,
         f: Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>,
     ) -> Self {
-        Self {
-            label: self.label.clone(),
-            on_interact: Some(f),
-        }
+        self.on_interact = Some(f);
+        self
     }
 
     pub fn as_line(&self, draw_flag: DrawFlag) -> Line<'_> {
@@ -71,10 +78,11 @@ impl From<LineButton> for Box<dyn Component> {
         Box::new(component)
     }
 }
+
+
 /*
    Directory Lists
 */
-
 pub struct DirectoryList {
     pub is_focused: bool,
     pub label: String,
@@ -115,18 +123,16 @@ impl DirectoryList {
     }
     pub fn next_entry(&mut self) -> () {
         if let Some(index) = self.hovered_index {
-            self.hovered_index = Some((index + 1usize) % self.get_num_entries());
+            let num_entries = self.get_num_entries();
+            self.hovered_index = Some(cycle_offset(index as u16, 1, num_entries as u16) as usize);
         } else {
             self.hovered_index = Some(0);
         }
     }
     pub fn previous_entry(&mut self) -> () {
+        let num_entries = self.get_num_entries();
         if let Some(index) = self.hovered_index {
-            if index == 0 {
-                self.hovered_index = Some(self.get_num_entries() - 1usize);
-            } else {
-                self.hovered_index = Some(index - 1usize);
-            }
+            self.hovered_index = Some(cycle_offset(index as u16, -1, num_entries as u16) as usize);
         } else {
             self.hovered_index = Some(self.get_num_entries() - 1usize);
         }
@@ -144,75 +150,55 @@ impl From<DirectoryList> for Box<dyn Component> {
         Box::new(component)
     }
 }
+
+
 /*
    Text Field
+   - on_exit(parent_state)
 */
 pub struct TextField {
-    pub is_focused: bool,
-    pub label: String,
-    pub chars: Vec<char>,
-    pub cursor_index: usize,
+    pub state: TextFieldWidgetState,
+    pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 
 impl TextField {
     pub fn new(label: &str, default: String) -> Self {
         Self {
-            is_focused: false,
-            label: label.to_string(),
-            chars: default.chars().collect(),
-            cursor_index: default.len(),
+            state: TextFieldWidgetState {
+                is_focused: false,
+                label: label.to_string(),
+                chars: default.chars().collect(),
+                cursor_index: default.len(),
+            },
+            on_exit: None,
         }
     }
+    pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
+        self.on_exit = Some(on_exit);
+        self
+    }
     pub fn move_to_next_char(&mut self) {
-        self.cursor_index = self.cursor_index.saturating_add(1);
-        if self.cursor_index >= self.chars.len() {
-            self.cursor_index = self.chars.len();
+        self.state.cursor_index = self.state.cursor_index.saturating_add(1);
+        if self.state.cursor_index >= self.state.chars.len() {
+            self.state.cursor_index = self.state.chars.len();
         }
     }
     pub fn move_to_previous_char(&mut self) {
-        self.cursor_index = self.cursor_index.saturating_sub(1);
+        self.state.cursor_index = self.state.cursor_index.saturating_sub(1);
     }
     pub fn insert_char(&mut self, char: char) {
-        self.chars.insert(self.cursor_index, char);
+        self.state.chars.insert(self.state.cursor_index, char);
     }
     pub fn delete_char(&mut self) {
-        if self.cursor_index >= self.chars.len() {
+        if self.state.cursor_index >= self.state.chars.len() {
             return;
         }
-        self.chars.remove(self.cursor_index);
+        self.state.chars.remove(self.state.cursor_index);
     }
 }
 
 impl From<TextField> for Box<dyn Component> {
     fn from(component: TextField) -> Self {
-        Box::new(component)
-    }
-}
-
-/*
-    Glyph Navigation Bar
- */
-
-pub struct GlyphNavigationBar {
-    pub dialogs: Vec<Box<dyn Container>>,
-    pub state: GlyphNavigationBarState
-}
-
-impl GlyphNavigationBar {
-    pub fn new() -> Self {
-        Self {
-            dialogs: Vec::new(),
-            state: GlyphNavigationBarState {
-                is_focused: false,
-                hovered_index: None,
-                entries: Vec::new(),
-            }
-        }
-    }
-}
-
-impl From<GlyphNavigationBar> for Box<dyn Container> {
-    fn from(component: GlyphNavigationBar) -> Self {
         Box::new(component)
     }
 }

@@ -1,13 +1,8 @@
-use crate::app::dialog::TextInputDialog;
-use crate::app::popup::MessagePopup;
-use crate::app::widget::{Button, DirectoryList, GlyphNavigationBar, LineButton, TextField};
+use crate::app::widget::{Button, DirectoryList, LineButton, TextField};
 use crate::app::Command;
 use crate::event_handler::{Focusable, Interactable};
-use crate::state::page::GlyphPageState;
 use crate::utils::{get_dir_names, get_file_names};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use ratatui::style::Color;
-use rusqlite::Connection;
 use std::any::Any;
 use std::path::PathBuf;
 
@@ -15,12 +10,12 @@ impl Interactable for Button {
     fn handle(
         &mut self,
         key: &KeyEvent,
-        data: Option<&mut dyn Any>,
+        parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>> {
         let Some(mut f) = self.on_interact.take() else {
             return Ok(Vec::new());
         };
-        let result = f(data);
+        let result = f(parent_state);
         self.on_interact = Some(f);
         result
     }
@@ -29,12 +24,12 @@ impl Interactable for LineButton {
     fn handle(
         &mut self,
         key: &KeyEvent,
-        data: Option<&mut dyn Any>,
+        parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>> {
         let Some(mut f) = self.on_interact.take() else {
             return Ok(Vec::new());
         };
-        let result = f(data);
+        let result = f(parent_state);
         self.on_interact = Some(f);
         result
     }
@@ -43,7 +38,7 @@ impl Interactable for DirectoryList {
     fn handle(
         &mut self,
         key: &KeyEvent,
-        data: Option<&mut dyn Any>,
+        parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
@@ -94,7 +89,7 @@ impl Interactable for DirectoryList {
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Esc = key.code {
-                        let mut parent_data = data.unwrap().downcast_mut::<PathBuf>().unwrap();
+                        let mut parent_data = parent_state.unwrap().downcast_mut::<PathBuf>().unwrap();
                         if let Some(selected_index) = self.selected_index {
                             let mut entries = get_dir_names(parent_data.as_path()).unwrap_or(Vec::new());
                             entries.append(&mut get_file_names(parent_data.as_path()).unwrap_or(Vec::new()));
@@ -140,7 +135,7 @@ impl Interactable for TextField {
     fn handle(
         &mut self,
         key: &KeyEvent,
-        data: Option<&mut dyn Any>,
+        parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
@@ -150,8 +145,9 @@ impl Interactable for TextField {
                 KeyEventKind::Press => {
                     if let KeyCode::Esc = key.code {
                         self.set_focus(false);
-                        let mut name = data.unwrap().downcast_mut::<String>().unwrap();
-                        *name = self.chars.iter().collect::<String>();
+                        if let Some(mut on_exit) = self.on_exit.take() {
+                            return (*on_exit)(parent_state);
+                        };
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Char(c) = key.code {
@@ -172,67 +168,6 @@ impl Interactable for TextField {
                 }
                 _ => Ok(Vec::new()),
             }
-        }
-    }
-}
-
-/*
-    Navigation Bar
- */
-
-impl Interactable for GlyphNavigationBar {
-    fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
-        if !self.is_focused() {
-            self.set_focus(true);
-            Ok(Vec::new())
-        } else {
-            match key.kind {
-                KeyEventKind::Press => {
-                    if let KeyCode::Esc = key.code {
-                        self.set_focus(false);
-                        return Ok(Vec::new());
-                    }
-                    if let KeyCode::Char(c) = key.code {
-                        match c {
-                            'a' => {
-                                if key.modifiers.contains(KeyModifiers::SHIFT) {
-                                    let state: &mut GlyphPageState = data.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                    let connection: &Connection = &state.connection;
-                                    return Ok(
-                                        vec![
-                                            Command::PushDialog(
-                                                TextInputDialog::new(
-                                                    "Entry Name",
-                                                    "untitled",
-                                                    Box::new(|text, data| {
-                                                        // let result = EntryRepository::create_entry(
-                                                        //     connection, text.as_str(), ""
-                                                        // );
-                                                        Ok(
-                                                            vec![
-                                                                Command::PushPopup(
-                                                                    MessagePopup::new(text.as_str(), Color::White).into()
-                                                                ),
-                                                            ]
-                                                        )
-                                                    })
-                                                ).into()
-                                            )
-                                        ]
-                                    );
-                                } else {
-                                }
-                            }
-                            _ => {
-                            }
-                        }
-                    } else {
-                    }
-                }
-                _=>{
-                }
-            }
-            Ok(Vec::new())
         }
     }
 }

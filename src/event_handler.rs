@@ -15,7 +15,7 @@ pub trait Interactable: Convertible {
     fn handle(
         &mut self,
         key: &KeyEvent,
-        data: Option<&mut dyn Any>,
+        parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>>;
 }
 pub trait Focusable {
@@ -67,14 +67,11 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
             Command::PopPopup => {
                 app.popup_states.pop();
             }
-            Command::Data(data) => {
-                // Do nothing to data
-            }
             Command::Quit => {
                 app.state.should_quit = true;
             }
             _ => {
-                app.page_states.push(
+                app.popup_states.push(
                     MessagePopup::new( "Unexpected Command!", Color::Red).into()
                 );
 

@@ -1,4 +1,4 @@
-use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphPage, OpenGlyphPage};
+use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphNavigationBar, GlyphPage, OpenGlyphPage};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect};
@@ -217,5 +217,31 @@ impl Drawable for GlyphPage {
                 }
             }
         }
+    }
+}
+/*
+    Navigation Bar (Subpage)
+ */
+
+impl Drawable for GlyphNavigationBar {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+        /*
+           Container Frame
+        */
+        let widget_frame: Block = match draw_flag {
+            DrawFlag::DEFAULT => Block::default()
+                .borders(Borders::ALL)
+                .title("Entries"),
+            DrawFlag::HIGHLIGHTING => Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Double)
+                .title("Entries"),
+            DrawFlag::FOCUSED => Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Thick)
+                .title("Entries"),
+        };
+        let inner_area: Rect = widget_frame.inner(area);
+        widget_frame.render(area, frame.buffer_mut());
     }
 }

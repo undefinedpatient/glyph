@@ -1,4 +1,4 @@
-use crate::app::popup::{ExitConfirmPopup, MessagePopup};
+use crate::app::popup::{ConfirmPopup, MessagePopup};
 use crate::app::Container;
 use crate::event_handler::Focusable;
 
@@ -20,7 +20,7 @@ impl Focusable for MessagePopup {
     }
 }
 
-impl Focusable for ExitConfirmPopup {
+impl Focusable for ConfirmPopup {
     fn is_focused(&self) -> bool {
         self.is_focused
     }

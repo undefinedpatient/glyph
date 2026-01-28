@@ -6,12 +6,11 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use rusqlite::fallible_iterator::FallibleIterator;
 use std::any::Any;
 
-
 impl Interactable for TextInputDialog {
     fn handle(
         &mut self,
         key: &KeyEvent,
-        data: Option<&mut dyn Any>,
+        parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>> {
         if self.focused_child_mut().is_none() {
             match key.kind {
@@ -39,10 +38,9 @@ impl Interactable for TextInputDialog {
                                 }
                                 2 => {
                                     // Confirm Button
-                                    if let Some(callback) = self.on_submit.take() {
+                                    if let Some(on_submit) = self.on_submit.take() {
                                         // Now 'callback' is owned, so we can call it
-                                        let input = self.state.text_input.clone();
-                                        let callback_result = callback(input, data);
+                                        let callback_result = on_submit(parent_state, Some(&mut self.state));
                                         if callback_result.is_err() {
                                             callback_result
                                         } else {
@@ -50,7 +48,6 @@ impl Interactable for TextInputDialog {
                                             commands.push(Command::PopDialog);
                                             Ok(commands)
                                         }
-
                                     } else {
                                         Err(Report::msg("Submit has already been called!"))
                                     }

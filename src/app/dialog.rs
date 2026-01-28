@@ -1,18 +1,24 @@
 use crate::app::widget::{LineButton, TextField};
 use crate::app::{Command, Component, Container};
 use crate::state::dialog::TextInputDialogState;
+use crate::utils::cycle_offset;
 use color_eyre::eyre::Result;
 use std::any::Any;
-use crate::utils::{cycle_add, cycle_offset, cycle_sub};
+
+/*
+    Dialog is simply a overlay container, all dialog on_xxx() take two state, parent_state and the state dialog possesses.
+ */
+
 
 pub struct TextInputDialog {
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
     pub state: TextInputDialogState,
-    pub on_submit: Option<Box<dyn FnOnce(String, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+
+    pub on_submit: Option<Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 impl TextInputDialog {
-    pub fn new(field_title: &str, default: &str, on_submit: Box<dyn FnOnce(String, Option<&mut dyn Any>) -> Result<Vec<Command>>>) -> Self {
+    pub fn new(field_title: &str, default: &str) -> Self {
         Self {
             containers: vec![Box::new(TextField::new(
                 field_title,
@@ -27,8 +33,13 @@ impl TextInputDialog {
                 hovered_index: None,
                 text_input: String::from(default),
             },
-            on_submit: Some(on_submit),
+            on_submit: None,
         }
+    }
+
+    pub fn on_submit(mut self, on_submit:Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>) ->Self {
+        self.on_submit = Some(on_submit);
+        self
     }
 
     pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {

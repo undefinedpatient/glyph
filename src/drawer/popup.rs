@@ -1,4 +1,4 @@
-use crate::app::popup::{ExitConfirmPopup, MessagePopup};
+use crate::app::popup::{ConfirmPopup, MessagePopup};
 use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use ratatui::layout::{Alignment, Constraint, Rect};
@@ -34,7 +34,7 @@ impl Drawable for MessagePopup {
     }
 }
 
-impl Drawable for ExitConfirmPopup {
+impl Drawable for ConfirmPopup {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
         let area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
         let paragraph_message: Paragraph = Paragraph::new("Confirm Exit?")

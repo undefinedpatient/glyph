@@ -24,3 +24,7 @@ pub struct GlyphPageState {
     pub hovered_index: Option<usize>,
     pub connection: Connection,
 }
+pub struct GlyphNavigationBarState {
+    pub is_focused: bool,
+    pub hovered_index: Option<usize>,
+}

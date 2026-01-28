@@ -1,4 +1,4 @@
-use crate::app::popup::{ExitConfirmPopup, MessagePopup};
+use crate::app::popup::{ConfirmPopup, MessagePopup};
 use crate::app::Command;
 use crate::event_handler::Interactable;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
@@ -8,7 +8,7 @@ impl Interactable for MessagePopup {
     fn handle(
         &mut self,
         key: &KeyEvent,
-        data: Option<&mut dyn Any>,
+        parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>> {
         return match key.kind {
             KeyEventKind::Press => {
@@ -24,11 +24,11 @@ impl Interactable for MessagePopup {
         };
     }
 }
-impl Interactable for ExitConfirmPopup {
+impl Interactable for ConfirmPopup {
     fn handle(
         &mut self,
         key: &KeyEvent,
-        data: Option<&mut dyn Any>,
+        parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>> {
         return match key.kind {
             KeyEventKind::Press => {

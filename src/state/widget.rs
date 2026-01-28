@@ -1,7 +1,6 @@
-use crate::app::widget::GlyphNavigationBar;
-
-pub struct GlyphNavigationBarState {
+pub struct TextFieldWidgetState{
     pub is_focused: bool,
-    pub hovered_index: Option<usize>,
-    pub entries: Vec<GlyphNavigationBar>,
+    pub label: String,
+    pub chars: Vec<char>,
+    pub cursor_index: usize,
 }
