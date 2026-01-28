@@ -46,7 +46,7 @@ impl Drawable for DirectoryList {
         /*
            Container Frame
         */
-        let current_path: String = (&self.current_path)
+        let current_path: String = (&self.state.current_path)
             .clone()
             .to_str()
             .unwrap_or("Invalid Path")
@@ -54,17 +54,17 @@ impl Drawable for DirectoryList {
         let widget_frame: Block = match draw_flag {
             DrawFlag::DEFAULT => Block::default()
                 .borders(Borders::ALL)
-                .title(self.label.as_str())
+                .title(self.state.label.as_str())
                 .title_top(Span::from(current_path.as_str()).into_right_aligned_line()),
             DrawFlag::HIGHLIGHTING => Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Double)
-                .title(self.label.as_str())
+                .title(self.state.label.as_str())
                 .title_top(Span::from(current_path.as_str()).into_right_aligned_line()),
             DrawFlag::FOCUSED => Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Thick)
-                .title(self.label.as_str())
+                .title(self.state.label.as_str())
                 .title_top(Span::from(current_path.as_str()).into_right_aligned_line()),
         };
         /*
@@ -72,10 +72,10 @@ impl Drawable for DirectoryList {
         */
         let inner_area: Rect = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
-        let mut list: Vec<String> = get_dir_names(&self.current_path).unwrap_or(Vec::new());
+        let mut list: Vec<String> = get_dir_names(&self.state.current_path).unwrap_or(Vec::new());
         let num_dir: usize = list.len();
-        if self.show_files {
-            list.append(&mut get_file_names(&self.current_path).unwrap_or(Vec::new()))
+        if self.state.show_files {
+            list.append(&mut get_file_names(&self.state.current_path).unwrap_or(Vec::new()))
         }
         let list_items: Vec<Line> = list
             .iter()
@@ -83,7 +83,7 @@ impl Drawable for DirectoryList {
             .map(|(i, item)| {
                 let mut line: Line;
                 // If Selected => " >"
-                if let Some(selected_index) = self.selected_index {
+                if let Some(selected_index) = self.state.selected_index {
                     if selected_index == i {
                         line = Line::from(String::from(" >") + &*item.clone());
                     } else {
@@ -94,7 +94,7 @@ impl Drawable for DirectoryList {
                 }
 
                 // If Hovered => Bold
-                if let Some(hovered_index) = self.hovered_index {
+                if let Some(hovered_index) = self.state.hovered_index {
                     if hovered_index == i {
                         line = line.bold();
                     }
@@ -106,14 +106,14 @@ impl Drawable for DirectoryList {
             })
             .collect();
 
-        for (i, line) in list_items[self.offset..].iter().enumerate() {
-            if i * self.line_height >= inner_area.height as usize {
+        for (i, line) in list_items[self.state.offset..].iter().enumerate() {
+            if i * self.state.line_height >= inner_area.height as usize {
                 break;
             }
             line.render(
                 inner_area.offset(Offset {
                     x: 0,
-                    y: (i * &self.line_height) as i32,
+                    y: (i * &self.state.line_height) as i32,
                 }),
                 frame.buffer_mut(),
             );

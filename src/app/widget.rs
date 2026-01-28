@@ -1,6 +1,6 @@
-use crate::app::{Command, Component};
+use crate::app::{Command, Component, Container};
 use crate::drawer::DrawFlag;
-use crate::state::widget::TextFieldWidgetState;
+use crate::state::widget::{DirectoryListState, TextFieldState};
 use crate::utils::{cycle_offset, get_dir_names, get_file_names};
 use color_eyre::eyre::Result;
 use ratatui::style::Stylize;
@@ -9,8 +9,8 @@ use std::any::Any;
 use std::path::PathBuf;
 
 /*
-
-    All widget's on_xxx() function only takes its direct parent's state.
+    For component widget's on_xxx() function only takes its direct parent's state.
+    For container widget's on_xxx() function takes its own state as well.
 
  */
 
@@ -84,68 +84,68 @@ impl From<LineButton> for Box<dyn Component> {
    Directory Lists
 */
 pub struct DirectoryList {
-    pub is_focused: bool,
-    pub label: String,
-    pub line_height: usize,
-    pub current_path: PathBuf,
-    pub hovered_index: Option<usize>,
-    pub selected_index: Option<usize>,
-    pub offset: usize,
-    pub show_files: bool,
-    pub select_dir: bool
+    pub state: DirectoryListState,
+    pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 impl DirectoryList {
     pub(crate) fn new(label: &str, show_files: bool, select_dir: bool) -> Self {
         Self {
-            is_focused: false,
-            label: label.to_string(),
-            line_height: 1,
-            current_path: std::env::current_dir().unwrap(),
-            hovered_index: None,
-            selected_index: None,
-            offset: 0,
-            show_files: show_files,
-            select_dir
+            state: DirectoryListState {
+                is_focused: false,
+                label: label.to_string(),
+                line_height: 1,
+                current_path: std::env::current_dir().unwrap(),
+                hovered_index: None,
+                selected_index: None,
+                offset: 0,
+                show_files,
+                select_dir,
+            },
+            on_exit: None,
         }
     }
+    pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
+        self.on_exit = Some(on_exit);
+        self
+    }
     pub fn get_num_files(&self) -> usize {
-        get_file_names(&self.current_path).unwrap().len()
+        get_file_names(&self.state.current_path).unwrap().len()
     }
     pub fn get_num_dirs(&self) -> usize {
-        get_dir_names(&self.current_path).unwrap().len()
+        get_dir_names(&self.state.current_path).unwrap().len()
     }
     pub fn get_num_entries(&self) -> usize {
-        if self.show_files {
+        if self.state.show_files {
             self.get_num_files() + self.get_num_dirs()
         } else {
             self.get_num_dirs()
         }
     }
     pub fn next_entry(&mut self) -> () {
-        if let Some(index) = self.hovered_index {
+        if let Some(index) = self.state.hovered_index {
             let num_entries = self.get_num_entries();
-            self.hovered_index = Some(cycle_offset(index as u16, 1, num_entries as u16) as usize);
+            self.state.hovered_index = Some(cycle_offset(index as u16, 1, num_entries as u16) as usize);
         } else {
-            self.hovered_index = Some(0);
+            self.state.hovered_index = Some(0);
         }
     }
     pub fn previous_entry(&mut self) -> () {
         let num_entries = self.get_num_entries();
-        if let Some(index) = self.hovered_index {
-            self.hovered_index = Some(cycle_offset(index as u16, -1, num_entries as u16) as usize);
+        if let Some(index) = self.state.hovered_index {
+            self.state.hovered_index = Some(cycle_offset(index as u16, -1, num_entries as u16) as usize);
         } else {
-            self.hovered_index = Some(self.get_num_entries() - 1usize);
+            self.state.hovered_index = Some(self.get_num_entries() - 1usize);
         }
     }
     pub fn page_up(&mut self) {
-        self.offset = self.offset.saturating_sub(4);
+        self.state.offset = self.state.offset.saturating_sub(4);
     }
     pub fn page_down(&mut self) {
-        self.offset += 4;
+        self.state.offset += 4;
     }
 }
 
-impl From<DirectoryList> for Box<dyn Component> {
+impl From<DirectoryList> for Box<dyn Container> {
     fn from(component: DirectoryList) -> Self {
         Box::new(component)
     }
@@ -157,14 +157,14 @@ impl From<DirectoryList> for Box<dyn Component> {
    - on_exit(parent_state)
 */
 pub struct TextField {
-    pub state: TextFieldWidgetState,
-    pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+    pub state: TextFieldState,
+    pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 
 impl TextField {
     pub fn new(label: &str, default: String) -> Self {
         Self {
-            state: TextFieldWidgetState {
+            state: TextFieldState {
                 is_focused: false,
                 label: label.to_string(),
                 chars: default.chars().collect(),
@@ -173,7 +173,7 @@ impl TextField {
             on_exit: None,
         }
     }
-    pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
+    pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
         self.on_exit = Some(on_exit);
         self
     }
@@ -197,7 +197,7 @@ impl TextField {
     }
 }
 
-impl From<TextField> for Box<dyn Component> {
+impl From<TextField> for Box<dyn Container> {
     fn from(component: TextField) -> Self {
         Box::new(component)
     }

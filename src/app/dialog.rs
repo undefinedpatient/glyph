@@ -4,7 +4,8 @@ use crate::state::dialog::TextInputDialogState;
 use crate::utils::cycle_offset;
 use color_eyre::eyre::Result;
 use std::any::Any;
-
+use crate::state::page::CreateGlyphPageState;
+use crate::state::widget::TextFieldState;
 /*
     Dialog is simply a overlay container, all dialog on_xxx() take two state, parent_state and the state dialog possesses.
  */
@@ -20,10 +21,23 @@ pub struct TextInputDialog {
 impl TextInputDialog {
     pub fn new(field_title: &str, default: &str) -> Self {
         Self {
-            containers: vec![Box::new(TextField::new(
-                field_title,
-                String::from(default),
-            ))],
+            containers: vec![
+                TextField::new(
+                    field_title,
+                    String::from(default),
+                )
+                    .on_exit(
+                        Box::new(
+                            |parent_state, state| {
+                                let _parent_state = parent_state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
+                                let _state = state.unwrap().downcast_mut::<TextFieldState>().unwrap();
+                                _parent_state.text_input = _state.chars.iter().collect::<String>();
+                                Ok(Vec::new())
+                            }
+                        )
+                    )
+                    .into()
+            ],
             components: vec![
                 LineButton::new("Back").on_interact(Box::new(|_| Ok(vec![Command::PopDialog]))).into(),
                 LineButton::new("Confirm").into(),

@@ -39,7 +39,6 @@ impl Interactable for TextInputDialog {
                                 2 => {
                                     // Confirm Button
                                     if let Some(on_submit) = self.on_submit.take() {
-                                        // Now 'callback' is owned, so we can call it
                                         let callback_result = on_submit(parent_state, Some(&mut self.state));
                                         if callback_result.is_err() {
                                             callback_result
@@ -63,7 +62,7 @@ impl Interactable for TextInputDialog {
         } else {
             let index: usize = self.focused_child_index().unwrap();
             let mut result =
-                self.containers[index].handle(key, Some(&mut self.state.text_input));
+                self.containers[index].handle(key, Some(&mut self.state));
             result
         }
     }

@@ -5,6 +5,7 @@ use crate::utils::{get_dir_names, get_file_names};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::any::Any;
 use std::path::PathBuf;
+use color_eyre::eyre::Result;
 
 impl Interactable for Button {
     fn handle(
@@ -69,9 +70,9 @@ impl Interactable for DirectoryList {
                                 Ok(Vec::new())
                             }
                             ' ' => {
-                                if let Some(hovered_index) = self.hovered_index {
-                                    if self.select_dir || hovered_index >= self.get_num_dirs() {
-                                        self.selected_index = self.hovered_index;
+                                if let Some(hovered_index) = self.state.hovered_index {
+                                    if self.state.select_dir || hovered_index >= self.get_num_dirs() {
+                                        self.state.selected_index = self.state.hovered_index;
                                     }
 
                                 }
@@ -90,32 +91,32 @@ impl Interactable for DirectoryList {
                     }
                     if let KeyCode::Esc = key.code {
                         let mut parent_data = parent_state.unwrap().downcast_mut::<PathBuf>().unwrap();
-                        if let Some(selected_index) = self.selected_index {
+                        if let Some(selected_index) = self.state.selected_index {
                             let mut entries = get_dir_names(parent_data.as_path()).unwrap_or(Vec::new());
                             entries.append(&mut get_file_names(parent_data.as_path()).unwrap_or(Vec::new()));
-                            *parent_data = self.current_path.join(entries[selected_index].clone());
+                            *parent_data = self.state.current_path.join(entries[selected_index].clone());
                         } else {
-                            *parent_data = self.current_path.clone();
+                            *parent_data = self.state.current_path.clone();
                         }
                         self.set_focus(false);
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Enter = key.code {
-                        if let Some(index) = self.hovered_index {
+                        if let Some(index) = self.state.hovered_index {
                             // "cd .."
                             if index == 0 {
-                                if let Some(path_buf) = (&self.current_path).parent() {
-                                    self.current_path = path_buf.to_path_buf().clone();
+                                if let Some(path_buf) = (&self.state.current_path).parent() {
+                                    self.state.current_path = path_buf.to_path_buf().clone();
                                 }
                                 return Ok(Vec::new());
                             }
-                            if index < get_dir_names(&self.current_path).unwrap_or(Vec::new()).len() {
-                                self.current_path = self.current_path.join(PathBuf::from(
-                                    get_dir_names(&self.current_path)?[index].to_string(),
+                            if index < get_dir_names(&self.state.current_path).unwrap_or(Vec::new()).len() {
+                                self.state.current_path = self.state.current_path.join(PathBuf::from(
+                                    get_dir_names(&self.state.current_path)?[index].to_string(),
                                 ));
                             }
-                            self.selected_index = None;
-                            self.hovered_index = Some(0);
+                            self.state.selected_index = None;
+                            self.state.hovered_index = Some(0);
                             return Ok(Vec::new());
                         }
                     }
@@ -146,7 +147,7 @@ impl Interactable for TextField {
                     if let KeyCode::Esc = key.code {
                         self.set_focus(false);
                         if let Some(mut on_exit) = self.on_exit.take() {
-                            return (*on_exit)(parent_state);
+                            return (*on_exit)(parent_state, Some(&mut self.state));
                         };
                         return Ok(Vec::new());
                     }

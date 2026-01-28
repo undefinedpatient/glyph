@@ -5,6 +5,7 @@ use crate::model::GlyphRepository;
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphNavigationBarState, GlyphPageState, OpenGlyphPageState};
 use crate::utils::cycle_offset;
 use rusqlite::Connection;
+use crate::state::widget::DirectoryListState;
 
 pub struct EntrancePage {
     pub components: Vec<Box<dyn Component>>,
@@ -52,13 +53,23 @@ impl CreateGlyphPage {
     pub fn new() -> Self {
         Self {
             dialogs: Vec::new(),
-            containers: vec![Box::new(DirectoryList::new("Directory", false,true))],
+            containers: vec![
+                DirectoryList::new("Directory", false,true)
+                    .on_exit(
+                        Box::new(
+                            |parent_state, state| {
+                                let _parent_state = parent_state.unwrap().downcast_mut::<CreateGlyphPageState>().unwrap();
+                                let _state = state.unwrap().downcast_mut::<DirectoryListState>().unwrap();
+                                _parent_state.path_to_create = _state.current_path.clone();
+                                Ok(Vec::new())
+                            }
+                        )
+                    )
+                    .into()
+            ],
             components: vec![
                 Button::new("Back").on_interact(Box::new(|_| Ok(vec![Command::PopPage]))).into(),
-                Button::new("Create").on_interact(Box::new(|_| {
-                    Ok(Vec::new())
-                }
-                )).into(),
+                Button::new("Create").on_interact(Box::new(|_| { Ok(Vec::new()) } )).into(),
             ],
             state: CreateGlyphPageState {
                 is_focused: true,
@@ -90,13 +101,13 @@ impl OpenGlyphPage {
                 Button::new("Back")
                     .on_interact(Box::new(|_| Ok(vec![Command::PopPage]))).into(),
                 Button::new("Open").on_interact(Box::new(
-                    |state_data|
+                    |parent_state|
                         {
-                            let state = state_data
+                            let _parent_state = parent_state
                                 .unwrap()
                                 .downcast_mut::<OpenGlyphPageState>()
                                 .unwrap();
-                            let connection = GlyphRepository::init_glyph_db(&state.path_to_open)?;
+                            let connection = GlyphRepository::init_glyph_db(&_parent_state.path_to_open)?;
                             Ok(vec![
                                 Command::PushPage(
                                     Box::new(
