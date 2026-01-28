@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use crate::app::widget::GlyphNavigationBar;
 
 pub struct GlyphNavigationBarState {

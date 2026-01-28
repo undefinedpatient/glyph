@@ -6,11 +6,11 @@ mod widget;
 use crate::app::popup::MessagePopup;
 use crate::app::{Application, Command, Container, Convertible};
 use crate::drawer::Drawable;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use std::any::Any;
-use color_eyre::owo_colors::OwoColorize;
-use ratatui::style::Color;
 use crate::utils::init_glyph_db;
+use color_eyre::owo_colors::OwoColorize;
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use ratatui::style::Color;
+use std::any::Any;
 
 pub trait Interactable: Convertible {
     fn handle(
@@ -79,6 +79,9 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
                 } else {
                     app.state.db_connection = Some(result.unwrap());
                 }
+            }
+            Command::Data(data) => {
+                // Do nothing to data
             }
             Command::Quit => {
                 app.state.should_quit = true;

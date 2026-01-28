@@ -1,12 +1,15 @@
-use crate::app::widget::{DirectoryList, GlyphNavigationBar, LineButton, SimpleButton, TextField, TextFieldInputMode};
+use crate::app::dialog::TextInputDialog;
+use crate::app::popup::MessagePopup;
+use crate::app::widget::{Button, DirectoryList, GlyphNavigationBar, LineButton, TextField};
 use crate::app::Command;
 use crate::event_handler::{Focusable, Interactable};
 use crate::utils::{get_dir_names, get_file_names};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use ratatui::style::Color;
 use std::any::Any;
 use std::path::PathBuf;
 
-impl Interactable for SimpleButton {
+impl Interactable for Button {
     fn handle(
         &mut self,
         key: &KeyEvent,
@@ -101,8 +104,6 @@ impl Interactable for DirectoryList {
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Enter = key.code {
-                        self.selected_index = None;
-                        self.hovered_index = Some(0);
                         if let Some(index) = self.hovered_index {
                             // "cd .."
                             if index == 0 {
@@ -116,6 +117,8 @@ impl Interactable for DirectoryList {
                                     get_dir_names(&self.current_path)?[index].to_string(),
                                 ));
                             }
+                            self.selected_index = None;
+                            self.hovered_index = Some(0);
                             return Ok(Vec::new());
                         }
                     }
@@ -141,75 +144,31 @@ impl Interactable for TextField {
             self.set_focus(true);
             Ok(Vec::new())
         } else {
-            match self.input_mode {
-                TextFieldInputMode::Normal => {
+            match key.kind {
+                KeyEventKind::Press => {
                     if let KeyCode::Esc = key.code {
-                        self.switch_mode(TextFieldInputMode::Normal);
                         self.set_focus(false);
                         let mut name = data.unwrap().downcast_mut::<String>().unwrap();
                         *name = self.chars.iter().collect::<String>();
                         return Ok(Vec::new());
                     }
-                    if let KeyCode::Char(i) = key.code {
-                        match i {
-                            'i' => {
-                                self.switch_mode(TextFieldInputMode::Edit);
-                            }
-                            'h' => {
-                                self.move_to_previous_char();
-                            }
-                            'l' => {
-                                self.move_to_next_char();
-                            }
-                            'x' => {
-                                self.delete_char();
-                            }
-                            'A' => {
-                                self.switch_mode(TextFieldInputMode::Edit);
-                                self.move_to_end_char();
-                            }
-                            'w' | 'W' => {
-                                self.next_word();
-                            }
-                            'b' | 'B' => {
-                                self.previous_word();
-                            }
-                            'e' | 'E' => {
-                                self.next_word();
-                                self.move_to_previous_char();
-                            }
-
-                            _ => return Ok(Vec::new()),
-                        }
+                    if let KeyCode::Char(c) = key.code {
+                        self.insert_char(c);
+                        self.move_to_next_char();
                     }
                     if let KeyCode::Left = key.code {
                         self.move_to_previous_char();
                     }
                     if let KeyCode::Right = key.code {
-                        self.move_to_next_char();
-                    }
-                    Ok(Vec::new())
-                }
-                TextFieldInputMode::Edit => {
-                    if let KeyCode::Esc = key.code {
-                        self.switch_mode(TextFieldInputMode::Normal);
-                    }
-                    if let KeyCode::Char(c) = key.code {
-                        self.insert_char(c);
                         self.move_to_next_char();
                     }
                     if let KeyCode::Backspace = key.code {
                         self.move_to_previous_char();
                         self.delete_char();
                     }
-                    if let KeyCode::Left = key.code {
-                        self.move_to_previous_char();
-                    }
-                    if let KeyCode::Right = key.code {
-                        self.move_to_next_char();
-                    }
                     Ok(Vec::new())
                 }
+                _ => Ok(Vec::new()),
             }
         }
     }
@@ -221,6 +180,51 @@ impl Interactable for TextField {
 
 impl Interactable for GlyphNavigationBar {
     fn handle(&mut self, key: &KeyEvent, data: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
-        todo!()
+        if !self.is_focused() {
+            self.set_focus(true);
+            Ok(Vec::new())
+        } else {
+            match key.kind {
+                KeyEventKind::Press => {
+                    if let KeyCode::Esc = key.code {
+                        self.set_focus(false);
+                        return Ok(Vec::new());
+                    }
+                    if let KeyCode::Char(c) = key.code {
+                        match c {
+                            'a' => {
+                                Ok(
+                                    vec![
+                                        Command::PushDialog(
+                                            TextInputDialog::new(
+                                                "Entry Name",
+                                                "untitled_entry",
+                                                Box::new(|text| {
+                                                    Ok(
+                                                        vec![
+                                                            Command::PushPopup(
+                                                                MessagePopup::new(text.as_str(), Color::White).into()
+                                                            )
+                                                        ]
+                                                    )
+                                                })
+                                            ).into()
+                                        )
+                                    ]
+                                )
+                            }
+                            _ => {
+                                Ok(Vec::new())
+                            }
+                        }
+                    } else {
+                        Ok(Vec::new())
+                    }
+                }
+                _=>{
+                    Ok(Vec::new())
+                }
+            }
+        }
     }
 }

@@ -31,6 +31,7 @@ impl Drawable for EntrancePage {
             .lines(vec!["Glyph".magenta().into()])
             .alignment(HorizontalAlignment::Center)
             .build();
+
         /*
 
         */
@@ -179,15 +180,16 @@ impl Drawable for GlyphPage {
                 .border_type(BorderType::Double)
                 .title("Open Glyph"),
         };
-        let page_area: Rect = page_frame.inner(area);
-        let page_areas = Layout::vertical([
+        let chunks= Layout::vertical([
             Constraint::Fill(1),
-            Constraint::Length(1)
-        ]).split(page_area);
-        let content_areas = Layout::horizontal([Constraint::Length(24), Constraint::Min(24)]).split(page_areas[0]);
+            Constraint::Length(2)
+        ]).split(area);
+
+        let page_area: Rect = page_frame.inner(chunks[0]);
+        let content_areas = Layout::horizontal([Constraint::Length(24), Constraint::Min(24)]).split(page_area);
 
 
-        page_frame.render(area, frame.buffer_mut());
-        self.containers[0].render(frame, content_areas[0], DrawFlag::DEFAULT);
+        page_frame.render(chunks[0], frame.buffer_mut());
+        self.containers[0].render(frame, content_areas[0], get_draw_flag(self.state.hover_index, 0, Some(self.containers[0].is_focused())));
     }
 }

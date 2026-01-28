@@ -1,7 +1,5 @@
-use ratatui::style::Color;
 use crate::app::Container;
-use crate::drawer::Drawable;
-use crate::event_handler::Focusable;
+use ratatui::style::Color;
 
 pub struct MessagePopup {
     pub is_focused: bool,

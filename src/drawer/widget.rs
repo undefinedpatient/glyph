@@ -1,17 +1,14 @@
-use std::path::PathBuf;
-use color_eyre::owo_colors::OwoColorize;
-use crate::app::widget::{DirectoryList, GlyphNavigationBar, LineButton, SimpleButton, TextField, TextFieldInputMode};
+use crate::app::widget::{Button, DirectoryList, GlyphNavigationBar, LineButton, TextField};
 use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use crate::utils::{get_dir_names, get_file_names};
 use ratatui::layout::{Constraint, Offset, Position, Rect};
 use ratatui::prelude::Stylize;
-use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Clear, Widget};
 use ratatui::Frame;
 
-impl Drawable for SimpleButton {
+impl Drawable for Button {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
         match draw_flag {
             DrawFlag::HIGHLIGHTING => {
@@ -139,10 +136,6 @@ impl Drawable for TextField {
                 DrawFlag::HIGHLIGHTING => BorderType::Double,
                 DrawFlag::FOCUSED => BorderType::Thick,
                 _ => BorderType::LightDoubleDashed,
-            })
-            .border_style(match self.input_mode {
-                TextFieldInputMode::Normal => Style::default().fg(Color::White),
-                TextFieldInputMode::Edit => Style::default().fg(Color::Yellow),
             });
         let text_line_area: Rect = text_field_block.inner(text_field_area);
         if self.is_focused() {

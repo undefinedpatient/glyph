@@ -1,22 +1,21 @@
 use crate::app::{Command, Component, Container};
 use crate::drawer::DrawFlag;
+use crate::state::widget::GlyphNavigationBarState;
 use crate::utils::{get_dir_names, get_file_names};
 use color_eyre::eyre::Result;
 use ratatui::style::Stylize;
 use ratatui::text::Line;
 use std::any::Any;
-use std::collections::VecDeque;
 use std::path::PathBuf;
-use crate::state::widget::GlyphNavigationBarState;
 /*
    Button
 */
 
-pub struct SimpleButton {
+pub struct Button {
     pub label: String,
     pub on_interact: Option<Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
-impl SimpleButton {
+impl Button {
     pub fn new(label: &str) -> Self {
         Self {
             label: label.to_string(),
@@ -33,8 +32,8 @@ impl SimpleButton {
         }
     }
 }
-impl From<SimpleButton> for Box<dyn Component> {
-    fn from(component: SimpleButton) -> Self {
+impl From<Button> for Box<dyn Component> {
+    fn from(component: Button) -> Self {
         Box::new(component)
     }
 }
@@ -148,17 +147,11 @@ impl From<DirectoryList> for Box<dyn Component> {
 /*
    Text Field
 */
-
-pub enum TextFieldInputMode {
-    Normal,
-    Edit,
-}
 pub struct TextField {
     pub is_focused: bool,
     pub label: String,
     pub chars: Vec<char>,
     pub cursor_index: usize,
-    pub input_mode: TextFieldInputMode,
 }
 
 impl TextField {
@@ -168,7 +161,6 @@ impl TextField {
             label: label.to_string(),
             chars: default.chars().collect(),
             cursor_index: default.len(),
-            input_mode: TextFieldInputMode::Normal,
         }
     }
     pub fn move_to_next_char(&mut self) {
@@ -189,46 +181,43 @@ impl TextField {
         }
         self.chars.remove(self.cursor_index);
     }
-    pub fn switch_mode(&mut self, mode: TextFieldInputMode) {
-        self.input_mode = mode;
-    }
-    pub fn move_to_end_char(&mut self) {
-        self.cursor_index = self.chars.len();
-    }
-    pub fn next_word(&mut self) {
-        if self.chars.len() == 0 {
-            return;
-        }
-        let (index, ch) = self
-            .chars
-            .iter()
-            .enumerate()
-            .find(|(i, item)| {
-                if **item == ' ' && *i > self.cursor_index {
-                    return true;
-                }
-                false
-            })
-            .unwrap_or_else(|| (self.chars.len(), self.chars.last().unwrap()));
-        self.cursor_index = index;
-    }
-    pub fn previous_word(&mut self) {
-        if self.chars.len() == 0 {
-            return;
-        }
-        let (index, ch) = self
-            .chars
-            .iter()
-            .enumerate()
-            .rfind(|(i, item)| {
-                if **item == ' ' && *i < self.cursor_index {
-                    return true;
-                }
-                false
-            })
-            .unwrap_or_else(|| (0, self.chars.last().unwrap()));
-        self.cursor_index = index;
-    }
+    // pub fn move_to_end_char(&mut self) {
+    //     self.cursor_index = self.chars.len();
+    // }
+    // pub fn next_word(&mut self) {
+    //     if self.chars.len() == 0 {
+    //         return;
+    //     }
+    //     let (index, ch) = self
+    //         .chars
+    //         .iter()
+    //         .enumerate()
+    //         .find(|(i, item)| {
+    //             if **item == ' ' && *i > self.cursor_index {
+    //                 return true;
+    //             }
+    //             false
+    //         })
+    //         .unwrap_or_else(|| (self.chars.len(), self.chars.last().unwrap()));
+    //     self.cursor_index = index;
+    // }
+    // pub fn previous_word(&mut self) {
+    //     if self.chars.len() == 0 {
+    //         return;
+    //     }
+    //     let (index, ch) = self
+    //         .chars
+    //         .iter()
+    //         .enumerate()
+    //         .rfind(|(i, item)| {
+    //             if **item == ' ' && *i < self.cursor_index {
+    //                 return true;
+    //             }
+    //             false
+    //         })
+    //         .unwrap_or_else(|| (0, self.chars.last().unwrap()));
+    //     self.cursor_index = index;
+    // }
 }
 
 impl From<TextField> for Box<dyn Component> {

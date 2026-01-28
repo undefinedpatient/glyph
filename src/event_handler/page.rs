@@ -219,6 +219,7 @@ impl Interactable for GlyphPage {
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.state.hover_index {
                             match index {
+                                0 => self.containers[0].set_focus(true),
                                 _ => {}
                             }
                         }

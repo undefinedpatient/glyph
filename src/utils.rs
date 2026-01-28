@@ -1,11 +1,10 @@
 use std::fs;
-use std::fs::{DirEntry, ReadDir};
-use std::io::Error;
+use std::fs::DirEntry;
 use std::path::{Path, PathBuf};
 
+use crate::model::{Entry, Glyph};
 use color_eyre::eyre::Result;
 use rusqlite::Connection;
-use crate::model::{Entry, Glyph};
 
 
 pub fn get_file_names(path: &Path) -> Result<Vec<String>> {

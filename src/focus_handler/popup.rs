@@ -1,5 +1,5 @@
-use crate::app::Container;
 use crate::app::popup::{ExitConfirmPopup, MessagePopup};
+use crate::app::Container;
 use crate::event_handler::Focusable;
 
 impl Focusable for MessagePopup {

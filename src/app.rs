@@ -1,6 +1,5 @@
 use std::any::Any;
 use std::path::PathBuf;
-use rusqlite::Connection;
 
 pub mod dialog;
 pub mod page;
@@ -22,6 +21,7 @@ pub enum Command {
     PopPopup,
     OpenGlyph(PathBuf), // Path to Glyph DB
     CreateGlyph(PathBuf, String), // Path to directory, name of DB
+    Data(Box<dyn Any>),
 }
 pub trait Convertible {
     fn as_any(&self) -> &dyn Any;

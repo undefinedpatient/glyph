@@ -1,10 +1,10 @@
 use crate::app::dialog::CreateGlyphDialog;
 use crate::app::popup::ExitConfirmPopup;
-use crate::app::widget::{DirectoryList, GlyphNavigationBar, SimpleButton};
+use crate::app::widget::{Button, DirectoryList, GlyphNavigationBar};
 use crate::app::{Command, Component, Container};
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphPageState, OpenGlyphPageState};
-use std::path::PathBuf;
 use crate::utils::init_glyph_db;
+use std::path::PathBuf;
 
 pub struct EntrancePage {
     pub components: Vec<Box<dyn Component>>,
@@ -14,13 +14,13 @@ impl EntrancePage {
     pub fn new() -> Self {
         Self {
             components: vec![
-                SimpleButton::new("Create").on_interact(Box::new(|_| {
+                Button::new("Create").on_interact(Box::new(|_| {
                     Ok(vec![Command::PushPage(Box::new(CreateGlyphPage::new()))])
                 })).into(),
-                SimpleButton::new("Open").on_interact(Box::new(|_| {
+                Button::new("Open").on_interact(Box::new(|_| {
                     Ok(vec![Command::PushPage(Box::new(OpenGlyphPage::new()))])
                 })).into(),
-                SimpleButton::new("Quit").on_interact(Box::new(|_| {
+                Button::new("Quit").on_interact(Box::new(|_| {
                     Ok(vec![Command::PushPopup(Box::new(ExitConfirmPopup::new(
                         true,
                     )))])
@@ -44,8 +44,8 @@ impl CreateGlyphPage {
         Self {
             containers: vec![Box::new(DirectoryList::new("Directory", false,true))],
             components: vec![
-                SimpleButton::new("Back").on_interact(Box::new(|_| Ok(vec![Command::PopPage]))).into(),
-                SimpleButton::new("Create").on_interact(Box::new(|state_data| {
+                Button::new("Back").on_interact(Box::new(|_| Ok(vec![Command::PopPage]))).into(),
+                Button::new("Create").on_interact(Box::new(|state_data| {
                     let state = state_data
                         .unwrap()
                         .downcast_mut::<CreateGlyphPageState>()
@@ -74,9 +74,9 @@ impl OpenGlyphPage {
         Self {
             containers: vec![Box::new(DirectoryList::new("Directory", true,false))],
             components: vec![
-                SimpleButton::new("Back")
+                Button::new("Back")
                     .on_interact(Box::new(|_| Ok(vec![Command::PopPage]))).into(),
-                SimpleButton::new("Open").on_interact(Box::new(
+                Button::new("Open").on_interact(Box::new(
                     |state_data|
                         {
                             let state = state_data
