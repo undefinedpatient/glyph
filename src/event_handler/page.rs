@@ -145,7 +145,7 @@ impl Interactable for CreateGlyphPage {
         } else {
             let index: usize = self.focused_child_index().unwrap();
             let mut result =
-                self.containers[index].handle(key, Some(&mut self.state.path_to_create));
+                self.containers[index].handle(key, Some(&mut self.state));
             result
         }
     }
@@ -196,7 +196,7 @@ impl Interactable for OpenGlyphPage {
         } else {
             let index: usize = self.focused_child_index().unwrap();
             let mut result =
-                self.containers[index].handle(key, Some(&mut self.state.path_to_open));
+                self.containers[index].handle(key, Some(&mut self.state));
             result
         }
     }

@@ -95,6 +95,7 @@ impl DirectoryList {
                 label: label.to_string(),
                 line_height: 1,
                 current_path: std::env::current_dir().unwrap(),
+                selected_file_path: None,
                 hovered_index: None,
                 selected_index: None,
                 offset: 0,

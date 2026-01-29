@@ -70,7 +70,7 @@ impl CreateGlyphPage {
                             |parent_state, state| {
                                 let _parent_state = parent_state.unwrap().downcast_mut::<CreateGlyphPageState>().unwrap();
                                 let _state = state.unwrap().downcast_mut::<DirectoryListState>().unwrap();
-                                _parent_state.path_to_create = _state.current_path.clone();
+                                _parent_state.path_to_create = _state.selected_file_path.clone().unwrap();
                                 Ok(Vec::new())
                             }
                         )
@@ -106,7 +106,18 @@ pub struct OpenGlyphPage {
 impl OpenGlyphPage {
     pub fn new() -> Self {
         Self {
-            containers: vec![Box::new(DirectoryList::new("Directory", true,false))],
+            containers: vec![Box::new(DirectoryList::new("Directory", true,false)
+                .on_exit(
+                    Box::new(
+                        |parent_state, state| {
+                            let _parent_state = parent_state.unwrap().downcast_mut::<OpenGlyphPageState>().unwrap();
+                            let _state = state.unwrap().downcast_mut::<DirectoryListState>().unwrap();
+                            _parent_state.path_to_open = _state.selected_file_path.clone().unwrap();
+                            Ok(Vec::new())
+                        }
+                    )
+                ))],
+
             components: vec![
                 Button::new("Back")
                     .on_interact(Box::new(|_| Ok(vec![Command::PopPage]))).into(),

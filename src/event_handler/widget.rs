@@ -90,15 +90,19 @@ impl Interactable for DirectoryList {
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Esc = key.code {
-                        let mut parent_data = parent_state.unwrap().downcast_mut::<PathBuf>().unwrap();
                         if let Some(selected_index) = self.state.selected_index {
-                            let mut entries = get_dir_names(parent_data.as_path()).unwrap_or(Vec::new());
-                            entries.append(&mut get_file_names(parent_data.as_path()).unwrap_or(Vec::new()));
-                            *parent_data = self.state.current_path.join(entries[selected_index].clone());
+                            let mut entries = get_dir_names(self.state.current_path.as_path()).unwrap_or(Vec::new());
+                            entries.append(&mut get_file_names(self.state.current_path.as_path()).unwrap_or(Vec::new()));
+                            self.state.selected_file_path = Some(self.state.current_path.join(entries[selected_index].clone()));
                         } else {
-                            *parent_data = self.state.current_path.clone();
+                            self.state.selected_file_path = Some(self.state.current_path.clone());
                         }
                         self.set_focus(false);
+                        if let Some(mut on_exit) = self.on_exit.take() {
+                            let result = on_exit(parent_state, Some(&mut self.state));
+                            self.on_exit = Some(on_exit);
+                            return result;
+                        }
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Enter = key.code {
