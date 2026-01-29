@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use rusqlite::Connection;
 use std::rc::Rc;
 use crate::app::popup::ConfirmPopup;
@@ -45,7 +46,7 @@ impl EntrancePage {
                 })).into(),
                 Button::new("Quit").on_interact(Box::new(|_| {
                     Ok(vec![
-                        Command::AppCommand(PushPopup( ConfirmPopup::new(
+                        AppCommand(PushPopup( ConfirmPopup::new(
                             "Exit Glyph?"
                         ).on_confirm(
                             Box::new(
@@ -206,7 +207,7 @@ pub struct GlyphPage {
 
 impl GlyphPage {
     pub fn new(connection: Connection) -> Self {
-        let entries = Rc::new(EntryRepository::read_all(&connection).unwrap_or(Vec::new()));
+        let entries = Rc::new(RefCell::new(EntryRepository::read_all(&connection).unwrap_or(Vec::new())));
 
         Self {
             dialogs: Vec::new(),
@@ -218,7 +219,7 @@ impl GlyphPage {
                 is_focused: false,
                 is_hovered: false,
                 hovered_index: None,
-                connection: Rc::new(connection),
+                connection,
                 entries
             }
         }
@@ -249,14 +250,34 @@ pub struct GlyphNavigationBar {
 }
 
 impl GlyphNavigationBar {
-    pub fn new(ref_entries: Rc<Vec<Entry>>) -> Self {
+    pub fn new(ref_entries: Rc<RefCell<Vec<Entry>>>) -> Self {
         Self {
             dialogs: Vec::new(),
             state: GlyphNavigationBarState {
                 is_focused: false,
+                line_height: 1,
                 hovered_index: None,
+                selected_id: None,
+                offset: 0,
                 ref_entries,
+
             }
+        }
+    }
+    pub fn next_entry(&mut self) -> () {
+        if let Some(index) = self.state.hovered_index {
+        let num_entries = self.state.ref_entries.borrow().len();
+            self.state.hovered_index = Some(cycle_offset(index as u16, 1, num_entries as u16) as usize);
+        } else {
+            self.state.hovered_index = Some(0);
+        }
+    }
+    pub fn previous_entry(&mut self) -> () {
+        let num_entries = self.state.ref_entries.borrow().len();
+        if let Some(index) = self.state.hovered_index {
+            self.state.hovered_index = Some(cycle_offset(index as u16, -1, num_entries as u16) as usize);
+        } else {
+            self.state.hovered_index = Some(num_entries - 1usize);
         }
     }
 }

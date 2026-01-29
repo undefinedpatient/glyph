@@ -67,7 +67,7 @@ impl Drawable for DirectoryList {
                 .title(self.state.label.as_str())
                 .title_top(Span::from(current_path.as_str()).into_right_aligned_line()),
         };
-        
+
         /*
            Directory Widget
         */
@@ -86,12 +86,12 @@ impl Drawable for DirectoryList {
                 // If Selected => " >"
                 if let Some(selected_index) = self.state.selected_index {
                     if selected_index == i {
-                        line = Line::from(String::from(" >") + &*item.clone());
+                        line = Line::from(String::from(" > ") + &*item.clone());
                     } else {
-                        line = Line::from(String::from("  ") + &*item.clone());
+                        line = Line::from(String::from("   ") + &*item.clone());
                     }
                 } else {
-                    line = Line::from(String::from("  ") + &*item.clone());
+                    line = Line::from(String::from("   ") + &*item.clone());
                 }
 
                 // If Hovered => Bold

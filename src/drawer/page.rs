@@ -1,11 +1,14 @@
 use crate::app::page::{OpenGlyphPage, EntrancePage, GlyphNavigationBar, GlyphPage, CreateGlyphPage};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
-use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect};
+use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::{Block, BorderType, Borders, Widget};
 use ratatui::Frame;
 use std::rc::Rc;
+use color_eyre::owo_colors::OwoColorize;
+use ratatui::prelude::Span;
+use ratatui::text::Line;
 use tui_big_text::{BigText, PixelSize};
 
 impl Drawable for EntrancePage {
@@ -245,8 +248,50 @@ impl Drawable for GlyphNavigationBar {
         /*
             List Items (Entry)
          */
+        let mut list: Vec<(i64, String)> = self.state.ref_entries.borrow()
+            .iter()
+            .map(|entry| (entry.id , entry.entry_name.clone())).collect();
+        let mut list_items: Vec<Line> = list
+            .iter()
+            .enumerate()
+            .map(|(i, (id, name))| {
+                let mut line: Line;
+                // // If Selected => " >"
+                if let Some(selected_id) = self.state.selected_id{
+                    if selected_id == *id {
+                        line = Line::from(String::from(" > ") + &*name.clone());
+                    } else {
+                        line = Line::from(String::from("   ") + &*name.clone());
+                    }
+                } else {
+                    line = Line::from(String::from("   ") + &*name.clone());
+                }
+
+                // If Hovered => Bold
+                if let Some(hovered_index) = self.state.hovered_index {
+                    if hovered_index == i {
+                        line = line.bold()
+                    }
+                }
+
+
+                line
+            }).collect();
+
 
         let inner_area: Rect = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
+        for (i, line) in list_items[self.state.offset..].iter().enumerate() {
+            if i * self.state.line_height >= inner_area.height as usize {
+                break;
+            }
+            (line as &Line).render(
+                inner_area.offset(Offset {
+                    x: 0,
+                    y: (i * &self.state.line_height) as i32,
+                }),
+                frame.buffer_mut(),
+            );
+        }
     }
 }

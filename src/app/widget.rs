@@ -135,7 +135,7 @@ impl DirectoryList {
         if let Some(index) = self.state.hovered_index {
             self.state.hovered_index = Some(cycle_offset(index as u16, -1, num_entries as u16) as usize);
         } else {
-            self.state.hovered_index = Some(self.get_num_entries() - 1usize);
+            self.state.hovered_index = Some(num_entries - 1usize);
         }
     }
     pub fn page_up(&mut self) {

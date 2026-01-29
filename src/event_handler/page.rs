@@ -15,6 +15,7 @@ use crate::state::page::{CreateGlyphPageState, GlyphPageState};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
+use color_eyre::Report;
 use crate::state::AppState;
 
 impl Interactable for EntrancePage {
@@ -302,6 +303,10 @@ impl Interactable for GlyphPage {
 
 /*
     Navigation Bar (Subpage)
+    Operations:
+    - Create Entry
+    - Remove Entry (Todo)
+    - Rename Entry (Todo)
  */
 
 impl Interactable for GlyphNavigationBar {
@@ -312,15 +317,36 @@ impl Interactable for GlyphNavigationBar {
         } else {
             match key.kind {
                 KeyEventKind::Press => {
+
+                    if let KeyCode::Tab = key.code {
+                        self.next_entry();
+                        return Ok(Vec::new());
+                    }
+                    if let KeyCode::BackTab = key.code {
+                        self.previous_entry();
+                        return Ok(Vec::new());
+                    }
                     if let KeyCode::Esc = key.code {
                         self.set_focus(false);
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Char(c) = key.code {
                         match c {
+                            ' ' => {
+                                let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                if let Some(index) = self.state.hovered_index {
+                                    match _parent_state.entries.borrow().get(index) {
+                                        Some(entry) => {
+                                            self.state.selected_id = Some(entry.id);
+                                        }
+                                        None => {}
+                                    }
+                                }
+                                return Ok(Vec::new());
+
+                            }
                             'A' => {
                                 return Ok(
-                                    // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
                                     vec![
                                         PageCommand(
                                             PushDialog(
@@ -328,10 +354,22 @@ impl Interactable for GlyphNavigationBar {
                                                     "Entry Name",
                                                     "untitled",
                                                 ).on_submit(
+                                                    // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
                                                     Box::new(|parent_state, state| {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                                         let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                        EntryRepository::create_entry(&_parent_state.connection, _state.text_input.as_str(), "")?;
+                                                        let id: i64 = EntryRepository::create_entry(&_parent_state.connection, _state.text_input.as_str(), "")?;
+                                                        let returned_entry = EntryRepository::read_by_id(&_parent_state.connection, id)?;
+                                                        if let Some(entry) = returned_entry {
+                                                            match _parent_state.entries.try_borrow_mut() {
+                                                                Ok(mut entries) => {
+                                                                    entries.push(entry);
+                                                                }
+                                                                Err(e) => {
+                                                                    return Err(Report::msg("Entries is being updated somewhere at the moment!"));
+                                                                }
+                                                            }
+                                                        }
                                                         Ok(vec![])
                                                     })
                                                 ).into()

@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use rusqlite::Connection;
 use std::path::PathBuf;
@@ -25,11 +26,14 @@ pub struct GlyphPageState {
     pub is_focused: bool,
     pub is_hovered: bool,
     pub hovered_index: Option<usize>,
-    pub connection: Rc<Connection>,
-    pub entries: Rc<Vec<Entry>>
+    pub connection: Connection,
+    pub entries: Rc<RefCell<Vec<Entry>>>
 }
 pub struct GlyphNavigationBarState {
     pub is_focused: bool,
+    pub line_height: usize,
     pub hovered_index: Option<usize>,
-    pub ref_entries: Rc<Vec<Entry>>
+    pub selected_id: Option<i64>,
+    pub offset: usize,
+    pub ref_entries: Rc<RefCell<Vec<Entry>>>,
 }
