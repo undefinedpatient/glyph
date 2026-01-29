@@ -1,7 +1,13 @@
 use crate::app::dialog::TextInputDialog;
-use crate::app::page::{CreateGlyphPage, GlyphNavigationBar, GlyphPage, OpenGlyphPage};
+use crate::app::page::{OpenGlyphPage, GlyphNavigationBar, GlyphPage, CreateGlyphPage};
 use crate::app::popup::ConfirmPopup;
-use crate::app::{page::EntrancePage, Command};
+use crate::app::{page::EntrancePage};
+
+use crate::app::Command::{self,*};
+use crate::app::AppCommand::*;
+use crate::app::PageCommand::*;
+use crate::app::GlyphCommand::*;
+
 use crate::event_handler::{Focusable, Interactable};
 use crate::model::{EntryRepository, GlyphRepository};
 use crate::state::dialog::TextInputDialogState;
@@ -26,20 +32,11 @@ impl Interactable for EntrancePage {
                     self.cycle_hover(-1);
                 }
                 if let KeyCode::Esc = key.code {
-                    return Ok(vec![Command::PushPopup(Box::new(
-                        ConfirmPopup::new(
-                            "Exit Glyph?"
-                        )
-                            .on_confirm(
-                                Box::new(
-                                    |app_state| {
-                                        let _app_state = app_state.unwrap().downcast_mut::<AppState>().unwrap();
-                                        _app_state.should_quit = true;
-                                        Ok(Vec::new())
-                                    }
-                                )
-                            )
-                    ))]);
+                    return Ok(vec![
+                        AppCommand(PushPopup(
+                            ConfirmPopup::new("").into()
+                        ))
+                    ]);
                 }
                 if let KeyCode::Enter = key.code {
                     if let Some(index) = self.state.hovered_index {
@@ -70,11 +67,15 @@ impl Interactable for CreateGlyphPage {
                 let mut commands = result?;
                 while let Some(command) = commands.pop() {
                     match command {
-                        Command::PopDialog => {
-                            self.dialogs.pop();
-                        }
-                        Command::PushDialog(dialog) => {
-                            self.dialogs.push(dialog);
+                        PageCommand(page_command) => {
+                            match page_command {
+                                PopDialog => {
+                                    self.dialogs.pop();
+                                }
+                                PushDialog(dialog) => {
+                                    self.dialogs.push(dialog);
+                                }
+                            }
                         }
                         _ => {
                             processed_commands.insert(0, command);
@@ -99,7 +100,7 @@ impl Interactable for CreateGlyphPage {
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Esc = key.code {
-                        return Ok(vec![Command::PopPage]);
+                        return Ok(vec![AppCommand(PopPage)]);
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.state.hovered_index {
@@ -122,11 +123,11 @@ impl Interactable for CreateGlyphPage {
                                                 let connection = GlyphRepository::init_glyph_db(&_parent_state.path_to_create.join(_state.text_input.clone()+".glyph"));
                                                 Ok(
                                                     vec![
-                                                        Command::PopDialog,
-                                                        Command::PushPage(
+                                                        PageCommand(PopDialog),
+                                                        AppCommand(PushPage(
                                                             GlyphPage::new(connection.unwrap()).into()
-                                                        ),
-                                                        Command::PopPage
+                                                        )),
+                                                        AppCommand(PopPage)
                                                     ]
                                                 )
                                             }
@@ -168,7 +169,7 @@ impl Interactable for OpenGlyphPage {
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Esc = key.code {
-                        return Ok(vec![Command::PopPage]);
+                        return Ok(vec![AppCommand(PopPage)]);
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.state.hovered_index {
@@ -216,11 +217,15 @@ impl Interactable for GlyphPage {
                 let mut commands = result?;
                 while let Some(command) = commands.pop() {
                     match command {
-                        Command::PopDialog => {
-                            self.dialogs.pop();
-                        }
-                        Command::PushDialog(dialog) => {
-                            self.dialogs.push(dialog);
+                        PageCommand(page_command) => {
+                            match page_command {
+                                PopDialog => {
+                                    self.dialogs.pop();
+                                }
+                                PushDialog(dialog) => {
+                                    self.dialogs.push(dialog);
+                                }
+                            }
                         }
                         _ => {
                             processed_commands.insert(0, command);
@@ -246,7 +251,7 @@ impl Interactable for GlyphPage {
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Esc = key.code {
-                        return Ok(vec![Command::PopPage]);
+                        return Ok(vec![AppCommand(PopPage)]);
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.state.hovered_index {
@@ -274,11 +279,15 @@ impl Interactable for GlyphPage {
                 let mut commands = result?;
                 while let Some(command) = commands.pop() {
                     match command {
-                        Command::PopDialog => {
-                            self.dialogs.pop();
-                        }
-                        Command::PushDialog(dialog) => {
-                            self.dialogs.push(dialog);
+                        PageCommand(page_command) => {
+                            match page_command {
+                                PopDialog => {
+                                    self.dialogs.pop();
+                                }
+                                PushDialog(dialog) => {
+                                    self.dialogs.push(dialog);
+                                }
+                            }
                         }
                         _ => {
                             processed_commands.insert(0, command);
@@ -313,18 +322,20 @@ impl Interactable for GlyphNavigationBar {
                                 return Ok(
                                     // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
                                     vec![
-                                        Command::PushDialog(
-                                            TextInputDialog::new(
-                                                "Entry Name",
-                                                "untitled",
+                                        PageCommand(
+                                            PushDialog(
+                                                TextInputDialog::new(
+                                                    "Entry Name",
+                                                    "untitled",
                                                 ).on_submit(
-                                                Box::new(|parent_state, state| {
-                                                    let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                                    let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                    EntryRepository::create_entry(&_parent_state.connection, _state.text_input.as_str(), "")?;
-                                                    Ok(vec![])
-                                                })
-                                            ).into()
+                                                    Box::new(|parent_state, state| {
+                                                        let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                                        let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
+                                                        EntryRepository::create_entry(&_parent_state.connection, _state.text_input.as_str(), "")?;
+                                                        Ok(vec![])
+                                                    })
+                                                ).into()
+                                            )
                                         )
                                     ]
                                 );

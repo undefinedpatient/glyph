@@ -1,11 +1,14 @@
 use crate::app::widget::{LineButton, TextField};
-use crate::app::{Command, Component, Container};
+use crate::app::{Component, Container};
 use crate::state::dialog::TextInputDialogState;
 use crate::utils::cycle_offset;
 use color_eyre::eyre::Result;
 use std::any::Any;
-use crate::state::page::CreateGlyphPageState;
+use crate::app::Command::{self,*};
+use crate::app::PageCommand::*;
 use crate::state::widget::TextFieldState;
+
+
 /*
     Dialog is simply a overlay container, all dialog on_xxx() take two state, parent_state and the state dialog possesses.
  */
@@ -39,7 +42,7 @@ impl TextInputDialog {
                     .into()
             ],
             components: vec![
-                LineButton::new("Back").on_interact(Box::new(|_| Ok(vec![Command::PopDialog]))).into(),
+                LineButton::new("Back").on_interact(Box::new(|_| Ok(vec![PageCommand(PopDialog)]))).into(),
                 LineButton::new("Confirm").into(),
             ],
             state: TextInputDialogState {

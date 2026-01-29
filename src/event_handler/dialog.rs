@@ -1,5 +1,5 @@
 use crate::app::dialog::TextInputDialog;
-use crate::app::Command;
+use crate::app::{Command, PageCommand};
 use crate::event_handler::{Focusable, Interactable};
 use color_eyre::Report;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
@@ -16,7 +16,7 @@ impl Interactable for TextInputDialog {
             match key.kind {
                 KeyEventKind::Press => {
                     if let KeyCode::Esc = key.code {
-                        return Ok(vec![Command::PopDialog]);
+                        return Ok(vec![Command::PageCommand(PageCommand::PopDialog)]);
                     }
                     if let KeyCode::Tab = key.code {
                         self.cycle_hover(1)
@@ -44,7 +44,7 @@ impl Interactable for TextInputDialog {
                                             callback_result
                                         } else {
                                             let mut commands = callback_result?;
-                                            commands.push(Command::PopDialog);
+                                            commands.push(Command::PageCommand(PageCommand::PopDialog));
                                             Ok(commands)
                                         }
                                     } else {

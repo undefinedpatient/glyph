@@ -67,6 +67,7 @@ impl Drawable for DirectoryList {
                 .title(self.state.label.as_str())
                 .title_top(Span::from(current_path.as_str()).into_right_aligned_line()),
         };
+        
         /*
            Directory Widget
         */

@@ -3,6 +3,8 @@ use crate::app::Command;
 use crate::event_handler::Interactable;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
+use crate::app::AppCommand::*;
+use crate::app::Command::AppCommand;
 
 impl Interactable for MessagePopup {
     fn handle(
@@ -13,10 +15,10 @@ impl Interactable for MessagePopup {
         return match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Enter = key.code {
-                    return Ok(vec![Command::PopPopup]);
+                    return Ok(vec![AppCommand(PopPopup)]);
                 }
                 if let KeyCode::Esc = key.code {
-                    return Ok(vec![Command::PopPopup]);
+                    return Ok(vec![AppCommand(PopPopup)]);
                 }
                 Ok(Vec::new())
             }
@@ -44,13 +46,13 @@ impl Interactable for ConfirmPopup {
                 }
                 if let KeyCode::Enter = key.code {
                     return if self.focus_index == 1 {
-                        Ok(vec![Command::Quit])
+                        Ok(vec![AppCommand(Quit)])
                     } else {
-                        Ok(vec![Command::PopPopup])
+                        Ok(vec![AppCommand(PopPopup)])
                     };
                 }
                 if let KeyCode::Esc = key.code {
-                    return Ok(vec![Command::PopPopup]);
+                    return Ok(vec![AppCommand(PopPopup)]);
                 }
                 Ok(Vec::new())
             }

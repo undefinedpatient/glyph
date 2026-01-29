@@ -1,10 +1,13 @@
+use rusqlite::Connection;
+use std::rc::Rc;
 use crate::app::popup::ConfirmPopup;
 use crate::app::widget::{Button, DirectoryList};
-use crate::app::{Command, Component, Container};
-use crate::model::GlyphRepository;
+use crate::app::{Command, PageCommand, Component, Container};
+use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
+use crate::app::Command::AppCommand;
+use crate::model::{Entry, EntryRepository, GlyphRepository};
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphNavigationBarState, GlyphPageState, OpenGlyphPageState};
 use crate::utils::cycle_offset;
-use rusqlite::Connection;
 use crate::state::AppState;
 use crate::state::widget::DirectoryListState;
 
@@ -17,24 +20,43 @@ impl EntrancePage {
         Self {
             components: vec![
                 Button::new("Create").on_interact(Box::new(|_| {
-                    Ok(vec![Command::PushPage(Box::new(CreateGlyphPage::new()))])
+                    Ok(
+                        vec![
+                            AppCommand(
+                                PushPage(
+                                    CreateGlyphPage::new().into()
+                                )
+
+                            )
+                        ]
+                    )
                 })).into(),
                 Button::new("Open").on_interact(Box::new(|_| {
-                    Ok(vec![Command::PushPage(Box::new(OpenGlyphPage::new()))])
+                    Ok(
+                        vec![
+                            AppCommand(
+                                PushPage(
+                                    OpenGlyphPage::new().into()
+                                )
+
+                            )
+                        ]
+                    )
                 })).into(),
                 Button::new("Quit").on_interact(Box::new(|_| {
-                    Ok(vec![Command::PushPopup(Box::new(ConfirmPopup::new(
-                        "Exit Glyph?"
-                    ).on_confirm(
-                        Box::new(
-                            |app_state| {
-                                let _app_state = app_state.unwrap().downcast_mut::<AppState>().unwrap();
-                                _app_state.should_quit = true;
-                                Ok(Vec::new())
-                            }
-                        )
-                    )
-                    ))])
+                    Ok(vec![
+                        Command::AppCommand(PushPopup( ConfirmPopup::new(
+                            "Exit Glyph?"
+                        ).on_confirm(
+                            Box::new(
+                                |app_state| {
+                                    let _app_state = app_state.unwrap().downcast_mut::<AppState>().unwrap();
+                                    _app_state.should_quit = true;
+                                    Ok(Vec::new())
+                                }
+                            )
+                        ).into()
+                        ))])
                 })).into(),
             ],
             state: EntrancePageState {
@@ -53,6 +75,12 @@ impl EntrancePage {
         }
     }
 }
+impl From<EntrancePage> for Box<dyn Container> {
+    fn from(page: EntrancePage) -> Self {
+        Box::new(page)
+    }
+}
+
 pub struct CreateGlyphPage {
     pub dialogs: Vec<Box<dyn Container>>,
     pub containers: Vec<Box<dyn Container>>,
@@ -78,7 +106,7 @@ impl CreateGlyphPage {
                     .into()
             ],
             components: vec![
-                Button::new("Back").on_interact(Box::new(|_| Ok(vec![Command::PopPage]))).into(),
+                Button::new("Back").on_interact(Box::new(|_| Ok(vec![AppCommand(PopPage)]))).into(),
                 Button::new("Create").on_interact(Box::new(|_| { Ok(Vec::new()) } )).into(),
             ],
             state: CreateGlyphPageState {
@@ -96,6 +124,11 @@ impl CreateGlyphPage {
         } else {
             self.state.hovered_index = Some(0);
         }
+    }
+}
+impl From<CreateGlyphPage> for Box<dyn Container> {
+    fn from(page: CreateGlyphPage) -> Self {
+        Box::new(page)
     }
 }
 pub struct OpenGlyphPage {
@@ -120,7 +153,7 @@ impl OpenGlyphPage {
 
             components: vec![
                 Button::new("Back")
-                    .on_interact(Box::new(|_| Ok(vec![Command::PopPage]))).into(),
+                    .on_interact(Box::new(|_| Ok(vec![AppCommand(PopPage)]))).into(),
                 Button::new("Open").on_interact(Box::new(
                     |parent_state|
                         {
@@ -130,12 +163,12 @@ impl OpenGlyphPage {
                                 .unwrap();
                             let connection = GlyphRepository::init_glyph_db(&_parent_state.path_to_open)?;
                             Ok(vec![
-                                Command::PushPage(
+                                AppCommand(PushPage(
                                     Box::new(
                                         GlyphPage::new(connection)
                                     )
-                                ),
-                                Command::PopPage,
+                                )),
+                                AppCommand(PopPage)
                             ])
                         }
                 ),
@@ -158,6 +191,11 @@ impl OpenGlyphPage {
         }
     }
 }
+impl From<OpenGlyphPage> for Box<dyn Container> {
+    fn from(page: OpenGlyphPage) -> Self {
+        Box::new(page)
+    }
+}
 
 pub struct GlyphPage {
     pub dialogs: Vec<Box<dyn Container>>,
@@ -168,17 +206,20 @@ pub struct GlyphPage {
 
 impl GlyphPage {
     pub fn new(connection: Connection) -> Self {
+        let entries = Rc::new(EntryRepository::read_all(&connection).unwrap_or(Vec::new()));
+
         Self {
             dialogs: Vec::new(),
             containers: vec![
-                GlyphNavigationBar::new().into()
+                GlyphNavigationBar::new(entries.clone()).into()
             ],
             components: Vec::new(),
             state: GlyphPageState {
                 is_focused: false,
                 is_hovered: false,
                 hovered_index: None,
-                connection
+                connection: Rc::new(connection),
+                entries
             }
         }
     }
@@ -208,12 +249,13 @@ pub struct GlyphNavigationBar {
 }
 
 impl GlyphNavigationBar {
-    pub fn new() -> Self {
+    pub fn new(ref_entries: Rc<Vec<Entry>>) -> Self {
         Self {
             dialogs: Vec::new(),
             state: GlyphNavigationBarState {
                 is_focused: false,
                 hovered_index: None,
+                ref_entries,
             }
         }
     }

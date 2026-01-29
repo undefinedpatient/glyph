@@ -1,4 +1,4 @@
-use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphNavigationBar, GlyphPage, OpenGlyphPage};
+use crate::app::page::{OpenGlyphPage, EntrancePage, GlyphNavigationBar, GlyphPage, CreateGlyphPage};
 use crate::app::Container;
 use crate::event_handler::Focusable;
 

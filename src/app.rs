@@ -12,17 +12,29 @@ use crate::state::AppState;
 use page::EntrancePage;
 
 pub enum Command {
+    AppCommand(AppCommand),
+    GlyphCommand(GlyphCommand),
+    PageCommand(PageCommand),
+    Data(Box<dyn Any>),
+}
+pub enum AppCommand {
     Quit,
     PushPage(Box<dyn Container>),
     PopPage,
-    PushDialog(Box<dyn Container>),
-    PopDialog,
     PushPopup(Box<dyn Container>),
     PopPopup,
+
+}
+pub enum GlyphCommand {
     OpenGlyph(PathBuf), // Path to Glyph DB
     CreateGlyph(PathBuf, String), // Path to directory, name of DB
-    Data(Box<dyn Any>),
+    CreateEntry(String)
 }
+pub enum PageCommand {
+    PushDialog(Box<dyn Container>),
+    PopDialog,
+}
+
 pub trait Convertible {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;

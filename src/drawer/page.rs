@@ -1,4 +1,4 @@
-use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphNavigationBar, GlyphPage, OpenGlyphPage};
+use crate::app::page::{OpenGlyphPage, EntrancePage, GlyphNavigationBar, GlyphPage, CreateGlyphPage};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect};
@@ -241,6 +241,11 @@ impl Drawable for GlyphNavigationBar {
                 .border_type(BorderType::Thick)
                 .title("Entries"),
         };
+
+        /*
+            List Items (Entry)
+         */
+
         let inner_area: Rect = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
     }
