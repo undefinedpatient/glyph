@@ -1,30 +1,38 @@
-use crate::app::page::{OpenGlyphPage, EntrancePage, GlyphNavigationBar, GlyphPage, CreateGlyphPage};
+use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphNavigationBar, GlyphPage, GlyphReader, OpenGlyphPage};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
+use color_eyre::owo_colors::OwoColorize;
 use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect};
 use ratatui::style::{Style, Stylize};
+use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Widget};
 use ratatui::Frame;
 use std::rc::Rc;
-use color_eyre::owo_colors::OwoColorize;
-use ratatui::prelude::Span;
-use ratatui::text::Line;
 use tui_big_text::{BigText, PixelSize};
+
+macro_rules! block {
+    ($title: expr, $flag: expr) => {
+         match $flag {
+            DrawFlag::DEFAULT => {
+                Block::bordered().title($title)
+            }
+            DrawFlag::HIGHLIGHTING => {
+                Block::bordered().title($title).border_type(BorderType::Double)
+            }
+            DrawFlag::FOCUSED => {
+                Block::bordered().title($title).border_type(BorderType::Thick)
+            }
+        }
+    };
+}
+
 
 impl Drawable for EntrancePage {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
         /*
            Container Frame
         */
-        let block: Block = match draw_flag {
-            DrawFlag::DEFAULT => Block::bordered(),
-            DrawFlag::HIGHLIGHTING => Block::bordered()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Double),
-            DrawFlag::FOCUSED => Block::bordered()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Double),
-        };
+        let block: Block = block!("Glyph", draw_flag);
         /*
           Title
         */
@@ -69,17 +77,7 @@ impl Drawable for CreateGlyphPage {
         /*
            Outer Frame
         */
-        let page_frame: Block = match draw_flag {
-            DrawFlag::DEFAULT => Block::bordered().title("Create glyph page"),
-            DrawFlag::HIGHLIGHTING => Block::bordered()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Double)
-                .title("Create glyph page"),
-            DrawFlag::FOCUSED => Block::bordered()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Double)
-                .title("Create glyph page"),
-        };
+        let page_frame: Block = block!("Create Glyph", draw_flag);
         /*
            Chucks
         */
@@ -132,17 +130,7 @@ impl Drawable for OpenGlyphPage {
         /*
            Outer Frame
         */
-        let page_frame: Block = match draw_flag {
-            DrawFlag::DEFAULT => Block::bordered().title("Open Glyph"),
-            DrawFlag::HIGHLIGHTING => Block::bordered()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Double)
-                .title("Open Glyph"),
-            DrawFlag::FOCUSED => Block::bordered()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Double)
-                .title("Open Glyph"),
-        };
+        let page_frame: Block = block!("Open Glyph", draw_flag);
         /*
            Chucks
         */
@@ -184,17 +172,9 @@ impl Drawable for GlyphPage {
         /*
            Outer Frame
         */
-        let page_frame: Block = match draw_flag {
-            DrawFlag::DEFAULT => Block::bordered().title("Glyph"),
-            DrawFlag::HIGHLIGHTING => Block::bordered()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Double)
-                .title("Open Glyph"),
-            DrawFlag::FOCUSED => Block::bordered()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Double)
-                .title("Open Glyph"),
-        };
+        let page_frame: Block = block!("Glyph", draw_flag);
+
+
         let chunks= Layout::vertical([
             Constraint::Fill(1),
             Constraint::Length(2)
@@ -206,6 +186,7 @@ impl Drawable for GlyphPage {
 
         page_frame.render(chunks[0], frame.buffer_mut());
         self.containers[0].render(frame, content_areas[0], get_draw_flag(self.state.hovered_index, 0, Some(self.containers[0].is_focused())));
+        self.containers[1].render(frame, content_areas[1], get_draw_flag(self.state.hovered_index, 1, Some(self.containers[1].is_focused())));
 
 
         /*
@@ -231,19 +212,7 @@ impl Drawable for GlyphNavigationBar {
         /*
            Container Frame
         */
-        let widget_frame: Block = match draw_flag {
-            DrawFlag::DEFAULT => Block::default()
-                .borders(Borders::ALL)
-                .title("Entries"),
-            DrawFlag::HIGHLIGHTING => Block::default()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Double)
-                .title("Entries"),
-            DrawFlag::FOCUSED => Block::default()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Thick)
-                .title("Entries"),
-        };
+        let widget_frame: Block = block!("Entries", draw_flag);
 
         /*
             List Items (Entry)
@@ -293,5 +262,15 @@ impl Drawable for GlyphNavigationBar {
                 frame.buffer_mut(),
             );
         }
+    }
+}
+
+impl Drawable for GlyphReader {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+        /*
+           Container Frame
+        */
+        let widget_frame: Block = block!("Content", draw_flag);
+        widget_frame.render(area, frame.buffer_mut());
     }
 }

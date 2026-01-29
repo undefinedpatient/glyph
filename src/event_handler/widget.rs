@@ -5,7 +5,6 @@ use crate::utils::{get_dir_names, get_file_names};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::any::Any;
 use std::path::PathBuf;
-use color_eyre::eyre::Result;
 
 impl Interactable for Button {
     fn handle(

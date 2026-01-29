@@ -1,22 +1,21 @@
 use crate::app::dialog::TextInputDialog;
-use crate::app::page::{OpenGlyphPage, GlyphNavigationBar, GlyphPage, CreateGlyphPage};
+use crate::app::page::{CreateGlyphPage, GlyphNavigationBar, GlyphPage, GlyphReader, OpenGlyphPage};
 use crate::app::popup::ConfirmPopup;
-use crate::app::{page::EntrancePage};
+use crate::app::page::EntrancePage;
 
-use crate::app::Command::{self,*};
 use crate::app::AppCommand::*;
-use crate::app::PageCommand::*;
+use crate::app::Command::{self, *};
 use crate::app::GlyphCommand::*;
+use crate::app::PageCommand::*;
 
 use crate::event_handler::{Focusable, Interactable};
 use crate::model::{EntryRepository, GlyphRepository};
 use crate::state::dialog::TextInputDialogState;
 use crate::state::page::{CreateGlyphPageState, GlyphPageState};
 use color_eyre::eyre::Result;
+use color_eyre::Report;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
-use color_eyre::Report;
-use crate::state::AppState;
 
 impl Interactable for EntrancePage {
     fn handle(
@@ -258,6 +257,7 @@ impl Interactable for GlyphPage {
                         if let Some(index) = self.state.hovered_index {
                             match index {
                                 0 => self.containers[0].set_focus(true),
+                                1 => self.containers[1].set_focus(true),
                                 _ => {}
                             }
                         }
@@ -386,6 +386,26 @@ impl Interactable for GlyphNavigationBar {
                 }
                 _=>{
                 }
+            }
+            Ok(Vec::new())
+        }
+    }
+}
+
+impl Interactable for GlyphReader {
+    fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
+        if !self.is_focused() {
+            self.set_focus(true);
+            Ok(Vec::new())
+        } else {
+            match key.kind {
+                KeyEventKind::Press => {
+                    if let KeyCode::Esc = key.code {
+                        self.set_focus(false);
+                        return Ok(Vec::new());
+                    }
+                }
+                _ => {}
             }
             Ok(Vec::new())
         }

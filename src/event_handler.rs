@@ -4,14 +4,14 @@ mod popup;
 mod widget;
 
 use crate::app::popup::MessagePopup;
+use crate::app::AppCommand::*;
+use crate::app::Command::*;
 use crate::app::{Application, Command, Container, Convertible};
 use crate::drawer::Drawable;
 use color_eyre::owo_colors::OwoColorize;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::style::Color;
 use std::any::Any;
-use crate::app::Command::*;
-use crate::app::AppCommand::{*};
 
 pub trait Interactable: Convertible {
     fn handle(

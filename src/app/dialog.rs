@@ -1,12 +1,12 @@
 use crate::app::widget::{LineButton, TextField};
+use crate::app::Command::{self, *};
+use crate::app::PageCommand::*;
 use crate::app::{Component, Container};
 use crate::state::dialog::TextInputDialogState;
+use crate::state::widget::TextFieldState;
 use crate::utils::cycle_offset;
 use color_eyre::eyre::Result;
 use std::any::Any;
-use crate::app::Command::{self,*};
-use crate::app::PageCommand::*;
-use crate::state::widget::TextFieldState;
 
 
 /*

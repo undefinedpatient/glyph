@@ -1,16 +1,16 @@
-use std::cell::RefCell;
-use rusqlite::Connection;
-use std::rc::Rc;
 use crate::app::popup::ConfirmPopup;
 use crate::app::widget::{Button, DirectoryList};
-use crate::app::{Command, PageCommand, Component, Container};
 use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::AppCommand;
+use crate::app::{Component, Container};
 use crate::model::{Entry, EntryRepository, GlyphRepository};
-use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphNavigationBarState, GlyphPageState, OpenGlyphPageState};
-use crate::utils::cycle_offset;
-use crate::state::AppState;
+use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphNavigationBarState, GlyphPageState, GlyphReaderState, OpenGlyphPageState};
 use crate::state::widget::DirectoryListState;
+use crate::state::AppState;
+use crate::utils::cycle_offset;
+use rusqlite::Connection;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct EntrancePage {
     pub components: Vec<Box<dyn Component>>,
@@ -212,7 +212,8 @@ impl GlyphPage {
         Self {
             dialogs: Vec::new(),
             containers: vec![
-                GlyphNavigationBar::new(entries.clone()).into()
+                GlyphNavigationBar::new(entries.clone()).into(),
+                GlyphReader::new().into()
             ],
             components: Vec::new(),
             state: GlyphPageState {
@@ -284,6 +285,30 @@ impl GlyphNavigationBar {
 
 impl From<GlyphNavigationBar> for Box<dyn Container> {
     fn from(component: GlyphNavigationBar) -> Self {
+        Box::new(component)
+    }
+}
+
+/*
+    Glyph Reader
+ */
+pub struct GlyphReader {
+    pub(crate) state: GlyphReaderState
+
+}
+impl GlyphReader {
+    pub fn new() -> Self {
+        Self {
+            state: GlyphReaderState {
+                is_focused: false,
+                entry_id: None,
+                hovered_index: None,
+            }
+        }
+    }
+}
+impl From<GlyphReader> for Box<dyn Container> {
+    fn from(component: GlyphReader) -> Self {
         Box::new(component)
     }
 }

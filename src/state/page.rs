@@ -1,9 +1,8 @@
-use std::cell::RefCell;
-use std::collections::HashMap;
+use crate::model::Entry;
 use rusqlite::Connection;
+use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
-use crate::model::Entry;
 
 pub struct EntrancePageState {
     pub is_focused: bool,
@@ -36,4 +35,10 @@ pub struct GlyphNavigationBarState {
     pub selected_id: Option<i64>,
     pub offset: usize,
     pub ref_entries: Rc<RefCell<Vec<Entry>>>,
+}
+
+pub struct GlyphReaderState{
+    pub is_focused: bool,
+    pub entry_id: Option<i64>,
+    pub hovered_index: Option<usize>,
 }

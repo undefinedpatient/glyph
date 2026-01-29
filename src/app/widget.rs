@@ -6,7 +6,6 @@ use color_eyre::eyre::Result;
 use ratatui::style::Stylize;
 use ratatui::text::Line;
 use std::any::Any;
-use std::path::PathBuf;
 
 /*
     For component widget's on_xxx() function only takes its direct parent's state.

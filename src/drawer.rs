@@ -6,9 +6,10 @@ mod widget;
 use crate::app::Application;
 use ratatui::layout::Rect;
 use ratatui::style::Stylize;
-use ratatui::widgets::{StatefulWidget, Widget};
+use ratatui::widgets::{Block, BorderType, Borders, StatefulWidget, Widget};
 use ratatui::Frame;
 use std::any::Any;
+use color_eyre::owo_colors::OwoColorize;
 
 pub enum DrawFlag {
     DEFAULT = 0b0000_0000,
@@ -34,6 +35,8 @@ pub fn draw(frame: &mut Frame, app: &mut Application) {
 /*
    Helper Functions
 */
+
+// Get draw flag for components/containers.
 fn get_draw_flag(
     current_hover_index: Option<usize>,
     widget_index: usize,
