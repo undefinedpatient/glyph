@@ -342,7 +342,7 @@ impl Interactable for GlyphNavigationBar {
                                         }
                                         Err(_) => {}
                                     }
-                                    match _parent_state.entry_id.try_borrow_mut() {
+                                    match _parent_state.active_entry_id.try_borrow_mut() {
                                         Ok(mut ref_entry_id) => {
                                             *ref_entry_id = selected_entry_id;
                                         }
@@ -365,7 +365,7 @@ impl Interactable for GlyphNavigationBar {
                                                     Box::new(|parent_state, state| {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                                         let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                        let id: i64 = EntryRepository::create_entry(&_parent_state.connection, _state.text_input.as_str(), "")?;
+                                                        let id: i64 = EntryRepository::insert_entry(&_parent_state.connection, _state.text_input.as_str(), "")?;
                                                         let returned_entry = EntryRepository::read_by_id(&_parent_state.connection, id)?;
                                                         if let Some(entry) = returned_entry {
                                                             match _parent_state.entries.try_borrow_mut() {

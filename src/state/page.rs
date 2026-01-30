@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
+use edtui::EditorState;
 
 pub struct EntrancePageState {
     pub is_focused: bool,
@@ -29,9 +30,9 @@ pub struct GlyphPageState {
     pub connection: Connection,
 
     // Shared Data
-    pub entry_id: Rc<RefCell<Option<i64>>>,
+    pub active_entry_id: Rc<RefCell<Option<i64>>>,
     pub entries: Rc<RefCell<HashMap<i64, Entry>>>,
-    pub buffer: Rc<RefCell<HashMap<i64, Vec<char>>>>,
+    pub updated_entry_ids: Rc<RefCell<Vec<i64>>>, 
 }
 pub struct GlyphNavigationBarState {
     pub is_focused: bool,
@@ -39,16 +40,27 @@ pub struct GlyphNavigationBarState {
     pub hovered_index: Option<usize>,
     pub offset: usize,
     // Shared Data
-    pub entry_id: Rc<RefCell<Option<i64>>>,
+    pub active_entry_id: Rc<RefCell<Option<i64>>>,
     pub ref_entries: Rc<RefCell<HashMap<i64, Entry>>>,
-    pub buffer: Rc<RefCell<HashMap<i64, Vec<char>>>>,
+    pub updated_entry_ids: Rc<RefCell<Vec<i64>>>,
 }
 
 pub struct GlyphReaderState{
     pub is_focused: bool,
     pub hovered_index: Option<usize>,
     // Shared Data
-    pub entry_id: Rc<RefCell<Option<i64>>>,
+    pub active_entry_id: Rc<RefCell<Option<i64>>>,
     pub ref_entries: Rc<RefCell<HashMap<i64, Entry>>>,
-    pub buffer: Rc<RefCell<HashMap<i64, Vec<char>>>>,
+    pub updated_entry_ids: Rc<RefCell<Vec<i64>>>,
+}
+
+pub struct GlyphEditorState {
+    pub is_focused: bool,
+    pub hovered_index: Option<usize>,
+    // Shared Data
+    pub active_entry_id: Rc<RefCell<Option<i64>>>,
+    pub ref_entries: Rc<RefCell<HashMap<i64, Entry>>>,
+    pub updated_entry_ids: Rc<RefCell<Vec<i64>>>,
+    
+    pub editor_state: EditorState,
 }
