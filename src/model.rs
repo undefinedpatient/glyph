@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use color_eyre::eyre::Result;
 use rusqlite::{params, Connection, Row, Rows};
 use std::path::PathBuf;
@@ -55,6 +56,16 @@ impl EntryRepository {
         let mut entries: Vec<Entry> = Vec::new();
         while let Some(row) = rows.next()? {
             entries.push(Self::map_row(row)?)
+        }
+        Ok(entries)
+    }
+    pub fn read_all_hashed(c: &Connection) -> Result<HashMap<i64, Entry>> {
+        let mut stmt = c.prepare("SELECT id, title, content FROM entries")?;
+        let mut rows: Rows = stmt.query(params![])?;
+        let mut entries: HashMap<i64, Entry> = HashMap::new();
+        while let Some(row) = rows.next()? {
+            let entry = Self::map_row(row)?;
+            entries.insert(entry.id, entry);
         }
         Ok(entries)
     }

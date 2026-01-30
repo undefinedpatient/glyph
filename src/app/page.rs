@@ -10,6 +10,7 @@ use crate::state::AppState;
 use crate::utils::cycle_offset;
 use rusqlite::Connection;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 pub struct EntrancePage {
@@ -207,13 +208,14 @@ pub struct GlyphPage {
 
 impl GlyphPage {
     pub fn new(connection: Connection) -> Self {
-        let entries = Rc::new(RefCell::new(EntryRepository::read_all(&connection).unwrap_or(Vec::new())));
-
+        let entries = Rc::new(RefCell::new(EntryRepository::read_all_hashed(&connection).unwrap_or(HashMap::new())));
+        let entry_id = Rc::new(RefCell::new(None));
+        let buffer = Rc::new(RefCell::new(HashMap::new()));
         Self {
             dialogs: Vec::new(),
             containers: vec![
-                GlyphNavigationBar::new(entries.clone()).into(),
-                GlyphReader::new().into()
+                GlyphNavigationBar::new(entry_id.clone(), entries.clone(), buffer.clone()).into(),
+                GlyphReader::new(entry_id.clone(), entries.clone(), buffer.clone()).into()
             ],
             components: Vec::new(),
             state: GlyphPageState {
@@ -221,7 +223,10 @@ impl GlyphPage {
                 is_hovered: false,
                 hovered_index: None,
                 connection,
-                entries
+                
+                entry_id,
+                entries,
+                buffer,
             }
         }
     }
@@ -251,16 +256,18 @@ pub struct GlyphNavigationBar {
 }
 
 impl GlyphNavigationBar {
-    pub fn new(ref_entries: Rc<RefCell<Vec<Entry>>>) -> Self {
+    pub fn new(entry_id: Rc<RefCell<Option<i64>>>,ref_entries: Rc<RefCell<HashMap<i64, Entry>>>, buffer: Rc<RefCell<HashMap<i64, Vec<char>>>>) -> Self {
         Self {
             dialogs: Vec::new(),
             state: GlyphNavigationBarState {
                 is_focused: false,
                 line_height: 1,
                 hovered_index: None,
-                selected_id: None,
                 offset: 0,
+                
+                entry_id,
                 ref_entries,
+                buffer,
 
             }
         }
@@ -297,12 +304,15 @@ pub struct GlyphReader {
 
 }
 impl GlyphReader {
-    pub fn new() -> Self {
+    pub fn new(entry_id: Rc<RefCell<Option<i64>>>,ref_entries: Rc<RefCell<HashMap<i64, Entry>>>, buffer: Rc<RefCell<HashMap<i64, Vec<char>>>>) -> Self {
         Self {
             state: GlyphReaderState {
                 is_focused: false,
-                entry_id: None,
                 hovered_index: None,
+                
+                entry_id,
+                ref_entries,
+                buffer,
             }
         }
     }

@@ -1,6 +1,7 @@
 use crate::model::Entry;
 use rusqlite::Connection;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -26,19 +27,28 @@ pub struct GlyphPageState {
     pub is_hovered: bool,
     pub hovered_index: Option<usize>,
     pub connection: Connection,
-    pub entries: Rc<RefCell<Vec<Entry>>>
+
+    // Shared Data
+    pub entry_id: Rc<RefCell<Option<i64>>>,
+    pub entries: Rc<RefCell<HashMap<i64, Entry>>>,
+    pub buffer: Rc<RefCell<HashMap<i64, Vec<char>>>>,
 }
 pub struct GlyphNavigationBarState {
     pub is_focused: bool,
     pub line_height: usize,
     pub hovered_index: Option<usize>,
-    pub selected_id: Option<i64>,
     pub offset: usize,
-    pub ref_entries: Rc<RefCell<Vec<Entry>>>,
+    // Shared Data
+    pub entry_id: Rc<RefCell<Option<i64>>>,
+    pub ref_entries: Rc<RefCell<HashMap<i64, Entry>>>,
+    pub buffer: Rc<RefCell<HashMap<i64, Vec<char>>>>,
 }
 
 pub struct GlyphReaderState{
     pub is_focused: bool,
-    pub entry_id: Option<i64>,
     pub hovered_index: Option<usize>,
+    // Shared Data
+    pub entry_id: Rc<RefCell<Option<i64>>>,
+    pub ref_entries: Rc<RefCell<HashMap<i64, Entry>>>,
+    pub buffer: Rc<RefCell<HashMap<i64, Vec<char>>>>,
 }

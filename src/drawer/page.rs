@@ -219,14 +219,14 @@ impl Drawable for GlyphNavigationBar {
          */
         let mut list: Vec<(i64, String)> = self.state.ref_entries.borrow()
             .iter()
-            .map(|entry| (entry.id , entry.entry_name.clone())).collect();
+            .map(|(id, entry)| (id.clone() , entry.entry_name.clone())).collect();
         let mut list_items: Vec<Line> = list
             .iter()
             .enumerate()
             .map(|(i, (id, name))| {
                 let mut line: Line;
                 // // If Selected => " >"
-                if let Some(selected_id) = self.state.selected_id{
+                if let Some(selected_id) = *self.state.entry_id.borrow() {
                     if selected_id == *id {
                         line = Line::from(String::from(" > ") + &*name.clone());
                     } else {
@@ -270,7 +270,11 @@ impl Drawable for GlyphReader {
         /*
            Container Frame
         */
-        let widget_frame: Block = block!("Content", draw_flag);
+        let mut widget_frame: Block = block!("Content", draw_flag);
+        // if self.state.entry_id.borrow().is_none() {
+        //     widget_frame = widget_frame.border_type(BorderType::LightDoubleDashed);
+        // }
+        // let content: String = self.state.
         widget_frame.render(area, frame.buffer_mut());
     }
 }

@@ -9,7 +9,7 @@ use crate::app::GlyphCommand::*;
 use crate::app::PageCommand::*;
 
 use crate::event_handler::{Focusable, Interactable};
-use crate::model::{EntryRepository, GlyphRepository};
+use crate::model::{Entry, EntryRepository, GlyphRepository};
 use crate::state::dialog::TextInputDialogState;
 use crate::state::page::{CreateGlyphPageState, GlyphPageState};
 use color_eyre::eyre::Result;
@@ -334,12 +334,19 @@ impl Interactable for GlyphNavigationBar {
                         match c {
                             ' ' => {
                                 let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                let mut selected_entry_id: Option<i64> = None;
                                 if let Some(index) = self.state.hovered_index {
-                                    match _parent_state.entries.borrow().get(index) {
-                                        Some(entry) => {
-                                            self.state.selected_id = Some(entry.id);
+                                    match _parent_state.entries.try_borrow() {
+                                        Ok(ref_entries) => {
+                                            selected_entry_id = Some(ref_entries.values().collect::<Vec<&Entry>>()[index].id);
                                         }
-                                        None => {}
+                                        Err(_) => {}
+                                    }
+                                    match _parent_state.entry_id.try_borrow_mut() {
+                                        Ok(mut ref_entry_id) => {
+                                            *ref_entry_id = selected_entry_id;
+                                        }
+                                        Err(_) => {}
                                     }
                                 }
                                 return Ok(Vec::new());
@@ -362,8 +369,8 @@ impl Interactable for GlyphNavigationBar {
                                                         let returned_entry = EntryRepository::read_by_id(&_parent_state.connection, id)?;
                                                         if let Some(entry) = returned_entry {
                                                             match _parent_state.entries.try_borrow_mut() {
-                                                                Ok(mut entries) => {
-                                                                    entries.push(entry);
+                                                                Ok(mut m_entries) => {
+                                                                    m_entries.insert(entry.id, entry);
                                                                 }
                                                                 Err(e) => {
                                                                     return Err(Report::msg("Entries is being updated somewhere at the moment!"));
