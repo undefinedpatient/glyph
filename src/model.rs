@@ -3,8 +3,21 @@ use color_eyre::eyre::Result;
 use rusqlite::{params, Connection, Row, Rows, ToSql};
 use std::path::PathBuf;
 use rusqlite::types::{FromSql, FromSqlResult, ToSqlOutput, ValueRef};
-use serde::{Deserialize, Serialize};
 
+pub struct LocalEntryState {
+    pub active_entry_id: Option<i64>,
+    pub entries: HashMap<i64, Entry>,
+    pub updated_entry_ids:  Vec<i64>,
+}
+impl LocalEntryState {
+    pub fn new(c: &Connection) -> Self {
+        Self {
+            active_entry_id: None,
+            entries: EntryRepository::read_all(c).unwrap_or(HashMap::new()),
+            updated_entry_ids: Vec::new(),
+        }
+    }
+}
 pub struct Glyph {
     pub glyph_name: String,
     pub entries: Vec<Entry>,
@@ -14,7 +27,15 @@ pub struct Entry {
     pub entry_type: EntryType,
     pub sections: HashMap<i64, Section>
 }
-
+impl Entry {
+    pub fn new(entry_name: String, entry_type: EntryType) -> Self {
+        Self {
+            entry_name: entry_name,
+            entry_type: entry_type,
+            sections: HashMap::new()
+        }
+    }
+}
 pub enum EntryType {
     Default
 }
@@ -72,9 +93,11 @@ impl GlyphRepository {
         CREATE TABLE IF NOT EXISTS sections (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             entry_id    INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
-            position    UNIQUE INTEGER NOT NULL,
+            position    INTEGER NOT NULL,
             title       TEXT NOT NULL DEFAULT '',
             content     TEXT NOT NULL DEFAULT '',
+
+            UNIQUE(position)
         )
         "
             , ())?;
@@ -83,10 +106,10 @@ impl GlyphRepository {
 }
 
 impl EntryRepository {
-    pub fn insert_entry(c: &Connection, title: &str, entry_type: EntryType) -> Result<i64> {
+    pub fn insert_entry(c: &Connection, entry: Entry) -> Result<i64> {
         c.execute(
             "INSERT INTO entries (entry_name, entry_type) VALUES (?1, ?2)",
-            (title, entry_type),
+            (entry.entry_name, entry.entry_type),
         )?;
         let id = c.last_insert_rowid();
         return Ok(id);

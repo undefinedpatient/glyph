@@ -1,7 +1,9 @@
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fs;
 use std::fs::DirEntry;
 use std::path::{Path, PathBuf};
-
+use std::rc::Rc;
 use color_eyre::eyre::Result;
 use rusqlite::Connection;
 use crate::model::{Entry, EntryRepository};
@@ -61,5 +63,4 @@ pub fn get_dir_names(path: &Path) -> Result<Vec<String>> {
 
     Ok(file_names)
 }
-
 

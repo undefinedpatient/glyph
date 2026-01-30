@@ -1,4 +1,4 @@
-use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphEditor, GlyphNavigationBar, GlyphPage, GlyphReader, OpenGlyphPage};
+use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphNavigationBar, GlyphPage, GlyphViewer, OpenGlyphPage};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use color_eyre::owo_colors::OwoColorize;
@@ -9,7 +9,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Widget};
 use ratatui::Frame;
 use std::rc::Rc;
 use tui_big_text::{BigText, PixelSize};
-use crate::state::page::{GlyphEditorState, GlyphReaderState};
+use crate::state::page::{GlyphMode, GlyphViewerState};
 
 macro_rules! block {
     ($title: expr, $flag: expr) => {
@@ -18,10 +18,10 @@ macro_rules! block {
                 Block::bordered().title($title)
             }
             DrawFlag::HIGHLIGHTING => {
-                Block::bordered().title($title).border_type(BorderType::Double)
+                Block::bordered().title($title).border_type(BorderType::Double).bold()
             }
             DrawFlag::FOCUSED => {
-                Block::bordered().title($title).border_type(BorderType::Thick)
+                Block::bordered().title($title).border_type(BorderType::Thick).bold()
             }
         }
     };
@@ -218,7 +218,8 @@ impl Drawable for GlyphNavigationBar {
         /*
             List Items (Entry)
          */
-        let mut list: Vec<(i64, String)> = self.state.ref_entries.borrow()
+        let ref_entry_state = self.state.entry_state.borrow();
+        let mut list: Vec<(i64, String)> = ref_entry_state.entries
             .iter()
             .map(|(id, entry)| (id.clone() , entry.entry_name.clone())).collect();
         let mut list_items: Vec<Line> = list
@@ -227,7 +228,7 @@ impl Drawable for GlyphNavigationBar {
             .map(|(i, (id, name))| {
                 let mut line: Line;
                 // // If Selected => " >"
-                if let Some(selected_id) = *self.state.active_entry_id.borrow() {
+                if let Some(selected_id) = ref_entry_state.active_entry_id {
                     if selected_id == *id {
                         line = Line::from(String::from(" > ") + &*name.clone());
                     } else {
@@ -266,46 +267,34 @@ impl Drawable for GlyphNavigationBar {
     }
 }
 
-impl Drawable for GlyphReader {
+impl Drawable for GlyphViewer {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
         /*
            Container Frame
         */
         let mut widget_frame: Block = block!("Content", draw_flag);
-        
+        match self.state.mode {
+            GlyphMode::READ => {
+                widget_frame = widget_frame.title_top(Line::from("(READ)").right_aligned());
+            }
+            GlyphMode::LAYOUT => {
+                widget_frame = widget_frame.title_top(Line::from("(LAYOUT)").right_aligned());
+            }
+        }
         /*
-        
+
          */
         let inner_area: Rect = widget_frame.inner(area);
         let mut content: String = String::new();
-        if let Ok(o_id) =  self.state.active_entry_id.try_borrow() {
-            match *o_id {
-                Some(id) => {
-                    match self.state.ref_entries.try_borrow() {
-                        Ok(entries) => {
-                            if let Some(entry) = (*entries).get(&id) {
-                                content = entry.entry_name.clone();
-                            }
-                        }
-                        Err(e) => {
-                        }
-                    }
-                }
-                None => {}
-            }
+        let ref_entry_state = self.state.entry_state.borrow();
+        if let Some(entry_id) = ref_entry_state.active_entry_id {
+            let first = ref_entry_state.entries.get(&entry_id).unwrap().sections.values();
+            first.for_each(|section| {
+                content.push_str(&section.content);
+            })
         }
         let mut paragraph = Paragraph::new(content);
         widget_frame.render(area, frame.buffer_mut());
         paragraph.render(inner_area, frame.buffer_mut());
-    }
-}
-
-impl Drawable for GlyphEditor {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
-        /*
-           Container Frame
-        */
-        let mut widget_frame: Block = block!("Editor", draw_flag);
-        let inner_area: Rect = widget_frame.inner(area);
     }
 }

@@ -1,4 +1,4 @@
-use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphNavigationBar, GlyphPage, GlyphReader, OpenGlyphPage};
+use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphNavigationBar, GlyphPage, GlyphViewer, OpenGlyphPage};
 use crate::app::Container;
 use crate::event_handler::Focusable;
 
@@ -139,7 +139,7 @@ impl Focusable for GlyphNavigationBar {
 /*
     Glyph Reader (Subpage
  */
-impl Focusable for GlyphReader{
+impl Focusable for GlyphViewer {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }

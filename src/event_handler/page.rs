@@ -1,5 +1,5 @@
 use crate::app::dialog::TextInputDialog;
-use crate::app::page::{CreateGlyphPage, GlyphNavigationBar, GlyphPage, GlyphReader, OpenGlyphPage};
+use crate::app::page::{CreateGlyphPage, GlyphNavigationBar, GlyphPage, GlyphViewer, OpenGlyphPage};
 use crate::app::popup::ConfirmPopup;
 use crate::app::page::EntrancePage;
 
@@ -9,13 +9,14 @@ use crate::app::GlyphCommand::*;
 use crate::app::PageCommand::*;
 
 use crate::event_handler::{Focusable, Interactable};
-use crate::model::{Entry, EntryRepository, GlyphRepository};
+use crate::model::{Entry, EntryRepository, EntryType, GlyphRepository};
 use crate::state::dialog::TextInputDialogState;
-use crate::state::page::{CreateGlyphPageState, GlyphPageState};
+use crate::state::page::{CreateGlyphPageState, GlyphMode, GlyphPageState};
 use color_eyre::eyre::Result;
 use color_eyre::Report;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::any::Any;
+use ratatui::prelude::Line;
 
 impl Interactable for EntrancePage {
     fn handle(
@@ -336,15 +337,12 @@ impl Interactable for GlyphNavigationBar {
                                 let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                 let mut selected_entry_id: Option<i64> = None;
                                 if let Some(index) = self.state.hovered_index {
-                                    match _parent_state.entries.try_borrow() {
-                                        Ok(ref_entries) => {
-                                            selected_entry_id = Some(ref_entries.values().collect::<Vec<&Entry>>()[index].id);
-                                        }
-                                        Err(_) => {}
-                                    }
-                                    match _parent_state.active_entry_id.try_borrow_mut() {
-                                        Ok(mut ref_entry_id) => {
-                                            *ref_entry_id = selected_entry_id;
+                                    let entry_state_result = _parent_state.entry_state.try_borrow_mut();
+                                    match entry_state_result {
+                                        Ok(mut entry_state) => {
+                                            entry_state.active_entry_id = Some(
+                                                entry_state.entries.keys().collect::<Vec<&i64>>()[index].clone()
+                                            );
                                         }
                                         Err(_) => {}
                                     }
@@ -365,12 +363,13 @@ impl Interactable for GlyphNavigationBar {
                                                     Box::new(|parent_state, state| {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                                         let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                        let id: i64 = EntryRepository::insert_entry(&_parent_state.connection, _state.text_input.as_str(), "")?;
+                                                        let id: i64 = EntryRepository::insert_entry(&_parent_state.connection, Entry::new(_state.text_input.clone(), EntryType::Default))?;
                                                         let returned_entry = EntryRepository::read_by_id(&_parent_state.connection, id)?;
                                                         if let Some(entry) = returned_entry {
-                                                            match _parent_state.entries.try_borrow_mut() {
+                                                            let entry_state = _parent_state.entry_state.try_borrow_mut();
+                                                            match entry_state {
                                                                 Ok(mut m_entries) => {
-                                                                    m_entries.insert(entry.id, entry);
+                                                                    m_entries.entries.insert(entry.0, entry.1);
                                                                 }
                                                                 Err(e) => {
                                                                     return Err(Report::msg("Entries is being updated somewhere at the moment!"));
@@ -399,7 +398,7 @@ impl Interactable for GlyphNavigationBar {
     }
 }
 
-impl Interactable for GlyphReader {
+impl Interactable for GlyphViewer {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
@@ -407,9 +406,36 @@ impl Interactable for GlyphReader {
         } else {
             match key.kind {
                 KeyEventKind::Press => {
+                    // Mode Wide Key
                     if let KeyCode::Esc = key.code {
                         self.set_focus(false);
                         return Ok(Vec::new());
+                    }
+                    if let KeyCode::Char(c) = key.code {
+                        match c {
+                            '`' => {
+                                match self.state.mode {
+                                    GlyphMode::READ => {
+                                        self.state.mode = GlyphMode::LAYOUT;
+                                    }
+                                    GlyphMode::LAYOUT => {
+                                        self.state.mode = GlyphMode::READ;
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    //
+
+
+                    // Mode Specific Action
+                    match self.state.mode {
+                        GlyphMode::READ => {
+
+                        }
+                        GlyphMode::LAYOUT => {
+                        }
                     }
                 }
                 _ => {}

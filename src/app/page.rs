@@ -3,9 +3,9 @@ use crate::app::widget::{Button, DirectoryList};
 use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::AppCommand;
 use crate::app::{Component, Container};
-use crate::model::{Entry, EntryRepository, GlyphRepository};
-use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphEditorState, GlyphNavigationBarState, GlyphPageState, GlyphReaderState, OpenGlyphPageState};
-use crate::state::widget::DirectoryListState;
+use crate::model::{Entry, EntryRepository, GlyphRepository, LocalEntryState};
+use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphMode, GlyphNavigationBarState, GlyphPageState, GlyphViewerState, OpenGlyphPageState};
+use crate::state::widget::{DirectoryListState, EditorState};
 use crate::state::AppState;
 use crate::utils::{cycle_offset};
 use rusqlite::Connection;
@@ -14,7 +14,6 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use color_eyre::Report;
 use color_eyre::eyre::Result;
-use edtui::EditorState;
 use ratatui::text::Line;
 use ratatui::widgets::Paragraph;
 use crate::event_handler::Focusable;
@@ -214,14 +213,12 @@ pub struct GlyphPage {
 
 impl GlyphPage {
     pub fn new(connection: Connection) -> Self {
-        let entries: Rc<RefCell<HashMap<i64, Entry>>> = Rc::new(RefCell::new(EntryRepository::read_all(&connection).unwrap_or(HashMap::new())));
-        let entry_id: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(None));
-        let updated_entry_ids: Rc<RefCell<Vec<i64>>> = Rc::new(RefCell::new(Vec::new()));
+        let entry_state: Rc<RefCell<LocalEntryState>> = Rc::new(RefCell::new(LocalEntryState::new(&connection)));
         Self {
             dialogs: Vec::new(),
             containers: vec![
-                GlyphNavigationBar::new(entry_id.clone(), entries.clone(), updated_entry_ids.clone()).into(),
-                GlyphReader::new(entry_id.clone(), entries.clone(), updated_entry_ids.clone()).into()
+                GlyphNavigationBar::new(entry_state.clone()).into(),
+                GlyphViewer::new(entry_state.clone()).into()
             ],
             components: Vec::new(),
             state: GlyphPageState {
@@ -229,10 +226,7 @@ impl GlyphPage {
                 is_hovered: false,
                 hovered_index: None,
                 connection,
-
-                active_entry_id: entry_id,
-                entries,
-                updated_entry_ids
+                entry_state
             }
         }
     }
@@ -262,7 +256,7 @@ pub struct GlyphNavigationBar {
 }
 
 impl GlyphNavigationBar {
-    pub fn new(entry_id: Rc<RefCell<Option<i64>>>,ref_entries: Rc<RefCell<HashMap<i64, Entry>>>, updated_entry_ids: Rc<RefCell<Vec<i64>>>) -> Self {
+    pub fn new(entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         Self {
             dialogs: Vec::new(),
             state: GlyphNavigationBarState {
@@ -271,26 +265,28 @@ impl GlyphNavigationBar {
                 hovered_index: None,
                 offset: 0,
 
-                active_entry_id: entry_id,
-                ref_entries,
-                updated_entry_ids
+                entry_state
             }
         }
     }
     pub fn next_entry(&mut self) -> () {
-        if let Some(index) = self.state.hovered_index {
-        let num_entries = self.state.ref_entries.borrow().len();
-            self.state.hovered_index = Some(cycle_offset(index as u16, 1, num_entries as u16) as usize);
-        } else {
-            self.state.hovered_index = Some(0);
+        if let Ok(state) = self.state.entry_state.try_borrow() {
+            let num_entries = state.entries.len();
+            if let Some(index) = self.state.hovered_index {
+                self.state.hovered_index = Some(cycle_offset(index as u16, 1, num_entries as u16) as usize);
+            } else {
+                self.state.hovered_index = Some(0);
+            }
         }
     }
     pub fn previous_entry(&mut self) -> () {
-        let num_entries = self.state.ref_entries.borrow().len();
-        if let Some(index) = self.state.hovered_index {
-            self.state.hovered_index = Some(cycle_offset(index as u16, -1, num_entries as u16) as usize);
-        } else {
-            self.state.hovered_index = Some(num_entries - 1usize);
+        if let Ok(state) = self.state.entry_state.try_borrow() {
+            let num_entries = state.entries.len();
+            if let Some(index) = self.state.hovered_index {
+                self.state.hovered_index = Some(cycle_offset(index as u16, -1, num_entries as u16) as usize);
+            } else {
+                self.state.hovered_index = Some(0);
+            }
         }
     }
 }
@@ -304,86 +300,24 @@ impl From<GlyphNavigationBar> for Box<dyn Container> {
 /*
     Glyph Reader
  */
-pub struct GlyphReader {
-    pub(crate) state: GlyphReaderState
+pub struct GlyphViewer {
+    pub(crate) state: GlyphViewerState
 
 }
-impl GlyphReader {
-    pub fn new(entry_id: Rc<RefCell<Option<i64>>>,ref_entries: Rc<RefCell<HashMap<i64, Entry>>>, updated_entry_ids: Rc<RefCell<Vec<i64>>>) -> Self {
+impl GlyphViewer {
+    pub fn new(entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         Self {
-            state: GlyphReaderState {
+            state: GlyphViewerState {
                 is_focused: false,
                 hovered_index: None,
-
-                active_entry_id: entry_id,
-                ref_entries,
-                updated_entry_ids
-            }
-        }
-    }
-    pub fn convert_to_edit(self) -> Result<GlyphEditor> {
-        let id_borrow = self.state.active_entry_id.try_borrow();
-        if let Ok(id_result) = id_borrow {
-            if let Some(id) = *id_result {
-                let entries_borrow = self.state.ref_entries.try_borrow();
-                if let Ok(result) = entries_borrow {
-                    let entry = (*result).get(&id).unwrap().content;
-                    Ok(GlyphEditor {
-                        state: GlyphEditorState {
-                            is_focused: self.state.is_focused,
-                            hovered_index: self.state.hovered_index,
-
-                            active_entry_id: self.state.active_entry_id,
-                            ref_entries: self.state.ref_entries,
-                            updated_entry_ids: self.state.updated_entry_ids,
-                            editor_state: EditorState::default(),
-                        }
-
-                    })
-                } else {
-                    entries_borrow
-                }
-            } else {
-                Err(Report::msg("No active entry"))
-            }
-
-        } else {
-            id_borrow
-        }
-    }
-}
-impl From<GlyphReader> for Box<dyn Container> {
-    fn from(container: GlyphReader) -> Self {
-        Box::new(container)
-    }
-}
-
-/*
-    Glyph Editor
- */
-pub struct GlyphEditor {
-    pub state: GlyphEditorState
-}
-impl GlyphEditor {
-    pub fn new(entry_id: Rc<RefCell<Option<i64>>>,ref_entries: Rc<RefCell<HashMap<i64, Entry>>>, updated_entry_ids: Rc<RefCell<Vec<i64>>>) -> Self {
-        Self {
-            state: GlyphEditorState{
-                is_focused: false,
-                hovered_index: None,
-
-                active_entry_id: entry_id,
-                ref_entries,
-                updated_entry_ids,
-
-
-                editor_state: EditorState::default(),
-
+                mode: GlyphMode::READ,
+                entry_state
             }
         }
     }
 }
-impl From<GlyphEditor> for Box<dyn Container> {
-    fn from(container: GlyphEditor) -> Self {
+impl From<GlyphViewer> for Box<dyn Container> {
+    fn from(container: GlyphViewer) -> Self {
         Box::new(container)
     }
 }

@@ -18,3 +18,21 @@ pub struct TextFieldState {
     pub chars: Vec<char>,
     pub cursor_index: usize,
 }
+pub struct EditorState {
+    pub is_focused: bool,
+    pub label: String,
+    pub chars: Vec<Vec<char>>,
+    pub cursor_index: usize,
+    pub cursor_row: usize,
+}
+impl EditorState  {
+    pub(crate) fn new(label: &str) -> Self {
+        Self {
+            is_focused: false,
+            label: String::from(label),
+            chars: Vec::new(),
+            cursor_index: 0,
+            cursor_row: 0,
+        }
+    }
+}
