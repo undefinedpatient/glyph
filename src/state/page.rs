@@ -47,7 +47,8 @@ pub struct GlyphNavigationBarState {
 }
 pub enum GlyphMode {
     READ,
-    LAYOUT
+    LAYOUT,
+    EDIT,
 }
 pub struct GlyphViewerState {
     pub is_focused: bool,

@@ -1,15 +1,16 @@
+use std::cell::Ref;
 use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphNavigationBar, GlyphPage, GlyphViewer, OpenGlyphPage};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use color_eyre::owo_colors::OwoColorize;
 use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect};
 use ratatui::style::{Style, Stylize};
-use ratatui::text::Line;
-use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Widget};
+use ratatui::text::{Line, Text};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Widget, Wrap};
 use ratatui::Frame;
 use std::rc::Rc;
 use tui_big_text::{BigText, PixelSize};
-use crate::model::Entry;
+use crate::model::{Entry, LocalEntryState, Section};
 use crate::state::page::{GlyphMode, GlyphViewerState};
 
 macro_rules! block {
@@ -281,21 +282,80 @@ impl Drawable for GlyphViewer {
             GlyphMode::LAYOUT => {
                 widget_frame = widget_frame.title_top(Line::from("(LAYOUT)").right_aligned());
             }
+            GlyphMode::EDIT => {
+                widget_frame = widget_frame.title_top(Line::from("(EDIT)").right_aligned());
+            }
         }
+        let inner_areas = Layout::horizontal(
+[
+                Constraint::Fill(1),
+                Constraint::Length(72),
+                Constraint::Fill(1)
+            ]
+        ).split(widget_frame.inner(area));
+        let section_area: Rect = inner_areas[1];
+        widget_frame.render(area, frame.buffer_mut());
+
+
         /*
 
          */
-        let inner_area: Rect = widget_frame.inner(area);
-        let mut content: String = String::new();
-        let ref_entry_state = self.state.entry_state.borrow();
-        if let Some(entry_id) = ref_entry_state.active_entry_id {
-            let first = ref_entry_state.entries.get(&entry_id).unwrap().sections.values();
-            first.for_each(|section| {
-                content.push_str(&section.content);
-            })
+        match self.state.mode  {
+            /*
+                READ
+             */
+            GlyphMode::READ => {
+            }
+            /*
+                LAYOUT
+             */
+            GlyphMode::LAYOUT => {
+            }
+            /*
+                EDIT
+             */
+            GlyphMode::EDIT => {
+                let entry_state:Ref<LocalEntryState> = self.state.entry_state.borrow();
+                let active_entry_id: i64 = entry_state.active_entry_id.unwrap();
+                let entry= entry_state.entries.get(&active_entry_id).unwrap();
+                let mut section_list: Vec<(&i64, &Section)> = entry.sections.iter().map(
+                    |(key, value): (&i64, &Section)| {
+                        (key, value)
+                    }
+                ).collect::<Vec<(&i64, &Section)>>();
+                section_list.sort_by_key(|item|{*((*item).0)});
+                let draw_section_list: Vec<((u32, u32), Paragraph)> = section_list.iter().map(
+                    |(key, value): &(&i64, &Section)| {
+                        let text = Text::from(value.content.clone());
+                        let mut section_dimension: (u32, u32) = (Text::width(&text) as u32 + 2, Text::height(&text) as u32 + 3);
+
+
+                        let paragraph = Paragraph::new(text)
+                            .block(Block::bordered().title(value.title.clone()).title_bottom(key.to_string()));
+                        return (section_dimension, paragraph);
+                    }
+                ).collect();
+
+
+                let mut stack_height: u16 = 0u16;
+                let section_constraints: Vec<Constraint> = draw_section_list.iter().take_while(
+                    |((w,h), paragraph): &&((u32, u32), Paragraph)|{
+                        if stack_height>section_area.height {
+                            return false;
+                        }
+                        stack_height += *h as u16;
+                        true
+                }).map(
+                    |((w,h),_)| {
+                        Constraint::Length(*h as u16)
+                    }
+                ).collect();
+                let section_areas = Layout::vertical(section_constraints).split(section_area);
+
+                for (index, (_ ,paragraph)) in draw_section_list.iter().enumerate() {
+                    paragraph.render(section_areas[index], frame.buffer_mut());
+                }
+            }
         }
-        let mut paragraph = Paragraph::new(content);
-        widget_frame.render(area, frame.buffer_mut());
-        paragraph.render(inner_area, frame.buffer_mut());
     }
 }

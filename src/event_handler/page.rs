@@ -9,7 +9,7 @@ use crate::app::GlyphCommand::*;
 use crate::app::PageCommand::*;
 
 use crate::event_handler::{Focusable, Interactable};
-use crate::model::{Entry, EntryRepository, GlyphRepository};
+use crate::model::{Entry, EntryRepository, GlyphRepository, Section, SectionRepository};
 use crate::state::dialog::TextInputDialogState;
 use crate::state::page::{CreateGlyphPageState, GlyphMode, GlyphPageState};
 use color_eyre::eyre::Result;
@@ -419,6 +419,9 @@ impl Interactable for GlyphViewer {
                                         self.state.mode = GlyphMode::LAYOUT;
                                     }
                                     GlyphMode::LAYOUT => {
+                                        self.state.mode = GlyphMode::EDIT;
+                                    }
+                                    GlyphMode::EDIT => {
                                         self.state.mode = GlyphMode::READ;
                                     }
                                 }
@@ -435,6 +438,25 @@ impl Interactable for GlyphViewer {
 
                         }
                         GlyphMode::LAYOUT => {
+
+                        }
+                        GlyphMode::EDIT => {
+                            if let KeyCode::Char(c) = key.code {
+                                match c {
+                                    'A' => {
+                                        let state: &mut GlyphPageState = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                        let mut entry_state = self.state.entry_state.try_borrow_mut()?;
+                                        let active_entry_id = entry_state.active_entry_id.unwrap();
+                                        let entry = entry_state.entries.get_mut(&active_entry_id).unwrap();
+                                        let new_section: Section = Section::new("untitled", "Write Something");
+                                        let sid: i64 = SectionRepository::create_section(&state.connection, &active_entry_id, &new_section)?;
+                                        entry.sections.insert(sid, new_section);
+                                    }
+                                    _ => {
+
+                                    }
+                                }
+                            }
                         }
                     }
                 }

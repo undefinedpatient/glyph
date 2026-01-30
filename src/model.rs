@@ -39,6 +39,16 @@ pub struct Section {
     pub content: String,
 }
 
+impl Section {
+    pub fn new(title: &str, default: &str) -> Self {
+        Self {
+            position: 0,
+            title: title.to_string(),
+            content: default.to_string(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Layout {
     pub label: String,
@@ -192,6 +202,16 @@ impl SectionRepository {
         }
         Ok(sections)
     }
+    pub fn create_section(c: &Connection, eid:&i64, section: &Section) -> Result<i64> {
+        c.execute(
+            "
+                INSERT INTO sections (entry_id, position, title, content) VALUES (?1, ?2, ?3, ?4)
+            ",
+            params![eid, section.position, section.title, section.content],
+        )?;
+        let id = c.last_insert_rowid();
+        return Ok(id);
+    }
     pub fn update_section(c: &Connection, eid: &i64, sid: &i64, section: &Section) -> Result<i64> {
         c.execute(
             "
@@ -209,6 +229,11 @@ impl SectionRepository {
         let id = c.last_insert_rowid();
         return Ok(id);
 
+    }
+    pub fn read_by_id(c: &Connection, id: &i64) -> Result<Option<(i64, Section)>> {
+        let mut stmt = c.prepare("SELECT id, entry_id, position, title, content FROM sections WHERE id = ?1")?;
+        let mut rows: Rows = stmt.query(params![*id])?;
+        rows.next()?.map(|row| {Self::to_section(row)}).transpose()
     }
     pub fn to_section(row: &Row) -> Result<(i64, Section)> {
         let id: i64 = row.get(0)?;
