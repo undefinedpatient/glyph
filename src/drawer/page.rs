@@ -9,6 +9,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Widget};
 use ratatui::Frame;
 use std::rc::Rc;
 use tui_big_text::{BigText, PixelSize};
+use crate::model::Entry;
 use crate::state::page::{GlyphMode, GlyphViewerState};
 
 macro_rules! block {
@@ -18,10 +19,10 @@ macro_rules! block {
                 Block::bordered().title($title)
             }
             DrawFlag::HIGHLIGHTING => {
-                Block::bordered().title($title).border_type(BorderType::Double).bold()
+                Block::bordered().title(Line::from($title).bold()).border_type(BorderType::Double)
             }
             DrawFlag::FOCUSED => {
-                Block::bordered().title($title).border_type(BorderType::Thick).bold()
+                Block::bordered().title(Line::from($title).bold()).border_type(BorderType::Thick)
             }
         }
     };
@@ -221,11 +222,11 @@ impl Drawable for GlyphNavigationBar {
         let ref_entry_state = self.state.entry_state.borrow();
         let mut list: Vec<(i64, String)> = ref_entry_state.entries
             .iter()
-            .map(|(id, entry)| (id.clone() , entry.entry_name.clone())).collect();
+            .map(|(id, entry): (&i64, &Entry)| (id.clone() , entry.entry_name.clone())).collect();
         let mut list_items: Vec<Line> = list
             .iter()
             .enumerate()
-            .map(|(i, (id, name))| {
+            .map(|(i, (id, name)): (usize, &(i64, String))| {
                 let mut line: Line;
                 // // If Selected => " >"
                 if let Some(selected_id) = ref_entry_state.active_entry_id {

@@ -12,11 +12,6 @@ use rusqlite::Connection;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use color_eyre::Report;
-use color_eyre::eyre::Result;
-use ratatui::text::Line;
-use ratatui::widgets::Paragraph;
-use crate::event_handler::Focusable;
 
 pub struct EntrancePage {
     pub components: Vec<Box<dyn Component>>,

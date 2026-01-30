@@ -9,7 +9,7 @@ use crate::app::GlyphCommand::*;
 use crate::app::PageCommand::*;
 
 use crate::event_handler::{Focusable, Interactable};
-use crate::model::{Entry, EntryRepository, EntryType, GlyphRepository};
+use crate::model::{Entry, EntryRepository, GlyphRepository};
 use crate::state::dialog::TextInputDialogState;
 use crate::state::page::{CreateGlyphPageState, GlyphMode, GlyphPageState};
 use color_eyre::eyre::Result;
@@ -363,8 +363,8 @@ impl Interactable for GlyphNavigationBar {
                                                     Box::new(|parent_state, state| {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                                         let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                        let id: i64 = EntryRepository::insert_entry(&_parent_state.connection, Entry::new(_state.text_input.clone(), EntryType::Default))?;
-                                                        let returned_entry = EntryRepository::read_by_id(&_parent_state.connection, id)?;
+                                                        let id: i64 = EntryRepository::create_entry(&_parent_state.connection, _state.text_input.clone())?;
+                                                        let returned_entry = EntryRepository::read_by_id(&_parent_state.connection, &id)?;
                                                         if let Some(entry) = returned_entry {
                                                             let entry_state = _parent_state.entry_state.try_borrow_mut();
                                                             match entry_state {

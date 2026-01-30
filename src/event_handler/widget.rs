@@ -117,9 +117,9 @@ impl Interactable for DirectoryList {
                                 self.state.current_path = self.state.current_path.join(PathBuf::from(
                                     get_dir_names(&self.state.current_path)?[index].to_string(),
                                 ));
+                                self.state.selected_index = None;
+                                self.state.hovered_index = Some(0);
                             }
-                            self.state.selected_index = None;
-                            self.state.hovered_index = Some(0);
                             return Ok(Vec::new());
                         }
                     }
