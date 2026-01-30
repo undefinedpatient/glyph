@@ -1,4 +1,4 @@
-use crate::app::dialog::TextInputDialog;
+use crate::app::dialog::{ConfirmDialog, TextInputDialog};
 use crate::app::page::{CreateGlyphPage, GlyphNavigationBar, GlyphPage, GlyphViewer, OpenGlyphPage};
 use crate::app::popup::ConfirmPopup;
 use crate::app::page::EntrancePage;
@@ -258,7 +258,9 @@ impl Interactable for GlyphPage {
                         if let Some(index) = self.state.hovered_index {
                             match index {
                                 0 => self.containers[0].set_focus(true),
-                                1 => self.containers[1].set_focus(true),
+                                1 => if self.state.to_entry_state_ref().unwrap().active_entry_id.is_some() {
+                                    self.containers[1].set_focus(true)
+                                }
                                 _ => {}
                             }
                         }
@@ -384,6 +386,33 @@ impl Interactable for GlyphNavigationBar {
                                     ]
                                 );
                             }
+                            'x' => {
+                                if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
+                                    return Ok(Vec::new());
+                                }
+                                return Ok(
+                                    vec![
+                                        PageCommand(
+                                            PushDialog(
+                                                ConfirmDialog::new(
+                                                    "Delete Selected Entry?",
+                                                ).on_submit(
+                                                    // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
+                                                    Box::new(|parent_state, state| {
+                                                        let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                                        let id = _parent_state.entry_state.borrow().active_entry_id.unwrap();
+                                                        EntryRepository::delete_by_id(&_parent_state.connection, &id)?;
+                                                        _parent_state.to_entry_state_mut().unwrap().entries.remove(&id);
+                                                        _parent_state.to_entry_state_mut().unwrap().active_entry_id = None;
+                                                        Ok(vec![])
+                                                    })
+                                                ).into()
+                                            )
+                                        )
+                                    ]
+                                );
+
+                            }
                             _ => {
                             }
                         }
@@ -441,6 +470,14 @@ impl Interactable for GlyphViewer {
 
                         }
                         GlyphMode::EDIT => {
+                            if let KeyCode::Tab = key.code {
+                                self.cycle_section_hover(1);
+                                return Ok(Vec::new());
+                            }
+                            if let KeyCode::BackTab = key.code {
+                                self.cycle_section_hover(-1);
+                                return Ok(Vec::new());
+                            }
                             if let KeyCode::Char(c) = key.code {
                                 match c {
                                     'A' => {

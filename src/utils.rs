@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::fs;
 use std::fs::DirEntry;
@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use color_eyre::eyre::Result;
 use rusqlite::Connection;
-use crate::model::{Entry, EntryRepository};
+use crate::model::{Entry, EntryRepository, LocalEntryState};
 
 pub fn cycle_add(value:u16, offset: u16, max: u16) -> u16 {
     return ((value as u32 + offset as u32)%max as u32) as u16;

@@ -2,7 +2,7 @@ use crate::app::widget::{LineButton, TextField};
 use crate::app::Command::{self, *};
 use crate::app::PageCommand::*;
 use crate::app::{Component, Container};
-use crate::state::dialog::TextInputDialogState;
+use crate::state::dialog::{ConfirmDialogState, TextInputDialogState};
 use crate::state::widget::TextFieldState;
 use crate::utils::cycle_offset;
 use color_eyre::eyre::Result;
@@ -70,6 +70,50 @@ impl TextInputDialog {
 }
 impl From<TextInputDialog> for Box<dyn Container> {
     fn from(container: TextInputDialog) -> Self {
+        Box::new(container)
+    }
+}
+
+
+pub struct ConfirmDialog {
+    pub components: Vec<Box<dyn Component>>,
+    pub state: ConfirmDialogState,
+    pub message: String,
+
+    pub on_submit: Option<Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+}
+impl ConfirmDialog {
+    pub fn new(message: &str) -> Self {
+        Self {
+            components: vec![
+                LineButton::new("Back").on_interact(Box::new(|_| Ok(vec![PageCommand(PopDialog)]))).into(),
+                LineButton::new("Confirm").into(),
+            ],
+            state: ConfirmDialogState {
+                is_focused: false,
+                hovered_index: None,
+            },
+            message: String::from(message),
+            on_submit: None,
+        }
+    }
+
+    pub fn on_submit(mut self, on_submit:Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>) ->Self {
+        self.on_submit = Some(on_submit);
+        self
+    }
+
+    pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {
+        let max: u16 = (self.components.len()) as u16;
+        if let Some(hover_index) = self.state.hovered_index {
+            self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, max) as usize);
+        } else {
+            self.state.hovered_index = Some(0);
+        }
+    }
+}
+impl From<ConfirmDialog> for Box<dyn Container> {
+    fn from(container: ConfirmDialog) -> Self {
         Box::new(container)
     }
 }

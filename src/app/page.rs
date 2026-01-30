@@ -3,13 +3,13 @@ use crate::app::widget::{Button, DirectoryList};
 use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::AppCommand;
 use crate::app::{Component, Container};
-use crate::model::{Entry, EntryRepository, GlyphRepository, LocalEntryState};
+use crate::model::{Entry, EntryRepository, GlyphRepository, LocalEntryState, Section};
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphMode, GlyphNavigationBarState, GlyphPageState, GlyphViewerState, OpenGlyphPageState};
 use crate::state::widget::{DirectoryListState, EditorState};
 use crate::state::AppState;
 use crate::utils::{cycle_offset};
 use rusqlite::Connection;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -284,6 +284,7 @@ impl GlyphNavigationBar {
             }
         }
     }
+
 }
 
 impl From<GlyphNavigationBar> for Box<dyn Container> {
@@ -304,10 +305,18 @@ impl GlyphViewer {
         Self {
             state: GlyphViewerState {
                 is_focused: false,
-                hovered_index: None,
+                section_hover_index: None,
                 mode: GlyphMode::READ,
                 entry_state
             }
+        }
+    }
+    pub(crate) fn cycle_section_hover(&mut self, offset: i16) -> () {
+        let len = (&self.state.active_entry_ref().unwrap()).sections.len() as u16;
+        if let Some(hover_index) = self.state.section_hover_index {
+            self.state.section_hover_index = Some(cycle_offset(hover_index as u16, offset, len) as usize);
+        } else {
+            self.state.section_hover_index = Some(0);
         }
     }
 }

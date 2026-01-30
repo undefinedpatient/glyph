@@ -1,4 +1,4 @@
-use crate::app::dialog::TextInputDialog;
+use crate::app::dialog::{ConfirmDialog, TextInputDialog};
 use crate::app::{Command, PageCommand};
 use crate::event_handler::{Focusable, Interactable};
 use color_eyre::Report;
@@ -67,4 +67,55 @@ impl Interactable for TextInputDialog {
         }
     }
     
+}
+
+impl Interactable for ConfirmDialog {
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        parent_state: Option<&mut dyn Any>,
+    ) -> color_eyre::Result<Vec<Command>> {
+        match key.kind {
+            KeyEventKind::Press => {
+                if let KeyCode::Esc = key.code {
+                    return Ok(vec![Command::PageCommand(PageCommand::PopDialog)]);
+                }
+                if let KeyCode::Tab = key.code {
+                    self.cycle_hover(1)
+                }
+                if let KeyCode::BackTab = key.code {
+                    self.cycle_hover(-1);
+                }
+                if let KeyCode::Enter = key.code {
+                    if let Some(index) = self.state.hovered_index {
+                        return match index {
+                            0 => {
+                                // Back Button
+                                self.components[0].handle(key, None)
+                            }
+                            1 => {
+                                // Confirm Button
+                                if let Some(on_submit) = self.on_submit.take() {
+                                    let callback_result = on_submit(parent_state, Some(&mut self.state));
+                                    if callback_result.is_err() {
+                                        callback_result
+                                    } else {
+                                        let mut commands = callback_result?;
+                                        commands.push(Command::PageCommand(PageCommand::PopDialog));
+                                        Ok(commands)
+                                    }
+                                } else {
+                                    Err(Report::msg("Submit has already been called!"))
+                                }
+                            }
+                            _ => Ok(Vec::new()),
+                        };
+                    }
+                }
+                Ok(Vec::new())
+            }
+            _ => Ok(Vec::new()),
+        }
+    }
+
 }

@@ -109,9 +109,7 @@ impl GlyphRepository {
             entry_id    INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
             position    INTEGER NOT NULL,
             title       TEXT NOT NULL DEFAULT '',
-            content     TEXT NOT NULL DEFAULT '',
-
-            UNIQUE(entry_id, position)
+            content     TEXT NOT NULL DEFAULT ''
         )
         "
             , ())?;
@@ -158,6 +156,14 @@ impl EntryRepository {
         }
         LayoutRepository::update_layout(c, eid, &entry.layout.0, &entry.layout.1)?;
         return Ok(id);
+    }
+    
+    
+    pub fn delete_by_id(c: &Connection, eid: &i64) -> Result<usize> {
+        let num_of_row_deleted = c.execute( "DELETE FROM entries WHERE id = ?1",
+            params![eid],
+        )?;
+        Ok(num_of_row_deleted)
     }
 
     pub fn read_by_id(c: &Connection, id: &i64) -> Result<Option<(i64, Entry)>> {
