@@ -1,4 +1,4 @@
-use crate::app::dialog::{ConfirmDialog, NumberInputDialog, TextInputDialog};
+use crate::app::dialog::{ConfirmDialog, EditLayoutDialog, NumberInputDialog, TextInputDialog};
 use crate::app::{Command, PageCommand};
 use crate::event_handler::{Focusable, Interactable};
 use color_eyre::Report;
@@ -150,6 +150,77 @@ impl Interactable for NumberInputDialog {
                                     self.components[0].handle(key, None)
                                 }
                                 2 => {
+                                    // Confirm Button
+                                    if let Some(on_submit) = self.on_submit.take() {
+                                        let callback_result = on_submit(parent_state, Some(&mut self.state));
+                                        if callback_result.is_err() {
+                                            callback_result
+                                        } else {
+                                            let mut commands = callback_result?;
+                                            commands.push(Command::PageCommand(PageCommand::PopDialog));
+                                            Ok(commands)
+                                        }
+                                    } else {
+                                        Err(Report::msg("Submit has already been called!"))
+                                    }
+                                }
+                                _ => Ok(Vec::new()),
+                            };
+                        }
+                    }
+                    Ok(Vec::new())
+                }
+                _ => Ok(Vec::new()),
+            }
+        } else {
+            let index: usize = self.focused_child_index().unwrap();
+            let mut result =
+                self.containers[index].handle(key, Some(&mut self.state));
+            result
+        }
+    }
+
+}
+
+/*
+    Edit Layout Dialog
+ */
+impl Interactable for EditLayoutDialog {
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        parent_state: Option<&mut dyn Any>,
+    ) -> color_eyre::Result<Vec<Command>> {
+        if self.focused_child_mut().is_none() {
+            match key.kind {
+                KeyEventKind::Press => {
+                    if let KeyCode::Esc = key.code {
+                        return Ok(vec![Command::PageCommand(PageCommand::PopDialog)]);
+                    }
+                    if let KeyCode::Tab = key.code {
+                        self.cycle_hover(1)
+                    }
+                    if let KeyCode::BackTab = key.code {
+                        self.cycle_hover(-1);
+                    }
+                    if let KeyCode::Enter = key.code {
+                        if let Some(index) = self.state.hovered_index {
+                            return match index {
+                                0 => {
+                                    // Text Field (Layout Label)
+                                    self.containers[0].set_focus(true);
+                                    Ok(Vec::new())
+                                }
+                                1 => {
+                                    // Number Field (Target Position
+                                    self.containers[1].set_focus(true);
+                                    Ok(Vec::new())
+                                }
+                                2 => {
+                                    // Back Button
+                                    self.components[0].handle(key, None)
+                                }
+                                3 => {
                                     // Confirm Button
                                     if let Some(on_submit) = self.on_submit.take() {
                                         let callback_result = on_submit(parent_state, Some(&mut self.state));

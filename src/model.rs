@@ -84,7 +84,24 @@ impl LocalEntryState {
         let layout_id = self.get_active_entry_ref().unwrap().layout.0;
         if let Some(id) = self.active_entry_id {
             self.get_layout_at_mut(&id,coordinate).unwrap().sub_layouts.push(layout);
-            let layout = self.get_layout_at_ref(&id, coordinate).unwrap();
+            let layout = self.get_layout_at_ref(&id, &vec![0]).unwrap(); // Get the root layout
+            LayoutRepository::update_layout(&self.connection, &id, &layout_id, &layout)?;
+            let active_entry = self.entries.get_mut(&id).unwrap();
+            active_entry.layout.1 = LayoutRepository::read_by_entry_id(&self.connection, &id)?.1;
+            Ok(())
+        } else {
+            Err(Report::msg("No active entry found"))
+        }
+    }
+    pub fn delete_layout_from_active_entry(&mut self, coordinate: &Vec<usize>) -> Result<()> {
+        let layout_id = self.get_active_entry_ref().unwrap().layout.0;
+
+        let mut parent_coor = coordinate.clone();
+        let target_index = parent_coor.pop().unwrap();
+
+        if let Some(id) = self.active_entry_id {
+            self.get_layout_at_mut(&id,&parent_coor).unwrap().sub_layouts.remove(target_index);
+            let layout = self.get_layout_at_ref(&id, &vec![0]).unwrap(); // Get the root layout
             LayoutRepository::update_layout(&self.connection, &id, &layout_id, &layout)?;
             let active_entry = self.entries.get_mut(&id).unwrap();
             active_entry.layout.1 = LayoutRepository::read_by_entry_id(&self.connection, &id)?.1;
@@ -94,6 +111,7 @@ impl LocalEntryState {
         }
 
     }
+
     pub fn toggle_active_entry_id(&mut self, id: i64) {
         if let Some(oid) = self.active_entry_id {
             if oid == id {
@@ -173,8 +191,6 @@ impl LocalEntryState {
         }
         max
     }
-
-
 }
 
 pub struct Glyph {
@@ -309,7 +325,7 @@ impl EntryRepository {
             "
                 INSERT INTO entries (id, entry_name)
                 VALUES (?1, ?2)
-                ON CONFLICT (?1)
+                ON CONFLICT (id)
                 DO UPDATE SET
                     entry_name = ?2,
             ",
@@ -388,7 +404,7 @@ impl SectionRepository {
             "
                 INSERT INTO sections (id, entry_id, position, title, content)
                 VALUES (?1, ?2, ?3, ?4, ?5)
-                ON CONFLICT (?1)
+                ON CONFLICT (id)
                 DO UPDATE SET
                     entry_id = ?2,
                     position = ?3,
@@ -447,15 +463,14 @@ impl LayoutRepository {
             "
                 INSERT INTO layouts (id, entry_id, content)
                 VALUES (?1, ?2, ?3)
-                ON CONFLICT (?1)
+                ON CONFLICT (id)
                 DO UPDATE SET
                     entry_id = ?2,
-                    content = ?3,
+                    content = ?3
             ",
             params![lid, eid, serde_json::to_string(layout).unwrap()],
         )?;
-        let id = c.last_insert_rowid();
-        return Ok(id);
+        return Ok(*lid);
     }
     pub fn to_layout(row: &Row) -> Result<(i64, Layout)> {
         let id: i64 = row.get(0)?;

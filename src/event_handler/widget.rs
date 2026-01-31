@@ -1,4 +1,4 @@
-use crate::app::widget::{Button, DirectoryList, LineButton, TextField};
+use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, TextField};
 use crate::app::Command;
 use crate::event_handler::{Focusable, Interactable};
 use crate::utils::{get_dir_names, get_file_names};
@@ -157,6 +157,52 @@ impl Interactable for TextField {
                     if let KeyCode::Char(c) = key.code {
                         self.insert_char(c);
                         self.move_to_next_char();
+                    }
+                    if let KeyCode::Left = key.code {
+                        self.move_to_previous_char();
+                    }
+                    if let KeyCode::Right = key.code {
+                        self.move_to_next_char();
+                    }
+                    if let KeyCode::Backspace = key.code {
+                        self.move_to_previous_char();
+                        self.delete_char();
+                    }
+                    Ok(Vec::new())
+                }
+                _ => Ok(Vec::new()),
+            }
+        }
+    }
+}
+/*
+   Number Field
+*/
+
+impl Interactable for NumberField {
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        parent_state: Option<&mut dyn Any>,
+    ) -> color_eyre::Result<Vec<Command>> {
+        if !self.is_focused() {
+            self.set_focus(true);
+            Ok(Vec::new())
+        } else {
+            match key.kind {
+                KeyEventKind::Press => {
+                    if let KeyCode::Esc = key.code {
+                        self.set_focus(false);
+                        if let Some(mut on_exit) = self.on_exit.take() {
+                            return (*on_exit)(parent_state, Some(&mut self.state));
+                        };
+                        return Ok(Vec::new());
+                    }
+                    if let KeyCode::Char(c) = key.code {
+                        if c.is_numeric() {
+                            self.insert_char(c);
+                            self.move_to_next_char();
+                        }
                     }
                     if let KeyCode::Left = key.code {
                         self.move_to_previous_char();

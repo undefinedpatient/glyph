@@ -6,7 +6,7 @@ use crate::model::{LayoutOrientation, LocalEntryState, Section};
 use crate::state::page::GlyphMode;
 use color_eyre::owo_colors::OwoColorize;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect, Size};
+use ratatui::layout::{Alignment, Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect, Size};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Text};
 use ratatui::widgets::{Block, BorderType, Paragraph, Widget};
@@ -303,6 +303,12 @@ impl Drawable for GlyphViewer {
         /*
 
          */
+        if self.state.local_entry_state_ref().unwrap().active_entry_id.is_none() {
+            let message: Paragraph = Paragraph::new("No Entry Selected").alignment(Alignment::Center);
+            let center_area = content_area.centered(Constraint::Fill(1), Constraint::Length(3));
+            message.render(center_area, frame.buffer_mut());
+            return;
+        }
         match self.state.mode  {
             /*
                 READ
@@ -343,7 +349,7 @@ fn evaluate_layout(area: Rect, buffer: &mut Buffer, layout: &model::Layout, dept
     }
 
     let mut block: Block = Block::bordered().title(layout.label.as_str()).title_bottom(target_section_text);
-    if depth == focused_coordinate.len() as u16 {
+    if depth == focused_coordinate.len() as u16 && focused_coordinate.last().unwrap().clone() == at {
         block = block.border_type(BorderType::Thick);
     } else if let Some(hovered_index) = hovered_index {
         if depth - 1 == focused_coordinate.len() as u16 && at == hovered_index  {

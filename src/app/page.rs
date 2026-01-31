@@ -334,7 +334,9 @@ impl GlyphViewer {
         if let Some(hover_index) = self.state.layout_hovered_index{
             self.state.layout_hovered_index = Some(cycle_offset(hover_index as u16, offset, len as u16) as usize);
         } else {
-            self.state.layout_hovered_index = Some(0);
+            if len > 0 {
+                self.state.layout_hovered_index = Some(0);
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-use crate::app::widget::{Button, DirectoryList, LineButton, TextField};
+use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, TextField};
 use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use crate::utils::{get_dir_names, get_file_names};
@@ -126,6 +126,35 @@ impl Drawable for DirectoryList {
 */
 
 impl Drawable for TextField {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+        let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
+        let text = self.state.chars.iter().collect::<String>();
+        let text_line: Line = Line::from(text);
+        let text_field_block: Block = Block::bordered()
+            .title(self.state.label.as_str())
+            .border_type(match draw_flag {
+                DrawFlag::DEFAULT => BorderType::Plain,
+                DrawFlag::HIGHLIGHTING => BorderType::Double,
+                DrawFlag::FOCUSED => BorderType::Thick,
+                _ => BorderType::LightDoubleDashed,
+            });
+        let text_line_area: Rect = text_field_block.inner(text_field_area);
+        if self.is_focused() {
+            let cursor_position: Position = text_field_area.as_position().offset(Offset {
+                x: 1 + self.state.cursor_index as i32,
+                y: 1,
+            });
+            frame.set_cursor_position(cursor_position);
+        }
+        Clear.render(text_field_area, frame.buffer_mut());
+        text_field_block.render(text_field_area, frame.buffer_mut());
+        text_line.render(text_line_area, frame.buffer_mut());
+    }
+}
+/*
+   Number Field
+*/
+impl Drawable for NumberField {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
         let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
         let text = self.state.chars.iter().collect::<String>();

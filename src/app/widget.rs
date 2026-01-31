@@ -202,3 +202,49 @@ impl From<TextField> for Box<dyn Container> {
         Box::new(component)
     }
 }
+pub struct NumberField {
+    pub state: TextFieldState,
+    pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+}
+
+impl NumberField {
+    pub fn new(label: &str, default: i16) -> Self {
+        Self {
+            state: TextFieldState {
+                is_focused: false,
+                label: label.to_string(),
+                chars: default.to_string().chars().collect(),
+                cursor_index: default.to_string().len(),
+            },
+            on_exit: None,
+        }
+    }
+    pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
+        self.on_exit = Some(on_exit);
+        self
+    }
+    pub fn move_to_next_char(&mut self) {
+        self.state.cursor_index = self.state.cursor_index.saturating_add(1);
+        if self.state.cursor_index >= self.state.chars.len() {
+            self.state.cursor_index = self.state.chars.len();
+        }
+    }
+    pub fn move_to_previous_char(&mut self) {
+        self.state.cursor_index = self.state.cursor_index.saturating_sub(1);
+    }
+    pub fn insert_char(&mut self, char: char) {
+        self.state.chars.insert(self.state.cursor_index, char);
+    }
+    pub fn delete_char(&mut self) {
+        if self.state.cursor_index >= self.state.chars.len() {
+            return;
+        }
+        self.state.chars.remove(self.state.cursor_index);
+    }
+}
+
+impl From<NumberField> for Box<dyn Container> {
+    fn from(component: NumberField) -> Self {
+        Box::new(component)
+    }
+}

@@ -18,6 +18,12 @@ pub struct TextFieldState {
     pub chars: Vec<char>,
     pub cursor_index: usize,
 }
+pub struct NumberFieldState {
+    pub is_focused: bool,
+    pub label: String,
+    pub chars: Vec<char>,
+    pub cursor_index: usize,
+}
 pub struct EditorState {
     pub is_focused: bool,
     pub label: String,

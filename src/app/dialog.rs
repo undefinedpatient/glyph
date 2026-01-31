@@ -1,9 +1,9 @@
-use crate::app::widget::{LineButton, TextField};
+use crate::app::widget::{LineButton, NumberField, TextField};
 use crate::app::Command::{self, *};
 use crate::app::PageCommand::*;
 use crate::app::{Component, Container};
-use crate::state::dialog::{ConfirmDialogState, NumberInputDialogState, TextInputDialogState};
-use crate::state::widget::TextFieldState;
+use crate::state::dialog::{ConfirmDialogState, EditLayoutDialogState, NumberInputDialogState, TextInputDialogState};
+use crate::state::widget::{NumberFieldState, TextFieldState};
 use crate::utils::cycle_offset;
 use color_eyre::eyre::Result;
 use std::any::Any;
@@ -176,6 +176,84 @@ impl NumberInputDialog {
 }
 impl From<NumberInputDialog> for Box<dyn Container> {
     fn from(container: NumberInputDialog) -> Self {
+        Box::new(container)
+    }
+}
+
+
+
+pub struct EditLayoutDialog {
+    pub containers: Vec<Box<dyn Container>>,
+    pub components: Vec<Box<dyn Component>>,
+    pub state: EditLayoutDialogState,
+
+    pub on_submit: Option<Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+}
+impl EditLayoutDialog {
+    pub fn new() -> Self {
+        Self {
+            containers: vec![
+                TextField::new(
+                    "Layout Label",
+                    String::from("Untitled")
+                )
+                    .on_exit(
+                        Box::new(
+                            |parent_state, state| {
+                                let _parent_state = parent_state.unwrap().downcast_mut::<EditLayoutDialog>().unwrap();
+                                let _state = state.unwrap().downcast_mut::<TextFieldState>().unwrap();
+                                _parent_state.state.label_input =   _state.chars.iter().collect::<String>();
+                                Ok(Vec::new())
+                            }
+                        )
+                    )
+                    .into(),
+                NumberField::new(
+                    "Link to Section Index",
+                    0
+                )
+                    .on_exit(
+                        Box::new(
+                            |parent_state, state| {
+                                let _parent_state = parent_state.unwrap().downcast_mut::<EditLayoutDialog>().unwrap();
+                                let _state = state.unwrap().downcast_mut::<NumberFieldState>().unwrap();
+                                _parent_state.state.position = _state.chars.iter().collect::<String>().parse().unwrap();
+                                Ok(Vec::new())
+                            }
+                        )
+                    )
+                    .into()
+            ],
+            components: vec![
+                LineButton::new("Back").on_interact(Box::new(|_| Ok(vec![PageCommand(PopDialog)]))).into(),
+                LineButton::new("Confirm").into(),
+            ],
+            state: EditLayoutDialogState {
+                is_focused: false,
+                hovered_index: None,
+                label_input: String::new(),
+                position: 0
+            },
+            on_submit: None,
+        }
+    }
+
+    pub fn on_submit(mut self, on_submit:Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>) ->Self {
+        self.on_submit = Some(on_submit);
+        self
+    }
+
+    pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {
+        let max: u16 = (self.containers.len() + self.components.len()) as u16;
+        if let Some(hover_index) = self.state.hovered_index {
+            self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, max) as usize);
+        } else {
+            self.state.hovered_index = Some(0);
+        }
+    }
+}
+impl From<EditLayoutDialog> for Box<dyn Container> {
+    fn from(container: EditLayoutDialog) -> Self {
         Box::new(container)
     }
 }

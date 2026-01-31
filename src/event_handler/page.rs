@@ -1,4 +1,4 @@
-use crate::app::dialog::{ConfirmDialog, TextInputDialog};
+use crate::app::dialog::{ConfirmDialog, EditLayoutDialog, TextInputDialog};
 use crate::app::page::EntrancePage;
 use crate::app::page::{CreateGlyphPage, GlyphNavigationBar, GlyphPage, GlyphViewer, OpenGlyphPage};
 use crate::app::popup::ConfirmPopup;
@@ -10,7 +10,7 @@ use crate::app::PageCommand::*;
 
 use crate::event_handler::{Focusable, Interactable};
 use crate::model::{GlyphRepository, Layout, LocalEntryState};
-use crate::state::dialog::TextInputDialogState;
+use crate::state::dialog::{EditLayoutDialogState, TextInputDialogState};
 use crate::state::page::{CreateGlyphPageState, GlyphMode, GlyphPageState};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
@@ -491,6 +491,44 @@ impl Interactable for GlyphViewer {
                                             &target_coor,
                                         )?;
                                         return Ok(Vec::new());
+                                    }
+                                    'x' => {
+                                        if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
+                                            return Ok(Vec::new());
+                                        }
+                                        // Get the target coord copy
+                                        let target_coor = self.state.layout_selected_coordinate.clone();
+                                        // Update the original coord
+                                        let parent_index = self.state.layout_selected_coordinate.pop();
+                                        // Update
+                                        self.state.layout_hovered_index = None;
+                                        {
+                                            let mut local_entry_state = self.state.local_entry_state_mut().unwrap();
+                                            local_entry_state.delete_layout_from_active_entry(&target_coor)?;
+                                        }
+                                    }
+                                    'e' => {
+                                        if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
+                                            return Ok(Vec::new());
+                                        }
+                                        return Ok(
+                                            vec![
+                                                PageCommand(
+                                                    PushDialog(
+                                                        EditLayoutDialog::new().on_submit(
+                                                            // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
+                                                            Box::new(|parent_state, state| {
+                                                                let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                                                let _state = state.unwrap().downcast_mut::<EditLayoutDialogState>().unwrap();
+                                                                let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
+                                                                local_entry_state.delete_active_entry()?;
+                                                                Ok(vec![])
+                                                            })
+                                                        ).into()
+                                                    )
+                                                )
+                                            ]
+                                        );
                                     }
                                     _ => {}
                                 }
