@@ -332,16 +332,25 @@ impl Drawable for GlyphViewer {
 fn draw_layout_view(me: &GlyphViewer,  layout_area: Rect,buffer: &mut Buffer, draw_flag: DrawFlag) {
     let entry_state: Ref<LocalEntryState> = me.state.local_entry_state_ref().unwrap();
     let entry_layout: &model::Layout = &entry_state.get_active_entry_ref().unwrap().layout.1;
-    evaluate_layout(layout_area, buffer, entry_layout);
+    evaluate_layout(layout_area, buffer, entry_layout, 1, me.state.layout_hovered_index , &mut me.state.layout_selected_coordinate.clone(), 0);
 
 
 }
-fn evaluate_layout(area: Rect, buffer: &mut Buffer, layout: &model::Layout) {
+fn evaluate_layout(area: Rect, buffer: &mut Buffer, layout: &model::Layout, depth: u16, hovered_index: Option<usize>, focused_coordinate: &mut Vec<usize>, at: usize) {
     let mut target_section_text: String = "None".to_string();
     if let Some(position_target) = layout.section_index {
         target_section_text = position_target.to_string();
     }
-    let block: Block = Block::bordered().title(layout.label.as_str()).title_bottom(target_section_text);
+
+    let mut block: Block = Block::bordered().title(layout.label.as_str()).title_bottom(target_section_text);
+    if depth == focused_coordinate.len() as u16 {
+        block = block.border_type(BorderType::Thick);
+    } else if let Some(hovered_index) = hovered_index {
+        if depth - 1 == focused_coordinate.len() as u16 && at == hovered_index  {
+            block = block.border_type(BorderType::Double);
+        }
+    }
+
     let recursive_area: Rect = block.inner(area);
     block.render(area, buffer);
 
@@ -370,6 +379,10 @@ fn evaluate_layout(area: Rect, buffer: &mut Buffer, layout: &model::Layout) {
             sub_areas[i],
             buffer,
             sub_layout,
+            depth + 1,
+            hovered_index,
+            focused_coordinate,
+            i
         )
     }
 }

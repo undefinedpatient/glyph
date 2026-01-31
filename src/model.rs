@@ -77,6 +77,23 @@ impl LocalEntryState {
             Err(Report::msg("No active entry found"))
         }
     }
+    /*
+        Create Layout to active_entry
+     */
+    pub fn insert_layout_to_active_entry(&mut self, layout: Layout, coordinate: &Vec<usize>) -> Result<()> {
+        let layout_id = self.get_active_entry_ref().unwrap().layout.0;
+        if let Some(id) = self.active_entry_id {
+            self.get_layout_at_mut(&id,coordinate).unwrap().sub_layouts.push(layout);
+            let layout = self.get_layout_at_ref(&id, coordinate).unwrap();
+            LayoutRepository::update_layout(&self.connection, &id, &layout_id, &layout)?;
+            let active_entry = self.entries.get_mut(&id).unwrap();
+            active_entry.layout.1 = LayoutRepository::read_by_entry_id(&self.connection, &id)?.1;
+            Ok(())
+        } else {
+            Err(Report::msg("No active entry found"))
+        }
+
+    }
     pub fn toggle_active_entry_id(&mut self, id: i64) {
         if let Some(oid) = self.active_entry_id {
             if oid == id {
@@ -101,37 +118,42 @@ impl LocalEntryState {
         None
     }
 
-    pub fn get_layout_at_mut(&mut self, eid: i64, coordinates: &Vec<usize>) -> Option<&mut Layout> {
+    pub fn get_layout_at_mut(&mut self, eid: &i64, coordinates: &Vec<usize>) -> Option<&mut Layout> {
         let mut coor = coordinates.clone();
         let root_entry = self.entries.get_mut(&eid).unwrap();
         coor.reverse();
         if coor.len() == 0 {
-            return Some(&mut root_entry.layout.1);
+            return None;
         }
         let mut temp_layout: &mut Layout = &mut root_entry.layout.1;
-
+        coor.pop();
         while let Some(index) =  coor.pop() {
             temp_layout = &mut (*temp_layout).sub_layouts[index];
         }
         Some(temp_layout)
     }
 
-    pub fn get_layout_at_ref(&self, eid: i64, coordinates: &Vec<usize>) -> Option<&Layout> {
+    pub fn get_layout_at_ref(&self, eid: &i64, coordinates: &Vec<usize>) -> Option<&Layout> {
         let mut coor = coordinates.clone();
         let root_entry = self.entries.get(&eid).unwrap();
         coor.reverse();
         if coor.len() == 0 {
-            return Some(&root_entry.layout.1);
+            return None;
         }
         let mut temp_layout: &Layout = &root_entry.layout.1;
+        coor.pop();
 
         while let Some(index) =  coor.pop() {
             temp_layout = &(*temp_layout).sub_layouts[index];
         }
         Some(temp_layout)
     }
-    pub fn get_num_sublayout_at(&self, eid: i64, coordinates: &Vec<usize>) -> usize {
-        self.get_layout_at_ref(eid, coordinates).unwrap().sub_layouts.len()
+    pub fn get_num_sublayout_at(&self, eid: &i64, coordinates: &Vec<usize>) -> usize {
+        if let Some(layout) =  self.get_layout_at_ref(&eid, coordinates) {
+            layout.sub_layouts.len()
+        } else {
+            1 // root always has one layout
+        }
     }
 
     fn reconstruct_entry_order(&mut self) -> () {

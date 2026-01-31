@@ -9,7 +9,7 @@ use crate::app::GlyphCommand::*;
 use crate::app::PageCommand::*;
 
 use crate::event_handler::{Focusable, Interactable};
-use crate::model::{GlyphRepository, LocalEntryState};
+use crate::model::{GlyphRepository, Layout, LocalEntryState};
 use crate::state::dialog::TextInputDialogState;
 use crate::state::page::{CreateGlyphPageState, GlyphMode, GlyphPageState};
 use color_eyre::eyre::Result;
@@ -424,8 +424,10 @@ impl Interactable for GlyphViewer {
                 KeyEventKind::Press => {
                     // Mode Wide Key
                     if let KeyCode::Esc = key.code {
-                        self.set_focus(false);
-                        return Ok(Vec::new());
+                        if self.state.layout_selected_coordinate.is_empty() {
+                            self.set_focus(false);
+                            return Ok(Vec::new());
+                        }
                     }
                     if let KeyCode::Char(c) = key.code {
                         match c {
@@ -461,6 +463,37 @@ impl Interactable for GlyphViewer {
                             if let KeyCode::BackTab = key.code {
                                 self.cycle_layout_hover(-1);
                                 return Ok(Vec::new());
+                            }
+                            if let KeyCode::Enter = key.code {
+                                if let Some(hovered_index) = self.state.layout_hovered_index{
+                                    self.state.layout_selected_coordinate.push(hovered_index);
+                                    self.state.layout_hovered_index = None;
+                                }
+                            }
+                            if let KeyCode::Esc = key.code {
+                                let index = self.state.layout_selected_coordinate.pop();
+                                self.state.layout_hovered_index = index;
+                            }
+                            if let KeyCode::Char(c) = key.code {
+                                match c {
+                                    'j' => {
+                                        self.cycle_layout_hover(1);
+                                        return Ok(Vec::new());
+                                    }
+                                    'k' => {
+                                        self.cycle_layout_hover(-1);
+                                        return Ok(Vec::new());
+                                    }
+                                    'A' => {
+                                        let target_coor = self.state.layout_selected_coordinate.clone();
+                                        self.state.local_entry_state_mut().unwrap().insert_layout_to_active_entry(
+                                            Layout::new(),
+                                            &target_coor,
+                                        )?;
+                                        return Ok(Vec::new());
+                                    }
+                                    _ => {}
+                                }
                             }
                         }
                         GlyphMode::EDIT => {

@@ -330,11 +330,11 @@ impl GlyphViewer {
         let select_coordinate: &mut Vec<usize> = &mut self.state.layout_selected_coordinate;
         let id = self.state.local_entry_state_ref().unwrap().active_entry_id.unwrap();
         // When no hover index exist at that depth yet
-        let len = self.state.local_entry_state_ref().unwrap().get_num_sublayout_at(id, &self.state.layout_selected_coordinate);
+        let len = self.state.local_entry_state_ref().unwrap().get_num_sublayout_at(&id, &self.state.layout_selected_coordinate);
         if let Some(hover_index) = self.state.layout_hovered_index{
-            self.state.edit_hovered_index = Some(cycle_offset(hover_index as u16, offset, len as u16) as usize);
+            self.state.layout_hovered_index = Some(cycle_offset(hover_index as u16, offset, len as u16) as usize);
         } else {
-            self.state.edit_hovered_index = Some(0);
+            self.state.layout_hovered_index = Some(0);
         }
     }
 }
