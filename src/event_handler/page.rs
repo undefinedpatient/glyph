@@ -9,14 +9,17 @@ use crate::app::GlyphCommand::*;
 use crate::app::PageCommand::*;
 
 use crate::event_handler::{Focusable, Interactable};
-use crate::model::{Entry, EntryRepository, GlyphRepository, Section, SectionRepository};
+use crate::model::{Entry, EntryRepository, GlyphRepository, LocalEntryState, Section, SectionRepository};
 use crate::state::dialog::TextInputDialogState;
 use crate::state::page::{CreateGlyphPageState, GlyphMode, GlyphPageState};
 use color_eyre::eyre::Result;
 use color_eyre::Report;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::any::Any;
+use std::cell::{Ref, RefMut};
 use ratatui::prelude::Line;
+use rusqlite::Connection;
+use rusqlite::fallible_iterator::FallibleIterator;
 
 impl Interactable for EntrancePage {
     fn handle(
@@ -258,7 +261,7 @@ impl Interactable for GlyphPage {
                         if let Some(index) = self.state.hovered_index {
                             match index {
                                 0 => self.containers[0].set_focus(true),
-                                1 => if self.state.to_entry_state_ref().unwrap().active_entry_id.is_some() {
+                                1 => if self.state.local_entry_state_ref().unwrap().active_entry_id.is_some() {
                                     self.containers[1].set_focus(true)
                                 }
                                 _ => {}
@@ -335,19 +338,23 @@ impl Interactable for GlyphNavigationBar {
                     }
                     if let KeyCode::Char(c) = key.code {
                         match c {
+                            'j' => {
+                                self.next_entry();
+                                return Ok(Vec::new());
+                            }
+                            'k' => {
+                                self.previous_entry();
+                                return Ok(Vec::new());
+                            }
                             ' ' => {
-                                let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                let mut selected_entry_id: Option<i64> = None;
-                                if let Some(index) = self.state.hovered_index {
-                                    let entry_state_result = _parent_state.entry_state.try_borrow_mut();
-                                    match entry_state_result {
-                                        Ok(mut entry_state) => {
-                                            entry_state.active_entry_id = Some(
-                                                entry_state.entries.keys().collect::<Vec<&i64>>()[index].clone()
-                                            );
-                                        }
-                                        Err(_) => {}
-                                    }
+                                if self.state.hovered_index.is_none() {
+
+                                } else {
+                                    let index: usize = self.state.hovered_index.unwrap();
+                                    let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                    let selected_id: i64 = self.state.to_entry_state_ref().unwrap().ordered_entries[index].0;
+                                    let mut local_entry_state = self.state.to_entry_state_mut().unwrap();
+                                    local_entry_state.set_active_entry_id(selected_id)
                                 }
                                 return Ok(Vec::new());
 
@@ -364,20 +371,13 @@ impl Interactable for GlyphNavigationBar {
                                                     // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
                                                     Box::new(|parent_state, state| {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                                        let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
                                                         let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                        let id: i64 = EntryRepository::create_entry(&_parent_state.connection, _state.text_input.clone())?;
-                                                        let returned_entry = EntryRepository::read_by_id(&_parent_state.connection, &id)?;
-                                                        if let Some(entry) = returned_entry {
-                                                            let entry_state = _parent_state.entry_state.try_borrow_mut();
-                                                            match entry_state {
-                                                                Ok(mut m_entries) => {
-                                                                    m_entries.entries.insert(entry.0, entry.1);
-                                                                }
-                                                                Err(e) => {
-                                                                    return Err(Report::msg("Entries is being updated somewhere at the moment!"));
-                                                                }
-                                                            }
-                                                        }
+                                                        let id = local_entry_state.create_new_entry(_state.text_input.as_str())?;
+
+                                                        // Reconstruct the list of entry display
+                                                        local_entry_state.reconstruct_entry_order();
+
                                                         Ok(vec![])
                                                     })
                                                 ).into()
@@ -400,10 +400,14 @@ impl Interactable for GlyphNavigationBar {
                                                     // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
                                                     Box::new(|parent_state, state| {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                                        let id = _parent_state.entry_state.borrow().active_entry_id.unwrap();
-                                                        EntryRepository::delete_by_id(&_parent_state.connection, &id)?;
-                                                        _parent_state.to_entry_state_mut().unwrap().entries.remove(&id);
-                                                        _parent_state.to_entry_state_mut().unwrap().active_entry_id = None;
+                                                        let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
+                                                        let id = local_entry_state.active_entry_id.unwrap();
+
+                                                        let ref_connection: &Connection = &local_entry_state.connection;
+                                                        EntryRepository::delete_by_id(ref_connection, &id)?;
+                                                        local_entry_state.entries.remove(&id);
+                                                        local_entry_state.active_entry_id = None;
+                                                        local_entry_state.reconstruct_entry_order();
                                                         Ok(vec![])
                                                     })
                                                 ).into()
@@ -448,9 +452,9 @@ impl Interactable for GlyphViewer {
                                         self.state.mode = GlyphMode::LAYOUT;
                                     }
                                     GlyphMode::LAYOUT => {
-                                        self.state.mode = GlyphMode::EDIT;
+                                        self.state.mode = GlyphMode::REORDERING;
                                     }
-                                    GlyphMode::EDIT => {
+                                    GlyphMode::REORDERING => {
                                         self.state.mode = GlyphMode::READ;
                                     }
                                 }
@@ -469,7 +473,7 @@ impl Interactable for GlyphViewer {
                         GlyphMode::LAYOUT => {
 
                         }
-                        GlyphMode::EDIT => {
+                        GlyphMode::REORDERING => {
                             if let KeyCode::Tab = key.code {
                                 self.cycle_section_hover(1);
                                 return Ok(Vec::new());
@@ -480,15 +484,31 @@ impl Interactable for GlyphViewer {
                             }
                             if let KeyCode::Char(c) = key.code {
                                 match c {
+                                    'j' => {
+                                        self.cycle_section_hover(1);
+                                        return Ok(Vec::new());
+                                    }
+                                    'k' => {
+                                        self.cycle_section_hover(-1);
+                                        return Ok(Vec::new());
+                                    }
                                     'A' => {
                                         let state: &mut GlyphPageState = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                        let mut entry_state = self.state.entry_state.try_borrow_mut()?;
-                                        let active_entry_id = entry_state.active_entry_id.unwrap();
-                                        let entry = entry_state.entries.get_mut(&active_entry_id).unwrap();
+                                        let mut entry_state: RefMut<LocalEntryState> = state.local_entry_state_mut().unwrap();
+                                        let active_entry_id: i64 = entry_state.active_entry_id.unwrap().clone();
                                         let new_section: Section = Section::new("untitled", "Write Something");
-                                        let sid: i64 = SectionRepository::create_section(&state.connection, &active_entry_id, &new_section)?;
-                                        entry.sections.insert(sid, new_section);
+                                        let sid: i64 = SectionRepository::create_section(&entry_state.connection, &active_entry_id, &new_section)?;
+                                        let active_entry = entry_state.get_active_entry_mut().unwrap();
+                                        active_entry.sections.insert(sid, new_section);
                                     }
+                                    ' ' => {
+                                        if self.state.reordering_selected_index.is_some() {
+                                            self.state.reordering_selected_index = None;
+                                        } else if let Some(hovered_index) = self.state.reordering_hovered_index {
+                                            self.state.reordering_selected_index = Some(hovered_index);
+                                        }
+                                    }
+
                                     _ => {
 
                                     }

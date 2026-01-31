@@ -12,6 +12,8 @@ use rusqlite::Connection;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
+use rusqlite::fallible_iterator::FallibleIterator;
+use tui_scrollview::ScrollViewState;
 
 pub struct EntrancePage {
     pub components: Vec<Box<dyn Component>>,
@@ -208,7 +210,7 @@ pub struct GlyphPage {
 
 impl GlyphPage {
     pub fn new(connection: Connection) -> Self {
-        let entry_state: Rc<RefCell<LocalEntryState>> = Rc::new(RefCell::new(LocalEntryState::new(&connection)));
+        let entry_state: Rc<RefCell<LocalEntryState>> = Rc::new(RefCell::new(LocalEntryState::new(connection)));
         Self {
             dialogs: Vec::new(),
             containers: vec![
@@ -220,7 +222,6 @@ impl GlyphPage {
                 is_focused: false,
                 is_hovered: false,
                 hovered_index: None,
-                connection,
                 entry_state
             }
         }
@@ -302,10 +303,16 @@ pub struct GlyphViewer {
 }
 impl GlyphViewer {
     pub fn new(entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+
         Self {
             state: GlyphViewerState {
                 is_focused: false,
-                section_hover_index: None,
+
+                reordering_hovered_index: None,
+                reordering_selected_index: None,
+
+                scroll_state: RefCell::new(ScrollViewState::new()),
+                layout_hover_index: Vec::new(),
                 mode: GlyphMode::READ,
                 entry_state
             }
@@ -313,10 +320,10 @@ impl GlyphViewer {
     }
     pub(crate) fn cycle_section_hover(&mut self, offset: i16) -> () {
         let len = (&self.state.active_entry_ref().unwrap()).sections.len() as u16;
-        if let Some(hover_index) = self.state.section_hover_index {
-            self.state.section_hover_index = Some(cycle_offset(hover_index as u16, offset, len) as usize);
+        if let Some(hover_index) = self.state.reordering_hovered_index {
+            self.state.reordering_hovered_index = Some(cycle_offset(hover_index as u16, offset, len) as usize);
         } else {
-            self.state.section_hover_index = Some(0);
+            self.state.reordering_hovered_index = Some(0);
         }
     }
 }

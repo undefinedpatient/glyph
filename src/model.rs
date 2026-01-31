@@ -7,17 +7,68 @@ use rusqlite::types::{FromSql, FromSqlResult, ToSqlOutput, ValueRef};
 use serde::{Deserialize, Serialize};
 
 pub struct LocalEntryState {
-    pub active_entry_id: Option<i64>,
     pub entries: HashMap<i64, Entry>,
+    pub connection: Connection,
+    pub active_entry_id: Option<i64>,
     pub updated_entry_ids:  Vec<i64>,
+    pub ordered_entries: Vec<(i64, String)>,
 }
 impl LocalEntryState {
-    pub fn new(c: &Connection) -> Self {
+    pub fn new(c: Connection) -> Self {
+        let entries = EntryRepository::read_all(&c).unwrap();
+        let ordered_entries: Vec<(i64, String)> = entries.iter().map(
+            |(id,entry)| {
+                (id.clone(), entry.entry_name.clone())
+            }
+        ).collect();
         Self {
+            entries: entries,
+            connection: c,
             active_entry_id: None,
-            entries: EntryRepository::read_all(c).unwrap(),
             updated_entry_ids: Vec::new(),
+            ordered_entries,
         }
+    }
+
+    /*
+        Create New Entry, return Entry ID
+     */
+    pub fn create_new_entry(&mut self, entry_name: &str) -> Result<(i64)> {
+        let entry_id: i64 = EntryRepository::create_entry(&self.connection, entry_name)?;
+        let result = EntryRepository::read_by_id(&self.connection, &entry_id);
+        match result {
+            Ok(succ) => {
+                if let Some((id, entry)) = succ {
+                    self.entries.insert(id, entry);
+                    Ok(id)
+                } else {
+                    Err(Report::msg("Entry Created, but could not be found"))
+                }
+            }
+            Err(e) => Err(e)
+        }
+    }
+    pub fn set_active_entry_id(&mut self, id: i64) {
+        self.active_entry_id = Some(id);
+    }
+    pub fn get_active_entry_ref(&self) -> Option<&Entry> {
+        if let Some(active_entry_id) = self.active_entry_id {
+            return self.entries.get(&active_entry_id);
+        }
+        None
+    }
+    pub fn get_active_entry_mut(&mut self) -> Option<&mut Entry> {
+        if let Some(active_entry_id) = self.active_entry_id {
+            return self.entries.get_mut(&active_entry_id);
+        }
+        None
+    }
+    pub fn reconstruct_entry_order(&mut self) -> () {
+        self.ordered_entries = self.entries.iter().map(
+            |(id,entry)| {
+                (id.clone(), entry.entry_name.clone())
+            }
+        ).collect();
     }
 }
 
@@ -54,7 +105,7 @@ pub struct Layout {
     pub label: String,
     pub section_index: Option<u16>,
     pub sub_layouts: Vec<Layout>,
-    pub details: SubLayoutDetails
+    pub details: LayoutDetails
 }
 
 impl Layout {
@@ -63,22 +114,29 @@ impl Layout {
             label: String::new(),
             section_index: None,
             sub_layouts: Vec::new(),
-            details: SubLayoutDetails::new()
+            details: LayoutDetails::new()
         }
     }
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct SubLayoutDetails {
-    spacing: u16,
-    padding: u16,
+pub enum LayoutOrientation {
+    Horizontal,
+    Vertical,
+}
+#[derive(Serialize, Deserialize)]
+pub struct LayoutDetails {
+    pub length: u16, // Describe Self
+    pub flex: u16, // Describe Self
+    pub orientation: LayoutOrientation, // Describing orientation main axis for the children
 }
 
-impl SubLayoutDetails {
+impl LayoutDetails {
     pub fn new() -> Self {
         Self {
-            spacing: 0,
-            padding: 0,
+            length: 0,
+            flex: 1,
+            orientation: LayoutOrientation::Vertical,
         }
     }
 }
@@ -127,7 +185,7 @@ impl GlyphRepository {
 }
 
 impl EntryRepository {
-    pub fn create_entry(c: &Connection, entry_name: String) -> Result<i64> {
+    pub fn create_entry(c: &Connection, entry_name: &str) -> Result<i64> {
         c.execute(
             "INSERT INTO entries (entry_name) VALUES (?1)",
             params![entry_name],
@@ -157,8 +215,8 @@ impl EntryRepository {
         LayoutRepository::update_layout(c, eid, &entry.layout.0, &entry.layout.1)?;
         return Ok(id);
     }
-    
-    
+
+
     pub fn delete_by_id(c: &Connection, eid: &i64) -> Result<usize> {
         let num_of_row_deleted = c.execute( "DELETE FROM entries WHERE id = ?1",
             params![eid],

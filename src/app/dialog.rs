@@ -2,7 +2,7 @@ use crate::app::widget::{LineButton, TextField};
 use crate::app::Command::{self, *};
 use crate::app::PageCommand::*;
 use crate::app::{Component, Container};
-use crate::state::dialog::{ConfirmDialogState, TextInputDialogState};
+use crate::state::dialog::{ConfirmDialogState, NumberInputDialogState, TextInputDialogState};
 use crate::state::widget::TextFieldState;
 use crate::utils::cycle_offset;
 use color_eyre::eyre::Result;
@@ -114,6 +114,68 @@ impl ConfirmDialog {
 }
 impl From<ConfirmDialog> for Box<dyn Container> {
     fn from(container: ConfirmDialog) -> Self {
+        Box::new(container)
+    }
+}
+/*
+    Number Input Dialog
+ */
+pub struct NumberInputDialog {
+    pub containers: Vec<Box<dyn Container>>,
+    pub components: Vec<Box<dyn Component>>,
+    pub state: NumberInputDialogState,
+
+    pub on_submit: Option<Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+}
+impl NumberInputDialog {
+    pub fn new(field_title: &str, default: i16) -> Self {
+        Self {
+            containers: vec![
+                TextField::new(
+                    field_title,
+                    default.to_string(),
+                )
+                    .on_exit(
+                        Box::new(
+                            |parent_state, state| {
+                                let _parent_state = parent_state.unwrap().downcast_mut::<NumberInputDialog>().unwrap();
+                                let _state = state.unwrap().downcast_mut::<TextFieldState>().unwrap();
+                                _parent_state.state.number_input =  _state.chars.iter().collect::<String>().parse::<i16>().unwrap();
+                                Ok(Vec::new())
+                            }
+                        )
+                    )
+                    .into()
+            ],
+            components: vec![
+                LineButton::new("Back").on_interact(Box::new(|_| Ok(vec![PageCommand(PopDialog)]))).into(),
+                LineButton::new("Confirm").into(),
+            ],
+            state: NumberInputDialogState {
+                is_focused: false,
+                hovered_index: None,
+                number_input: default
+            },
+            on_submit: None,
+        }
+    }
+
+    pub fn on_submit(mut self, on_submit:Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>) ->Self {
+        self.on_submit = Some(on_submit);
+        self
+    }
+
+    pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {
+        let max: u16 = (self.containers.len() + self.components.len()) as u16;
+        if let Some(hover_index) = self.state.hovered_index {
+            self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, max) as usize);
+        } else {
+            self.state.hovered_index = Some(0);
+        }
+    }
+}
+impl From<NumberInputDialog> for Box<dyn Container> {
+    fn from(container: NumberInputDialog) -> Self {
         Box::new(container)
     }
 }

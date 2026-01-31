@@ -3,14 +3,17 @@ use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphNavigationBar, GlyphP
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use color_eyre::owo_colors::OwoColorize;
-use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect};
+use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect, Size};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Text};
-use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Widget, Wrap};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph, StatefulWidget, Widget, Wrap};
 use ratatui::Frame;
 use std::rc::Rc;
+use ratatui::buffer::Buffer;
 use tui_big_text::{BigText, PixelSize};
-use crate::model::{Entry, LocalEntryState, Section};
+use tui_scrollview::{ScrollView, ScrollbarVisibility};
+use crate::model;
+use crate::model::{Entry, LayoutOrientation, LocalEntryState, Section};
 use crate::state::page::{GlyphMode, GlyphViewerState};
 
 macro_rules! block {
@@ -221,10 +224,12 @@ impl Drawable for GlyphNavigationBar {
             List Items (Entry)
          */
         let ref_entry_state = self.state.entry_state.borrow();
-        let mut list: Vec<(i64, String)> = ref_entry_state.entries
-            .iter()
-            .map(|(id, entry): (&i64, &Entry)| (id.clone() , entry.entry_name.clone())).collect();
-        let mut list_items: Vec<Line> = list
+        let plain_entries: Vec<(i64, String)> = ref_entry_state.entries.iter().map(
+            |(id,entry)| {
+                (id.clone(), entry.entry_name.clone())
+            }
+        ).collect();
+        let mut list_items: Vec<Line> = plain_entries 
             .iter()
             .enumerate()
             .map(|(i, (id, name)): (usize, &(i64, String))| {
@@ -246,8 +251,6 @@ impl Drawable for GlyphNavigationBar {
                         line = line.bold()
                     }
                 }
-
-
                 line
             }).collect();
 
@@ -282,17 +285,18 @@ impl Drawable for GlyphViewer {
             GlyphMode::LAYOUT => {
                 widget_frame = widget_frame.title_top(Line::from("(LAYOUT)").right_aligned());
             }
-            GlyphMode::EDIT => {
-                widget_frame = widget_frame.title_top(Line::from("(EDIT)").right_aligned());
+            GlyphMode::REORDERING => {
+                widget_frame = widget_frame.title_top(Line::from("(REORDERING)").right_aligned());
             }
         }
+        let inner_area = widget_frame.inner(area);
         let inner_areas = Layout::horizontal(
 [
                 Constraint::Fill(1),
                 Constraint::Length(72),
                 Constraint::Fill(1)
             ]
-        ).split(widget_frame.inner(area));
+        ).split(inner_area);
         let content_area: Rect = inner_areas[1];
         widget_frame.render(area, frame.buffer_mut());
 
@@ -310,21 +314,67 @@ impl Drawable for GlyphViewer {
                 LAYOUT
              */
             GlyphMode::LAYOUT => {
+                let virtual_area = Size::new(content_area.width, content_area.height*3);
+                // let mut scroll_view = ScrollView::new(virtual_area);
+                // scroll_view = scroll_view.horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
+                draw_layout_view(self, inner_areas[1], frame.buffer_mut(), draw_flag);
+                // scroll_view.render(inner_area, frame.buffer_mut(), &mut self.state.scroll_state.borrow_mut());
             }
             /*
-                EDIT
+               REORDERING 
              */
-            GlyphMode::EDIT => {
-                draw_edit_view(self, frame, content_area, draw_flag);
+            GlyphMode::REORDERING => {
+                draw_reordering_view(self, frame, content_area);
             }
         }
     }
 }
 
-fn draw_layout_view(me: &GlyphViewer, frame: &mut Frame, layout_area: Rect, draw_flag: DrawFlag) {
-    
+fn draw_layout_view(me: &GlyphViewer,  layout_area: Rect,buffer: &mut Buffer, draw_flag: DrawFlag) {
+    let entry_state: Ref<LocalEntryState> = me.state.to_entry_state_ref().unwrap();
+    let entry_layout: &model::Layout = &entry_state.get_active_entry_ref().unwrap().layout.1;
+    evaluate_layout(layout_area, buffer, entry_layout);
+
+
 }
-fn draw_edit_view(me: &GlyphViewer, frame: &mut Frame, section_area: Rect, draw_flag: DrawFlag) {
+fn evaluate_layout(area: Rect, buffer: &mut Buffer, layout: &model::Layout) {
+    let mut target_section_text: String = "None".to_string();
+    if let Some(position_target) = layout.section_index {
+        target_section_text = position_target.to_string();
+    }
+    let block: Block = Block::bordered().title(layout.label.as_str()).title_bottom(target_section_text);
+    let recursive_area: Rect = block.inner(area);
+    block.render(area, buffer);
+
+
+    // Process the child
+    let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
+        |(index, sub)| {
+            if (sub.details.flex != 0) {
+                Constraint::Fill(sub.details.flex)
+            } else {
+                Constraint::Length(sub.details.length)
+            }
+        }
+    ).collect();
+    let sub_areas =
+        match layout.details.orientation {
+            LayoutOrientation::Vertical => {
+                Layout::vertical(constraints).split(recursive_area)
+            }
+            LayoutOrientation::Horizontal => {
+                Layout::horizontal(constraints).split(recursive_area)
+            }
+        };
+    for (i, sub_layout) in layout.sub_layouts.iter().enumerate() {
+        evaluate_layout(
+            sub_areas[i],
+            buffer,
+            sub_layout,
+        )
+    }
+}
+fn draw_reordering_view(me: &GlyphViewer, frame: &mut Frame, section_area: Rect) {
     let entry_state:Ref<LocalEntryState> = me.state.entry_state.borrow();
     let active_entry_id: i64 = entry_state.active_entry_id.unwrap();
     let entry= entry_state.entries.get(&active_entry_id).unwrap();
@@ -341,7 +391,7 @@ fn draw_edit_view(me: &GlyphViewer, frame: &mut Frame, section_area: Rect, draw_
             let mut section_dimension: (u32, u32) = (Text::width(&text) as u32 + 2, Text::height(&text) as u32 + 3);
 
             let mut paragraph_frame: Block = Block::bordered();
-            if let Some(index) = me.state.section_hover_index {
+            if let Some(index) = me.state.reordering_hovered_index {
                 if index == i {
                     paragraph_frame = paragraph_frame.border_type(BorderType::Double)
                 }
