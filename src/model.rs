@@ -12,6 +12,7 @@ pub struct LocalEntryState {
     pub updated_entry_ids:  Vec<i64>,
     pub ordered_entries: Vec<(i64, String)>,
 }
+
 impl LocalEntryState {
     pub fn new(c: Connection) -> Self {
         let entries = EntryRepository::read_all(&c).unwrap();
@@ -63,6 +64,29 @@ impl LocalEntryState {
         }
     }
 
+    pub fn toggle_local_active_entry_id(&mut self, id: i64) {
+        if let Some(oid) = self.active_entry_id {
+            if oid == id {
+                self.active_entry_id = None;
+            } else {
+                self.active_entry_id = Some(id);
+            }
+        } else {
+            self.active_entry_id = Some(id);
+        }
+    }
+    pub fn get_local_active_entry_ref(&self) -> Option<&Entry> {
+        if let Some(active_entry_id) = self.active_entry_id {
+            return self.entries.get(&active_entry_id);
+        }
+        None
+    }
+    pub fn get_local_active_entry_mut(&mut self) -> Option<&mut Entry> {
+        if let Some(active_entry_id) = self.active_entry_id {
+            return self.entries.get_mut(&active_entry_id);
+        }
+        None
+    }
     /*
         Create Section to active_entry
      */
@@ -77,102 +101,93 @@ impl LocalEntryState {
             Err(Report::msg("No active entry found"))
         }
     }
+    pub fn get_local_num_sections(&self, eid: &i64) -> usize {
+        if let Some(entry) = self.entries.get(eid){
+            entry.sections.len()
+        } else {
+            0
+        }
+    }
+
+
+
     /*
-        Create Layout to active_entry
+
+        Layout Section
+
      */
-    pub fn insert_layout_to_active_entry(&mut self, layout: Layout, coordinate: &Vec<usize>) -> Result<()> {
-        let layout_id = self.get_active_entry_ref().unwrap().layout.0;
-        if let Some(id) = self.active_entry_id {
-            self.get_layout_at_mut(&id,coordinate).unwrap().sub_layouts.push(layout);
-            let layout = self.get_layout_at_ref(&id, &vec![0]).unwrap(); // Get the root layout
-            LayoutRepository::update_layout(&self.connection, &id, &layout_id, &layout)?;
-            let active_entry = self.entries.get_mut(&id).unwrap();
-            active_entry.layout.1 = LayoutRepository::read_by_entry_id(&self.connection, &id)?.1;
-            Ok(())
-        } else {
-            Err(Report::msg("No active entry found"))
-        }
-    }
-    pub fn delete_layout_from_active_entry(&mut self, coordinate: &Vec<usize>) -> Result<()> {
-        let layout_id = self.get_active_entry_ref().unwrap().layout.0;
 
-        let mut parent_coor = coordinate.clone();
-        let target_index = parent_coor.pop().unwrap();
-
-        if let Some(id) = self.active_entry_id {
-            self.get_layout_at_mut(&id,&parent_coor).unwrap().sub_layouts.remove(target_index);
-            let layout = self.get_layout_at_ref(&id, &vec![0]).unwrap(); // Get the root layout
-            LayoutRepository::update_layout(&self.connection, &id, &layout_id, &layout)?;
-            let active_entry = self.entries.get_mut(&id).unwrap();
-            active_entry.layout.1 = LayoutRepository::read_by_entry_id(&self.connection, &id)?.1;
-            Ok(())
-        } else {
-            Err(Report::msg("No active entry found"))
-        }
-
-    }
-
-    pub fn toggle_active_entry_id(&mut self, id: i64) {
-        if let Some(oid) = self.active_entry_id {
-            if oid == id {
-                self.active_entry_id = None;
-            } else {
-                self.active_entry_id = Some(id);
+    /*
+        Get reference to Layout by lid via searching in Local Entries
+     */
+    pub fn get_layout_ref(&self, lid: &i64) -> Option<&Layout> {
+         self.entries.iter().find_map(
+            |item| {
+                if item.1.layout.0 == *lid {
+                    return Some(&item.1.layout.1);
+                }
+                None
             }
-        } else {
-            self.active_entry_id = Some(id);
+        )
+    }
+    pub fn get_layout_mut(&mut self, lid: &i64) -> Option<&mut Layout> {
+        self.entries.iter_mut().find_map(
+            |item| {
+                if item.1.layout.0 == *lid {
+                    return Some(&mut item.1.layout.1);
+                }
+                None
+            }
+        )
+    }
+    pub fn get_entry_layout_ref(&self, eid: &i64) -> Option<&Layout> {
+        match self.entries.get(eid) {
+            Some(e) => Some(&e.layout.1),
+            None => None,
         }
     }
-    pub fn get_active_entry_ref(&self) -> Option<&Entry> {
-        if let Some(active_entry_id) = self.active_entry_id {
-            return self.entries.get(&active_entry_id);
+    pub fn get_entry_layout_mut(&mut self, eid: &i64) -> Option<&mut Layout> {
+        match self.entries.get_mut(eid) {
+            Some(e) => Some(&mut e.layout.1),
+            None => None,
         }
-        None
     }
-    pub fn get_active_entry_mut(&mut self) -> Option<&mut Entry> {
-        if let Some(active_entry_id) = self.active_entry_id {
-            return self.entries.get_mut(&active_entry_id);
+    pub fn get_entry_lid(&self, eid: &i64) -> Option<i64> {
+        match self.entries.get(eid) {
+            Some(e) => Some(e.layout.0),
+            None => None
         }
-        None
+    }
+    pub fn get_active_entry_lid(&self) -> Option<i64> {
+        match self.get_local_active_entry_ref() {
+            Some(e) => Some(e.layout.0),
+            None => None
+        }
     }
 
-    pub fn get_layout_at_mut(&mut self, eid: &i64, coordinates: &Vec<usize>) -> Option<&mut Layout> {
-        let mut coor = coordinates.clone();
-        let root_entry = self.entries.get_mut(&eid).unwrap();
-        coor.reverse();
-        if coor.len() == 0 {
-            return None;
-        }
-        let mut temp_layout: &mut Layout = &mut root_entry.layout.1;
-        coor.pop();
-        while let Some(index) =  coor.pop() {
-            temp_layout = &mut (*temp_layout).sub_layouts[index];
-        }
-        Some(temp_layout)
-    }
+    /*
+       Directly Update a layout.
+     */
+    pub fn update_layout_by_lid(&mut self, lid: &i64, layout: Layout) -> Result<()> {
+        LayoutRepository::update_layout_by_lid(&self.connection, &lid, &layout)?;
 
-    pub fn get_layout_at_ref(&self, eid: &i64, coordinates: &Vec<usize>) -> Option<&Layout> {
-        let mut coor = coordinates.clone();
-        let root_entry = self.entries.get(&eid).unwrap();
-        coor.reverse();
-        if coor.len() == 0 {
-            return None;
-        }
-        let mut temp_layout: &Layout = &root_entry.layout.1;
-        coor.pop();
+        // Update all entry having the same layout
+        self.entries.iter_mut().for_each(
+            |(eid, entry)| {
+                if (entry.layout.0 == *lid) {
+                    entry.layout.1 = layout.clone();
+                }
+            }
+        );
+        Ok(())
+    }
+    /*
 
-        while let Some(index) =  coor.pop() {
-            temp_layout = &(*temp_layout).sub_layouts[index];
-        }
-        Some(temp_layout)
-    }
-    pub fn get_num_sublayout_at(&self, eid: &i64, coordinates: &Vec<usize>) -> usize {
-        if let Some(layout) =  self.get_layout_at_ref(&eid, coordinates) {
-            layout.sub_layouts.len()
-        } else {
-            1 // root always has one layout
-        }
-    }
+        Helpers
+
+     */
+
+
 
     fn reconstruct_entry_order(&mut self) -> () {
         self.ordered_entries = self.entries.iter().map(
@@ -193,17 +208,31 @@ impl LocalEntryState {
     }
 }
 
+
+/*
+
+    Models
+
+ */
+
 pub struct Glyph {
     pub glyph_name: String,
     pub entries: Vec<Entry>,
 }
 
 
+/*
+    Entry
+ */
 pub struct Entry {
     pub entry_name: String,
     pub sections: HashMap<i64, Section>,
     pub layout: (i64, Layout),
 }
+
+/*
+    Section
+ */
 pub struct Section {
     // pub entry_id: i64,
     pub position: i64,
@@ -221,7 +250,10 @@ impl Section {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+/*
+    Layout
+ */
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Layout {
     pub label: String,
     pub section_index: Option<u16>,
@@ -238,14 +270,74 @@ impl Layout {
             details: LayoutDetails::new()
         }
     }
+    pub fn get_layout_at_ref(&self, coordinates: &Vec<usize>) -> Option<&Layout> {
+        let mut coor = coordinates.clone();
+        coor.reverse();
+        if coor.len() == 0 {
+            return Some(self);
+        }
+        let mut temp_layout: &Layout = self;
+        while let Some(index) =  coor.pop() {
+            temp_layout = &(*temp_layout).sub_layouts[index];
+        }
+        if coor.is_empty() {
+            Some(temp_layout)
+        } else {
+            None
+        }
+    }
+    pub fn get_layout_at_mut(&mut self, coordinates: &Vec<usize>) -> Option<&mut Layout> {
+        let mut coor = coordinates.clone();
+        coor.reverse();
+        if coor.len() == 0 {
+            return Some(self);
+        }
+        let mut temp_layout: &mut Layout = self;
+        while let Some(index) =  coor.pop() {
+            temp_layout = &mut (*temp_layout).sub_layouts[index];
+        }
+        if coor.is_empty() {
+            Some(temp_layout)
+        } else {
+            None
+        }
+    }
+    pub fn update_layout_at(&mut self, layout: &Layout, coordinates: &Vec<usize>) {
+        if let Some(target) = self.get_layout_at_mut(coordinates){
+            target.label = layout.label.clone();
+            target.details = layout.details.clone();
+        }
+    }
+    pub fn insert_sublayout_under(&mut self, layout: Layout, coordinates: &Vec<usize>) {
+        if coordinates.is_empty() {
+            self.sub_layouts.push(layout);
+        } else {
+            let mut coor = coordinates.clone();
+            if let Some(target) = self.get_layout_at_mut(&coor) {
+                target.sub_layouts.push(layout);
+            }
+        }
+    }
+
+    pub fn remove_sublayout(&mut self, coordinates: &Vec<usize>) -> Result<()> {
+        let mut coor = coordinates.clone();
+        let index = coor.pop().unwrap();
+        if let Some(target) = self.get_layout_at_mut(&coor) {
+            target.sub_layouts.remove(index);
+            Ok(())
+        } else {
+            Err(Report::msg(format!("Tried to remove a layout that does not exist. At {:?}", coor)))
+        }
+
+    }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum LayoutOrientation {
     Horizontal,
     Vertical,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct LayoutDetails {
     pub length: u16, // Describe Self
     pub flex: u16, // Describe Self
@@ -261,6 +353,10 @@ impl LayoutDetails {
         }
     }
 }
+
+
+
+
 
 
 
@@ -335,7 +431,7 @@ impl EntryRepository {
         for (sid, section) in &entry.sections {
             SectionRepository::update_section(c, eid, sid, section)?;
         }
-        LayoutRepository::update_layout(c, eid, &entry.layout.0, &entry.layout.1)?;
+        LayoutRepository::update_layout_by_lid(c, &entry.layout.0, &entry.layout.1)?;
         return Ok(id);
     }
 
@@ -371,7 +467,7 @@ impl EntryRepository {
             Entry {
                 entry_name: row.get(1)?,
                 sections: SectionRepository::read_by_entry_id(c, &id)?,
-                layout: LayoutRepository::read_by_entry_id(c, &id)?
+                layout: LayoutRepository::read_by_eid(c, &id)?
             }
         )
         )
@@ -440,7 +536,7 @@ impl SectionRepository {
 
 pub struct LayoutRepository {}
 impl LayoutRepository {
-    pub fn read_by_entry_id(c: &Connection, entry_id: &i64) -> Result<(i64, Layout)> {
+    pub fn read_by_eid(c: &Connection, entry_id: &i64) -> Result<(i64, Layout)> {
         let mut stmt = c.prepare("SELECT id, entry_id, content FROM layouts WHERE entry_id = ?1")?;
         let mut rows: Rows = stmt.query(params![*entry_id])?;
 
@@ -456,22 +552,76 @@ impl LayoutRepository {
                 Err(Report::msg("Failed to read layout"))
             }
         }
+    }
+    pub fn read_by_lid(c: &Connection, lid: &i64) -> Result<(i64, Layout)> {
+        let mut stmt = c.prepare("SELECT id, entry_id, content FROM layouts WHERE id = ?1")?;
+        let mut rows: Rows = stmt.query(params![*lid])?;
+
+        match rows.next() {
+            Ok(row) => {
+                if let Some(row) = row {
+                    Self::to_layout(row)
+                } else {
+                    Err(Report::msg("Layout does not exists!"))
+                }
+            }
+            Err(e) => {
+                Err(Report::msg("Failed to read layout"))
+            }
+        }
 
     }
-    pub fn update_layout(c: &Connection, eid: &i64, lid: &i64, layout: &Layout) -> Result<i64> {
+    pub fn update_layout_eid(c: &Connection, eid: &i64, lid: &i64) -> Result<i64> {
         c.execute(
             "
-                INSERT INTO layouts (id, entry_id, content)
-                VALUES (?1, ?2, ?3)
-                ON CONFLICT (id)
-                DO UPDATE SET
-                    entry_id = ?2,
-                    content = ?3
+                UPDATE layouts
+                SET
+                    entry_id = ?1,
+                WHERE id = ?2
             ",
-            params![lid, eid, serde_json::to_string(layout).unwrap()],
+            params![eid, lid],
         )?;
         return Ok(*lid);
     }
+    /*
+        Create new layout, return the layout ID
+     */
+    pub fn create_layout(c: &Connection, eid: &i64, layout: &Layout) -> Result<i64> {
+        c.execute(
+            " INSERT INTO layouts (entry_id, content) VALUES (?1, ?2) ",
+            params![eid, serde_json::to_string(layout).unwrap()],
+        )?;
+        let lid = c.last_insert_rowid();
+        return Ok(lid);
+    }
+    pub fn update_layout_by_lid(c: &Connection, lid: &i64, layout: &Layout) -> Result<i64> {
+        c.execute(
+            "
+                UPDATE layouts
+                SET
+                    content = ?2
+                WHERE id = ?1
+            ",
+            params![lid, serde_json::to_string(layout).unwrap()],
+        )?;
+        return Ok(*lid);
+    }
+    pub fn update_layout_by_eid(c: &Connection, eid: &i64, layout: &Layout) -> Result<i64> {
+        c.execute(
+            "
+                UPDATE layouts
+                SET
+                    content = ?2,
+                WHERE entry_id = ?1
+            ",
+            params![eid, serde_json::to_string(layout).unwrap()],
+        )?;
+        return Ok(*eid);
+    }
+
+    /*
+        Read a whole row, return (lid, Layout)
+     */
     pub fn to_layout(row: &Row) -> Result<(i64, Layout)> {
         let id: i64 = row.get(0)?;
         let layout_data: String = row.get(2)?;

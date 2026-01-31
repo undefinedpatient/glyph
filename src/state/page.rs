@@ -62,24 +62,6 @@ pub struct GlyphViewerState {
     // Shared Data
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
-impl GlyphViewerState {
-    pub(crate) fn active_entry_mut(&mut self) -> Option<RefMut<Entry>> {
-        let entry_state: RefMut<LocalEntryState> = self.entry_state.try_borrow_mut().ok()?;
-
-        let id = &entry_state.active_entry_id?;
-        RefMut::filter_map(entry_state, |state| {
-            state.entries.get_mut(id)
-        }).ok()
-    }
-    pub(crate) fn active_entry_ref(&self) -> Option<Ref<Entry>> {
-        let entry_state: Ref<LocalEntryState> = self.entry_state.try_borrow().ok()?;
-
-        let id = &entry_state.active_entry_id?;
-        Ref::filter_map(entry_state, |state| {
-            state.entries.get(id)
-        }).ok()
-    }
-}
 impl LocalEntryState {
 }
 impl GlyphPageState {

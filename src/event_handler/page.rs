@@ -9,9 +9,9 @@ use crate::app::GlyphCommand::*;
 use crate::app::PageCommand::*;
 
 use crate::event_handler::{Focusable, Interactable};
-use crate::model::{GlyphRepository, Layout, LocalEntryState};
+use crate::model::{Entry, GlyphRepository, Layout, LocalEntryState};
 use crate::state::dialog::{EditLayoutDialogState, TextInputDialogState};
-use crate::state::page::{CreateGlyphPageState, GlyphMode, GlyphPageState};
+use crate::state::page::{CreateGlyphPageState, GlyphMode, GlyphPageState, GlyphViewerState};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use rusqlite::fallible_iterator::FallibleIterator;
@@ -308,7 +308,7 @@ impl Interactable for GlyphPage {
     Navigation Bar (Subpage)
     Operations:
     - Create Entry
-    - Remove Entry (Todo)
+    - Remove Entry
     - Rename Entry (Todo)
  */
 
@@ -350,7 +350,7 @@ impl Interactable for GlyphNavigationBar {
                                     let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                     let selected_id: i64 = self.state.local_entry_state_ref().unwrap().ordered_entries[index].0;
                                     let mut local_entry_state = self.state.local_entry_state_mut().unwrap();
-                                    local_entry_state.toggle_active_entry_id(selected_id)
+                                    local_entry_state.toggle_local_active_entry_id(selected_id)
                                 }
                                 return Ok(Vec::new());
 
@@ -420,6 +420,36 @@ impl Interactable for GlyphViewer {
             self.set_focus(true);
             Ok(Vec::new())
         } else {
+            /*
+                Process Dialog
+             */
+            if !self.dialogs.is_empty() {
+                let result = self.dialogs.last_mut().unwrap().handle(key, Some(&mut self.state));
+                return if result.is_err() {
+                    result
+                } else {
+                    let mut processed_commands: Vec<Command> = Vec::new();
+                    let mut commands = result?;
+                    while let Some(command) = commands.pop() {
+                        match command {
+                            PageCommand(page_command) => {
+                                match page_command {
+                                    PopDialog => {
+                                        self.dialogs.pop();
+                                    }
+                                    PushDialog(dialog) => {
+                                        self.dialogs.push(dialog);
+                                    }
+                                }
+                            }
+                            _ => {
+                                processed_commands.insert(0, command);
+                            }
+                        }
+                    }
+                    Ok(processed_commands)
+                }
+            }
             match key.kind {
                 KeyEventKind::Press => {
                     // Mode Wide Key
@@ -486,49 +516,118 @@ impl Interactable for GlyphViewer {
                                     }
                                     'A' => {
                                         let target_coor = self.state.layout_selected_coordinate.clone();
-                                        self.state.local_entry_state_mut().unwrap().insert_layout_to_active_entry(
+                                        let mut state = self.state.local_entry_state_mut().unwrap();
+                                        let eid = state.active_entry_id.unwrap();
+                                        let lid = state.get_active_entry_lid().unwrap();
+                                        let mut layout = state.get_layout_ref(&lid).unwrap().clone();
+                                        layout.insert_sublayout_under(
                                             Layout::new(),
                                             &target_coor,
-                                        )?;
+                                        );
+                                        state.update_layout_by_lid(&lid, layout)?;
                                         return Ok(Vec::new());
                                     }
                                     'x' => {
                                         if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
                                             return Ok(Vec::new());
                                         }
+                                        if self.state.layout_selected_coordinate.is_empty() {
+                                            return Ok(Vec::new());
+                                        }
                                         // Get the target coord copy
                                         let target_coor = self.state.layout_selected_coordinate.clone();
-                                        // Update the original coord
                                         let parent_index = self.state.layout_selected_coordinate.pop();
-                                        // Update
                                         self.state.layout_hovered_index = None;
-                                        {
-                                            let mut local_entry_state = self.state.local_entry_state_mut().unwrap();
-                                            local_entry_state.delete_layout_from_active_entry(&target_coor)?;
-                                        }
+                                        let mut state = self.state.local_entry_state_mut().unwrap();
+                                        // Get Active eid
+                                        let eid = state.active_entry_id.unwrap();
+                                        let lid = state.get_active_entry_lid().unwrap();
+                                        // Update
+                                        let mut layout = state.get_layout_ref(&lid).unwrap().clone();
+                                        layout.remove_sublayout(&target_coor)?;
+                                        state.update_layout_by_lid(&lid, layout)?;
+                                        return Ok(Vec::new());
                                     }
-                                    'e' => {
+                                    '+' => {
                                         if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
                                             return Ok(Vec::new());
                                         }
-                                        return Ok(
-                                            vec![
-                                                PageCommand(
-                                                    PushDialog(
-                                                        EditLayoutDialog::new().on_submit(
-                                                            // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
-                                                            Box::new(|parent_state, state| {
-                                                                let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                                                let _state = state.unwrap().downcast_mut::<EditLayoutDialogState>().unwrap();
-                                                                let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
-                                                                local_entry_state.delete_active_entry()?;
-                                                                Ok(vec![])
-                                                            })
-                                                        ).into()
-                                                    )
-                                                )
-                                            ]
+                                        // Get the target coord copy
+                                        let target_coor = self.state.layout_selected_coordinate.clone();
+                                        let mut state = self.state.local_entry_state_mut().unwrap();
+                                        // Get Active eid
+                                        let eid = state.active_entry_id.unwrap();
+                                        let lid = state.get_active_entry_lid().unwrap();
+                                        // Update
+                                        let mut layout = state.get_layout_ref(&lid).unwrap().clone();
+                                        let mut sublayout = layout.get_layout_at_mut(&target_coor).unwrap();
+                                        if sublayout.section_index.is_none() {
+                                            sublayout.section_index = Some(0);
+                                        } else {
+                                            sublayout.section_index = Some(sublayout.section_index.unwrap() + 1);
+                                        }
+                                        state.update_layout_by_lid(&lid, layout)?;
+                                        return Ok(Vec::new());
+
+                                    }
+                                    '-' => {
+                                        if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
+                                            return Ok(Vec::new());
+                                        }
+                                        // Get the target coord copy
+                                        let target_coor = self.state.layout_selected_coordinate.clone();
+                                        let mut state = self.state.local_entry_state_mut().unwrap();
+                                        // Get Active eid
+                                        let eid = state.active_entry_id.unwrap();
+                                        let lid = state.get_active_entry_lid().unwrap();
+                                        // Update
+                                        let mut layout = state.get_layout_ref(&lid).unwrap().clone();
+                                        let mut sublayout = layout.get_layout_at_mut(&target_coor).unwrap();
+                                        if let Some(index) = sublayout.section_index {
+                                            if index == 0 {
+                                                sublayout.section_index = None;
+                                            } else {
+                                                sublayout.section_index = Some(index - 1);
+                                            }
+                                        }
+                                        state.update_layout_by_lid(&lid, layout)?;
+                                        return Ok(Vec::new());
+                                    }
+                                    'r' => {
+                                        if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
+                                            return Ok(Vec::new());
+                                        }
+
+                                        // This code retrieve the Original Layout Label
+                                        let state = self.state.local_entry_state_ref().unwrap();
+                                        let target_co: &Vec<usize> = &self.state.layout_selected_coordinate;
+                                        let eid: &i64 = &state.active_entry_id.unwrap();
+                                        let layout: Layout = state.get_entry_layout_ref(eid).unwrap().clone();
+                                        let original_name: String = layout.get_layout_at_ref(target_co).unwrap().label.clone();
+                                        self.dialogs.push(
+                                            TextInputDialog::new( "Rename Layout", original_name.as_str()).on_submit(
+                                                // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
+                                                Box::new(|parent_state, state| {
+                                                    let _parent_state = parent_state.unwrap().downcast_mut::<GlyphViewerState>().unwrap();
+                                                    let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
+
+
+                                                    let target_coord = _parent_state.layout_selected_coordinate.clone();
+                                                    let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
+
+                                                    let eid : i64 = local_entry_state.active_entry_id.unwrap();
+                                                    let lid: i64 = local_entry_state.get_active_entry_lid().unwrap();
+                                                    let mut new_layout = local_entry_state.get_entry_layout_ref(&eid).unwrap().clone();
+                                                    new_layout.get_layout_at_mut(&target_coord).unwrap().label = _state.text_input.clone();
+
+
+                                                    local_entry_state.update_layout_by_lid(&lid, new_layout)?;
+
+                                                    Ok(vec![])
+                                                })
+                                            ).into()
                                         );
+                                        return Ok(Vec::new());
                                     }
                                     _ => {}
                                 }

@@ -332,13 +332,27 @@ impl Drawable for GlyphViewer {
                 draw_reordering_view(self, frame, content_area);
             }
         }
+
+
+        /*
+            Dialog
+         */
+        if !self.dialogs.is_empty() {
+            for (i, dialog) in self.dialogs.iter().enumerate() {
+                if i == self.dialogs.len() - 1 {
+                    dialog.render(frame, area, DrawFlag::FOCUSED);
+                } else {
+                    dialog.render(frame, area, DrawFlag::DEFAULT);
+                }
+            }
+        }
     }
 }
 
 fn draw_layout_view(me: &GlyphViewer,  layout_area: Rect,buffer: &mut Buffer, draw_flag: DrawFlag) {
     let entry_state: Ref<LocalEntryState> = me.state.local_entry_state_ref().unwrap();
-    let entry_layout: &model::Layout = &entry_state.get_active_entry_ref().unwrap().layout.1;
-    evaluate_layout(layout_area, buffer, entry_layout, 1, me.state.layout_hovered_index , &mut me.state.layout_selected_coordinate.clone(), 0);
+    let entry_layout: &model::Layout = &entry_state.get_local_active_entry_ref().unwrap().layout.1;
+    evaluate_layout(layout_area, buffer, entry_layout, 0, me.state.layout_hovered_index , &mut me.state.layout_selected_coordinate.clone(), 0);
 
 
 }
@@ -349,10 +363,16 @@ fn evaluate_layout(area: Rect, buffer: &mut Buffer, layout: &model::Layout, dept
     }
 
     let mut block: Block = Block::bordered().title(layout.label.as_str()).title_bottom(target_section_text);
-    if depth == focused_coordinate.len() as u16 && focused_coordinate.last().unwrap().clone() == at {
-        block = block.border_type(BorderType::Thick);
+    if depth == focused_coordinate.len() as u16 {
+        if let Some(focused_index) = focused_coordinate.last() {
+            if *focused_index == at {
+                block = block.border_type(BorderType::Thick);
+            }
+        } else if depth == 0 {
+            block = block.border_type(BorderType::Thick);
+        }
     } else if let Some(hovered_index) = hovered_index {
-        if depth - 1 == focused_coordinate.len() as u16 && at == hovered_index  {
+        if depth == focused_coordinate.len() as u16 + 1 && at == hovered_index  {
             block = block.border_type(BorderType::Double);
         }
     }
