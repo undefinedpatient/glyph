@@ -9,9 +9,15 @@ use rusqlite::Connection;
 use crate::model::{Entry, EntryRepository, LocalEntryState};
 
 pub fn cycle_add(value:u16, offset: u16, max: u16) -> u16 {
+    if max == 0 {
+        return 0;
+    }
     return ((value as u32 + offset as u32)%max as u32) as u16;
 }
 pub fn cycle_sub(value:u16, offset: u16, max: u16) -> u16 {
+    if max == 0 {
+        return 0;
+    }
     let offset = offset % max;
     return if offset > value {
         max - (offset - value)

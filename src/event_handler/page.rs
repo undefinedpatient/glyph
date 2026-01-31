@@ -354,7 +354,7 @@ impl Interactable for GlyphNavigationBar {
                                     let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                     let selected_id: i64 = self.state.to_entry_state_ref().unwrap().ordered_entries[index].0;
                                     let mut local_entry_state = self.state.to_entry_state_mut().unwrap();
-                                    local_entry_state.set_active_entry_id(selected_id)
+                                    local_entry_state.toggle_active_entry_id(selected_id)
                                 }
                                 return Ok(Vec::new());
 
@@ -376,8 +376,6 @@ impl Interactable for GlyphNavigationBar {
                                                         let id = local_entry_state.create_new_entry(_state.text_input.as_str())?;
 
                                                         // Reconstruct the list of entry display
-                                                        local_entry_state.reconstruct_entry_order();
-
                                                         Ok(vec![])
                                                     })
                                                 ).into()
@@ -401,13 +399,7 @@ impl Interactable for GlyphNavigationBar {
                                                     Box::new(|parent_state, state| {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                                         let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
-                                                        let id = local_entry_state.active_entry_id.unwrap();
-
-                                                        let ref_connection: &Connection = &local_entry_state.connection;
-                                                        EntryRepository::delete_by_id(ref_connection, &id)?;
-                                                        local_entry_state.entries.remove(&id);
-                                                        local_entry_state.active_entry_id = None;
-                                                        local_entry_state.reconstruct_entry_order();
+                                                        local_entry_state.delete_active_entry()?;
                                                         Ok(vec![])
                                                     })
                                                 ).into()
@@ -452,9 +444,9 @@ impl Interactable for GlyphViewer {
                                         self.state.mode = GlyphMode::LAYOUT;
                                     }
                                     GlyphMode::LAYOUT => {
-                                        self.state.mode = GlyphMode::REORDERING;
+                                        self.state.mode = GlyphMode::EDIT;
                                     }
-                                    GlyphMode::REORDERING => {
+                                    GlyphMode::EDIT => {
                                         self.state.mode = GlyphMode::READ;
                                     }
                                 }
@@ -473,7 +465,7 @@ impl Interactable for GlyphViewer {
                         GlyphMode::LAYOUT => {
 
                         }
-                        GlyphMode::REORDERING => {
+                        GlyphMode::EDIT => {
                             if let KeyCode::Tab = key.code {
                                 self.cycle_section_hover(1);
                                 return Ok(Vec::new());
@@ -495,11 +487,14 @@ impl Interactable for GlyphViewer {
                                     'A' => {
                                         let state: &mut GlyphPageState = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                         let mut entry_state: RefMut<LocalEntryState> = state.local_entry_state_mut().unwrap();
-                                        let active_entry_id: i64 = entry_state.active_entry_id.unwrap().clone();
-                                        let new_section: Section = Section::new("untitled", "Write Something");
-                                        let sid: i64 = SectionRepository::create_section(&entry_state.connection, &active_entry_id, &new_section)?;
-                                        let active_entry = entry_state.get_active_entry_mut().unwrap();
-                                        active_entry.sections.insert(sid, new_section);
+                                        entry_state.create_section_to_active_entry(
+                                            "Hello Glyph",
+                                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n
+                                            bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n
+                                            cccccccccccccccccccccccccccccccccccccccccccccccc\n
+                                            ddddddddddddddddddddddddddddddd"
+                                        )?;
+                                        return Ok(Vec::new());
                                     }
                                     ' ' => {
                                         if self.state.reordering_selected_index.is_some() {

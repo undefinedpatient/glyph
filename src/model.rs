@@ -33,13 +33,14 @@ impl LocalEntryState {
     /*
         Create New Entry, return Entry ID
      */
-    pub fn create_new_entry(&mut self, entry_name: &str) -> Result<(i64)> {
+    pub fn create_new_entry(&mut self, entry_name: &str) -> Result<i64> {
         let entry_id: i64 = EntryRepository::create_entry(&self.connection, entry_name)?;
         let result = EntryRepository::read_by_id(&self.connection, &entry_id);
         match result {
             Ok(succ) => {
                 if let Some((id, entry)) = succ {
                     self.entries.insert(id, entry);
+                    self.reconstruct_entry_order();
                     Ok(id)
                 } else {
                     Err(Report::msg("Entry Created, but could not be found"))
@@ -48,8 +49,45 @@ impl LocalEntryState {
             Err(e) => Err(e)
         }
     }
-    pub fn set_active_entry_id(&mut self, id: i64) {
-        self.active_entry_id = Some(id);
+    /*
+        Delete Entry by ID
+     */
+    pub fn delete_active_entry(&mut self) -> Result<usize> {
+        if let Some(id) = self.active_entry_id {
+            let result = EntryRepository::delete_by_id(&self.connection, &id);
+            self.entries.remove(&id);
+            self.reconstruct_entry_order();
+            self.active_entry_id = None;
+            result
+        } else {
+            Err(Report::msg("No active entry found"))
+        }
+    }
+
+    /*
+        Create Section to active_entry
+     */
+    pub fn create_section_to_active_entry(&mut self, title: &str, content: &str) -> Result<(i64)> {
+        if let Some(id) = self.active_entry_id {
+            let new_section: Section = Section::new(title, content, self.get_max_position(id)+1);
+            let sid: i64 = SectionRepository::create_section(&self.connection, &id, &new_section)?;
+            let active_entry = self.entries.get_mut(&id).unwrap();
+            active_entry.sections.insert(sid, new_section);
+            Ok(sid)
+        } else {
+            Err(Report::msg("No active entry found"))
+        }
+    }
+    pub fn toggle_active_entry_id(&mut self, id: i64) {
+        if let Some(oid) = self.active_entry_id {
+            if oid == id {
+                self.active_entry_id = None;
+            } else {
+                self.active_entry_id = Some(id);
+            }
+        } else {
+            self.active_entry_id = Some(id);
+        }
     }
     pub fn get_active_entry_ref(&self) -> Option<&Entry> {
         if let Some(active_entry_id) = self.active_entry_id {
@@ -63,12 +101,22 @@ impl LocalEntryState {
         }
         None
     }
-    pub fn reconstruct_entry_order(&mut self) -> () {
+    fn reconstruct_entry_order(&mut self) -> () {
         self.ordered_entries = self.entries.iter().map(
             |(id,entry)| {
                 (id.clone(), entry.entry_name.clone())
             }
         ).collect();
+    }
+    fn get_max_position(&self, eid: i64) -> i64 {
+        let sections = &self.entries.get(&eid).unwrap().sections;
+        let mut max: i64 = 0;
+        for (sid, section) in sections {
+            if section.position > max {
+                max = section.position;
+            }
+        }
+        max
     }
 }
 
@@ -91,9 +139,9 @@ pub struct Section {
 }
 
 impl Section {
-    pub fn new(title: &str, default: &str) -> Self {
+    pub fn new(title: &str, default: &str, position: i64) -> Self {
         Self {
-            position: 0,
+            position: position,
             title: title.to_string(),
             content: default.to_string(),
         }
@@ -167,7 +215,9 @@ impl GlyphRepository {
             entry_id    INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
             position    INTEGER NOT NULL,
             title       TEXT NOT NULL DEFAULT '',
-            content     TEXT NOT NULL DEFAULT ''
+            content     TEXT NOT NULL DEFAULT '',
+
+            UNIQUE (entry_id, position)
         )
         "
             , ())?;

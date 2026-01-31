@@ -229,7 +229,7 @@ impl Drawable for GlyphNavigationBar {
                 (id.clone(), entry.entry_name.clone())
             }
         ).collect();
-        let mut list_items: Vec<Line> = plain_entries 
+        let mut list_items: Vec<Line> = plain_entries
             .iter()
             .enumerate()
             .map(|(i, (id, name)): (usize, &(i64, String))| {
@@ -285,8 +285,8 @@ impl Drawable for GlyphViewer {
             GlyphMode::LAYOUT => {
                 widget_frame = widget_frame.title_top(Line::from("(LAYOUT)").right_aligned());
             }
-            GlyphMode::REORDERING => {
-                widget_frame = widget_frame.title_top(Line::from("(REORDERING)").right_aligned());
+            GlyphMode::EDIT => {
+                widget_frame = widget_frame.title_top(Line::from("(EDIT)").right_aligned());
             }
         }
         let inner_area = widget_frame.inner(area);
@@ -321,9 +321,9 @@ impl Drawable for GlyphViewer {
                 // scroll_view.render(inner_area, frame.buffer_mut(), &mut self.state.scroll_state.borrow_mut());
             }
             /*
-               REORDERING 
+               REORDERING
              */
-            GlyphMode::REORDERING => {
+            GlyphMode::EDIT => {
                 draw_reordering_view(self, frame, content_area);
             }
         }
