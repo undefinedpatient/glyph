@@ -12,6 +12,7 @@ use ratatui::text::{Line, Text};
 use ratatui::widgets::{Block, BorderType, Paragraph, Widget};
 use ratatui::Frame;
 use std::cell::Ref;
+use std::collections::HashMap;
 use std::rc::Rc;
 use tui_big_text::{BigText, PixelSize};
 
@@ -314,6 +315,7 @@ impl Drawable for GlyphViewer {
                 READ
              */
             GlyphMode::READ => {
+                draw_read_view(self, inner_areas[1], frame.buffer_mut(), draw_flag);
             }
             /*
                 LAYOUT
@@ -352,16 +354,32 @@ impl Drawable for GlyphViewer {
 fn draw_layout_view(me: &GlyphViewer,  layout_area: Rect,buffer: &mut Buffer, draw_flag: DrawFlag) {
     let entry_state: Ref<LocalEntryState> = me.state.local_entry_state_ref().unwrap();
     let entry_layout: &model::Layout = &entry_state.get_local_active_entry_ref().unwrap().layout.1;
-    evaluate_layout(layout_area, buffer, entry_layout, 0, me.state.layout_hovered_index , &mut me.state.layout_selected_coordinate.clone(), 0);
-
+    evaluate_layout(me, layout_area, buffer, entry_layout, 0,0);
+}
+fn draw_read_view(me: &GlyphViewer,  layout_area: Rect,buffer: &mut Buffer, draw_flag: DrawFlag) {
+    let entry_state: Ref<LocalEntryState> = me.state.local_entry_state_ref().unwrap();
+    let entry_layout: &model::Layout = &entry_state.get_local_active_entry_ref().unwrap().layout.1;
+    let areas: Vec<(u16, Rect)> = evaluate_read_areas(me, layout_area, entry_layout, 0,0);
+    let ref_sections: &HashMap<i64, Section> = &entry_state.get_local_active_entry_ref().unwrap().sections;
+    for (sid, section) in ref_sections {
+        if let Some((position, area)) = areas.iter().find(
+            |(position, area)|{
+                *position as i64 == section.position
+            }
+        ) {
+            Paragraph::new(section.content.clone()).render(*area, buffer);
+        }
+    }
 
 }
-fn evaluate_layout(area: Rect, buffer: &mut Buffer, layout: &model::Layout, depth: u16, hovered_index: Option<usize>, focused_coordinate: &mut Vec<usize>, at: usize) {
+
+fn evaluate_read_areas(me: &GlyphViewer, area: Rect, layout: &model::Layout, depth: u16,  at: usize) -> Vec<(u16, Rect)> {
     let mut target_section_text: String = "None".to_string();
     if let Some(position_target) = layout.section_index {
         target_section_text = position_target.to_string();
     }
 
+    let focused_coordinate = me.state.layout_selected_coordinate.clone();
     let mut block: Block = Block::bordered().title(layout.label.as_str()).title_bottom(target_section_text);
     if depth == focused_coordinate.len() as u16 {
         if let Some(focused_index) = focused_coordinate.last() {
@@ -371,10 +389,79 @@ fn evaluate_layout(area: Rect, buffer: &mut Buffer, layout: &model::Layout, dept
         } else if depth == 0 {
             block = block.border_type(BorderType::Thick);
         }
-    } else if let Some(hovered_index) = hovered_index {
+    } else if let Some(hovered_index) = me.state.layout_hovered_index {
         if depth == focused_coordinate.len() as u16 + 1 && at == hovered_index  {
             block = block.border_type(BorderType::Double);
         }
+    }
+
+    let recursive_area: Rect = block.inner(area);
+
+
+    // Process the child
+    let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
+        |(index, sub)| {
+            if (sub.details.flex != 0) {
+                Constraint::Fill(sub.details.flex)
+            } else {
+                Constraint::Length(sub.details.length)
+            }
+        }
+    ).collect();
+    let sub_areas =
+        match layout.details.orientation {
+            LayoutOrientation::Vertical => {
+                Layout::vertical(constraints).split(recursive_area)
+            }
+            LayoutOrientation::Horizontal => {
+                Layout::horizontal(constraints).split(recursive_area)
+            }
+        };
+
+    let mut areas: Vec<(u16, Rect)> = vec![];
+    if let Some(section_index) = layout.section_index {
+        if layout.sub_layouts.is_empty() {
+            areas.push((section_index, recursive_area));
+        }
+    }
+    for (i, sub_layout) in layout.sub_layouts.iter().enumerate() {
+        areas = [areas,evaluate_read_areas(
+            me,
+            sub_areas[i],
+            sub_layout,
+            depth + 1,
+            i,
+        )].concat()
+    }
+    areas
+
+}
+fn evaluate_layout(me: &GlyphViewer, area: Rect, buffer: &mut Buffer, layout: &model::Layout, depth: u16,  at: usize) -> Vec<(u16, Rect)>{
+    let mut target_section_text: String = "None".to_string();
+    if let Some(position_target) = layout.section_index {
+        target_section_text = position_target.to_string();
+    }
+
+    let focused_coordinate = me.state.layout_selected_coordinate.clone();
+    let mut block: Block = Block::bordered().title(layout.label.as_str());
+    if depth == focused_coordinate.len() as u16 {
+        if let Some(focused_index) = focused_coordinate.last() {
+            if *focused_index == at {
+                block = block.border_type(BorderType::Thick);
+            }
+        } else if depth == 0 {
+            block = block.border_type(BorderType::Thick);
+        }
+    } else if let Some(hovered_index) = me.state.layout_hovered_index {
+        if depth == focused_coordinate.len() as u16 + 1 && at == hovered_index  {
+            block = block.border_type(BorderType::Double);
+        }
+    }
+    if !layout.sub_layouts.is_empty() {
+        block = block.title_bottom(Line::from(target_section_text).dim());
+    } else {
+        block = block.title_bottom(Line::from(target_section_text));
+
     }
 
     let recursive_area: Rect = block.inner(area);
@@ -400,18 +487,25 @@ fn evaluate_layout(area: Rect, buffer: &mut Buffer, layout: &model::Layout, dept
                 Layout::horizontal(constraints).split(recursive_area)
             }
         };
+
+    let mut areas: Vec<(u16, Rect)> = vec![];
+    if let Some(section_index) = layout.section_index {
+        areas.push((section_index, recursive_area));
+    }
     for (i, sub_layout) in layout.sub_layouts.iter().enumerate() {
-        evaluate_layout(
+        areas = [areas, evaluate_layout(
+            me,
             sub_areas[i],
             buffer,
             sub_layout,
             depth + 1,
-            hovered_index,
-            focused_coordinate,
-            i
-        )
+            i,
+        )].concat()
     }
+    areas
 }
+
+
 fn draw_reordering_view(me: &GlyphViewer, frame: &mut Frame, section_area: Rect) {
     let entry_state:Ref<LocalEntryState> = me.state.entry_state.borrow();
     let active_entry_id: i64 = entry_state.active_entry_id.unwrap();

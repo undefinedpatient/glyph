@@ -454,7 +454,7 @@ impl Interactable for GlyphViewer {
                 KeyEventKind::Press => {
                     // Mode Wide Key
                     if let KeyCode::Esc = key.code {
-                        if self.state.layout_selected_coordinate.is_empty() {
+                        if self.state.layout_selected_coordinate.is_empty() && self.state.edit_selected_index.is_none() {
                             self.set_focus(false);
                             return Ok(Vec::new());
                         }
@@ -654,7 +654,9 @@ impl Interactable for GlyphViewer {
                                         self.state.edit_selected_index = Some(hovered_index);
                                     }
                                 }
-
+                            }
+                            if let KeyCode::Esc = key.code {
+                                self.state.edit_selected_index = None;
                             }
                             if let KeyCode::Char(c) = key.code {
                                 match c {
