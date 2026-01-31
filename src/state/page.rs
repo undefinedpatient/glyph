@@ -1,11 +1,8 @@
 use crate::model::{Entry, LocalEntryState};
-use rusqlite::Connection;
 use std::cell::{Ref, RefCell, RefMut};
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 use tui_scrollview::ScrollViewState;
-use crate::state::widget::EditorState;
 
 pub struct EntrancePageState {
     pub is_focused: bool,
@@ -56,10 +53,11 @@ pub struct GlyphViewerState {
     pub scroll_state: RefCell<ScrollViewState>,
 
 
-    pub reordering_hovered_index: Option<usize>,
-    pub reordering_selected_index: Option<usize>,
+    pub edit_hovered_index: Option<usize>,
+    pub edit_selected_index: Option<usize>,
 
-    pub layout_hover_index: Vec<usize>,
+    pub layout_hovered_index: Option<usize>,
+    pub layout_selected_coordinate: Vec<usize>,
 
     // Shared Data
     pub entry_state: Rc<RefCell<LocalEntryState>>,
@@ -103,7 +101,7 @@ impl GlyphPageState {
     }
 }
 impl GlyphNavigationBarState {
-    pub(crate) fn to_entry_state_ref(&'_  self) -> Option<Ref<'_, LocalEntryState>> {
+    pub(crate) fn local_entry_state_ref(&'_  self) -> Option<Ref<'_, LocalEntryState>> {
         Ref::filter_map(
             self.entry_state.try_borrow().ok()?,
             |state| {
@@ -111,7 +109,7 @@ impl GlyphNavigationBarState {
             }
         ).ok()
     }
-    pub(crate) fn to_entry_state_mut(&'_ mut self) -> Option<RefMut<'_, LocalEntryState>> {
+    pub(crate) fn local_entry_state_mut(&'_ mut self) -> Option<RefMut<'_, LocalEntryState>> {
         RefMut::filter_map(
             self.entry_state.try_borrow_mut().ok()?,
             |state| {
@@ -121,7 +119,7 @@ impl GlyphNavigationBarState {
     }
 }
 impl GlyphViewerState {
-    pub(crate) fn to_entry_state_ref(&'_  self) -> Option<Ref<'_, LocalEntryState>> {
+    pub(crate) fn local_entry_state_ref(&'_  self) -> Option<Ref<'_, LocalEntryState>> {
         Ref::filter_map(
             self.entry_state.try_borrow().ok()?,
             |state| {
@@ -129,7 +127,7 @@ impl GlyphViewerState {
             }
         ).ok()
     }
-    pub(crate) fn to_entry_state_mut(&'_ mut self) -> Option<RefMut<'_, LocalEntryState>> {
+    pub(crate) fn local_entry_state_mut(&'_ mut self) -> Option<RefMut<'_, LocalEntryState>> {
         RefMut::filter_map(
             self.entry_state.try_borrow_mut().ok()?,
             |state| {

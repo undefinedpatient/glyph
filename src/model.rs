@@ -1,10 +1,9 @@
-use std::collections::HashMap;
 use color_eyre::eyre::Result;
-use rusqlite::{params, Connection, Row, Rows, ToSql};
-use std::path::PathBuf;
 use color_eyre::Report;
-use rusqlite::types::{FromSql, FromSqlResult, ToSqlOutput, ValueRef};
+use rusqlite::{params, Connection, Row, Rows};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 pub struct LocalEntryState {
     pub entries: HashMap<i64, Entry>,
@@ -101,6 +100,40 @@ impl LocalEntryState {
         }
         None
     }
+
+    pub fn get_layout_at_mut(&mut self, eid: i64, coordinates: &Vec<usize>) -> Option<&mut Layout> {
+        let mut coor = coordinates.clone();
+        let root_entry = self.entries.get_mut(&eid).unwrap();
+        coor.reverse();
+        if coor.len() == 0 {
+            return Some(&mut root_entry.layout.1);
+        }
+        let mut temp_layout: &mut Layout = &mut root_entry.layout.1;
+
+        while let Some(index) =  coor.pop() {
+            temp_layout = &mut (*temp_layout).sub_layouts[index];
+        }
+        Some(temp_layout)
+    }
+
+    pub fn get_layout_at_ref(&self, eid: i64, coordinates: &Vec<usize>) -> Option<&Layout> {
+        let mut coor = coordinates.clone();
+        let root_entry = self.entries.get(&eid).unwrap();
+        coor.reverse();
+        if coor.len() == 0 {
+            return Some(&root_entry.layout.1);
+        }
+        let mut temp_layout: &Layout = &root_entry.layout.1;
+
+        while let Some(index) =  coor.pop() {
+            temp_layout = &(*temp_layout).sub_layouts[index];
+        }
+        Some(temp_layout)
+    }
+    pub fn get_num_sublayout_at(&self, eid: i64, coordinates: &Vec<usize>) -> usize {
+        self.get_layout_at_ref(eid, coordinates).unwrap().sub_layouts.len()
+    }
+
     fn reconstruct_entry_order(&mut self) -> () {
         self.ordered_entries = self.entries.iter().map(
             |(id,entry)| {
@@ -118,6 +151,8 @@ impl LocalEntryState {
         }
         max
     }
+
+
 }
 
 pub struct Glyph {

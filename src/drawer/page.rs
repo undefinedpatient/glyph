@@ -1,20 +1,19 @@
-use std::cell::Ref;
 use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphNavigationBar, GlyphPage, GlyphViewer, OpenGlyphPage};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
+use crate::model;
+use crate::model::{LayoutOrientation, LocalEntryState, Section};
+use crate::state::page::GlyphMode;
 use color_eyre::owo_colors::OwoColorize;
+use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect, Size};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Text};
-use ratatui::widgets::{Block, BorderType, Borders, Paragraph, StatefulWidget, Widget, Wrap};
+use ratatui::widgets::{Block, BorderType, Paragraph, Widget};
 use ratatui::Frame;
+use std::cell::Ref;
 use std::rc::Rc;
-use ratatui::buffer::Buffer;
 use tui_big_text::{BigText, PixelSize};
-use tui_scrollview::{ScrollView, ScrollbarVisibility};
-use crate::model;
-use crate::model::{Entry, LayoutOrientation, LocalEntryState, Section};
-use crate::state::page::{GlyphMode, GlyphViewerState};
 
 macro_rules! block {
     ($title: expr, $flag: expr) => {
@@ -331,7 +330,7 @@ impl Drawable for GlyphViewer {
 }
 
 fn draw_layout_view(me: &GlyphViewer,  layout_area: Rect,buffer: &mut Buffer, draw_flag: DrawFlag) {
-    let entry_state: Ref<LocalEntryState> = me.state.to_entry_state_ref().unwrap();
+    let entry_state: Ref<LocalEntryState> = me.state.local_entry_state_ref().unwrap();
     let entry_layout: &model::Layout = &entry_state.get_active_entry_ref().unwrap().layout.1;
     evaluate_layout(layout_area, buffer, entry_layout);
 
@@ -391,10 +390,16 @@ fn draw_reordering_view(me: &GlyphViewer, frame: &mut Frame, section_area: Rect)
             let mut section_dimension: (u32, u32) = (Text::width(&text) as u32 + 2, Text::height(&text) as u32 + 3);
 
             let mut paragraph_frame: Block = Block::bordered();
-            if let Some(index) = me.state.reordering_hovered_index {
+            if let Some(index) = me.state.edit_hovered_index {
                 if index == i {
                     paragraph_frame = paragraph_frame.border_type(BorderType::Double)
                 }
+            }
+            if let Some(index) = me.state.edit_selected_index {
+                if index == i {
+                    paragraph_frame = paragraph_frame.border_type(BorderType::Thick)
+                }
+
             }
             let paragraph = Paragraph::new(text)
                 .block(paragraph_frame.title(value.title.clone()).title_bottom(value.position.to_string()));

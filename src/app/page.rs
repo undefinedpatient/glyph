@@ -3,16 +3,15 @@ use crate::app::widget::{Button, DirectoryList};
 use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::AppCommand;
 use crate::app::{Component, Container};
-use crate::model::{Entry, EntryRepository, GlyphRepository, LocalEntryState, Section};
+use crate::model::{GlyphRepository, LocalEntryState};
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphMode, GlyphNavigationBarState, GlyphPageState, GlyphViewerState, OpenGlyphPageState};
-use crate::state::widget::{DirectoryListState, EditorState};
+use crate::state::widget::DirectoryListState;
 use crate::state::AppState;
-use crate::utils::{cycle_offset};
-use rusqlite::Connection;
-use std::cell::{Ref, RefCell, RefMut};
-use std::collections::HashMap;
-use std::rc::Rc;
+use crate::utils::cycle_offset;
 use rusqlite::fallible_iterator::FallibleIterator;
+use rusqlite::Connection;
+use std::cell::RefCell;
+use std::rc::Rc;
 use tui_scrollview::ScrollViewState;
 
 pub struct EntrancePage {
@@ -308,11 +307,12 @@ impl GlyphViewer {
             state: GlyphViewerState {
                 is_focused: false,
 
-                reordering_hovered_index: None,
-                reordering_selected_index: None,
+                edit_hovered_index: None,
+                edit_selected_index: None,
 
                 scroll_state: RefCell::new(ScrollViewState::new()),
-                layout_hover_index: Vec::new(),
+                layout_hovered_index: None,
+                layout_selected_coordinate: Vec::new(),
                 mode: GlyphMode::READ,
                 entry_state
             }
@@ -320,10 +320,21 @@ impl GlyphViewer {
     }
     pub(crate) fn cycle_section_hover(&mut self, offset: i16) -> () {
         let len = (&self.state.active_entry_ref().unwrap()).sections.len() as u16;
-        if let Some(hover_index) = self.state.reordering_hovered_index {
-            self.state.reordering_hovered_index = Some(cycle_offset(hover_index as u16, offset, len) as usize);
+        if let Some(hover_index) = self.state.edit_hovered_index {
+            self.state.edit_hovered_index = Some(cycle_offset(hover_index as u16, offset, len) as usize);
         } else {
-            self.state.reordering_hovered_index = Some(0);
+            self.state.edit_hovered_index = Some(0);
+        }
+    }
+    pub(crate) fn cycle_layout_hover(&mut self, offset: i16) -> () {
+        let select_coordinate: &mut Vec<usize> = &mut self.state.layout_selected_coordinate;
+        let id = self.state.local_entry_state_ref().unwrap().active_entry_id.unwrap();
+        // When no hover index exist at that depth yet
+        let len = self.state.local_entry_state_ref().unwrap().get_num_sublayout_at(id, &self.state.layout_selected_coordinate);
+        if let Some(hover_index) = self.state.layout_hovered_index{
+            self.state.edit_hovered_index = Some(cycle_offset(hover_index as u16, offset, len as u16) as usize);
+        } else {
+            self.state.edit_hovered_index = Some(0);
         }
     }
 }

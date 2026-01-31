@@ -1,7 +1,7 @@
 use crate::app::dialog::{ConfirmDialog, TextInputDialog};
+use crate::app::page::EntrancePage;
 use crate::app::page::{CreateGlyphPage, GlyphNavigationBar, GlyphPage, GlyphViewer, OpenGlyphPage};
 use crate::app::popup::ConfirmPopup;
-use crate::app::page::EntrancePage;
 
 use crate::app::AppCommand::*;
 use crate::app::Command::{self, *};
@@ -9,17 +9,14 @@ use crate::app::GlyphCommand::*;
 use crate::app::PageCommand::*;
 
 use crate::event_handler::{Focusable, Interactable};
-use crate::model::{Entry, EntryRepository, GlyphRepository, LocalEntryState, Section, SectionRepository};
+use crate::model::{GlyphRepository, LocalEntryState};
 use crate::state::dialog::TextInputDialogState;
 use crate::state::page::{CreateGlyphPageState, GlyphMode, GlyphPageState};
 use color_eyre::eyre::Result;
-use color_eyre::Report;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use std::any::Any;
-use std::cell::{Ref, RefMut};
-use ratatui::prelude::Line;
-use rusqlite::Connection;
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use rusqlite::fallible_iterator::FallibleIterator;
+use std::any::Any;
+use std::cell::RefMut;
 
 impl Interactable for EntrancePage {
     fn handle(
@@ -323,7 +320,6 @@ impl Interactable for GlyphNavigationBar {
         } else {
             match key.kind {
                 KeyEventKind::Press => {
-
                     if let KeyCode::Tab = key.code {
                         self.next_entry();
                         return Ok(Vec::new());
@@ -352,8 +348,8 @@ impl Interactable for GlyphNavigationBar {
                                 } else {
                                     let index: usize = self.state.hovered_index.unwrap();
                                     let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                    let selected_id: i64 = self.state.to_entry_state_ref().unwrap().ordered_entries[index].0;
-                                    let mut local_entry_state = self.state.to_entry_state_mut().unwrap();
+                                    let selected_id: i64 = self.state.local_entry_state_ref().unwrap().ordered_entries[index].0;
+                                    let mut local_entry_state = self.state.local_entry_state_mut().unwrap();
                                     local_entry_state.toggle_active_entry_id(selected_id)
                                 }
                                 return Ok(Vec::new());
@@ -364,10 +360,7 @@ impl Interactable for GlyphNavigationBar {
                                     vec![
                                         PageCommand(
                                             PushDialog(
-                                                TextInputDialog::new(
-                                                    "Entry Name",
-                                                    "untitled",
-                                                ).on_submit(
+                                                TextInputDialog::new( "Entry Name", "untitled").on_submit(
                                                     // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
                                                     Box::new(|parent_state, state| {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
@@ -392,9 +385,7 @@ impl Interactable for GlyphNavigationBar {
                                     vec![
                                         PageCommand(
                                             PushDialog(
-                                                ConfirmDialog::new(
-                                                    "Delete Selected Entry?",
-                                                ).on_submit(
+                                                ConfirmDialog::new( "Delete Selected Entry?", ).on_submit(
                                                     // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
                                                     Box::new(|parent_state, state| {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
@@ -463,7 +454,14 @@ impl Interactable for GlyphViewer {
 
                         }
                         GlyphMode::LAYOUT => {
-
+                            if let KeyCode::Tab = key.code {
+                                self.cycle_layout_hover(1);
+                                return Ok(Vec::new());
+                            }
+                            if let KeyCode::BackTab = key.code {
+                                self.cycle_layout_hover(-1);
+                                return Ok(Vec::new());
+                            }
                         }
                         GlyphMode::EDIT => {
                             if let KeyCode::Tab = key.code {
@@ -473,6 +471,20 @@ impl Interactable for GlyphViewer {
                             if let KeyCode::BackTab = key.code {
                                 self.cycle_section_hover(-1);
                                 return Ok(Vec::new());
+                            }
+                            if let KeyCode::Enter = key.code {
+                                if let Some(hovered_index) = self.state.edit_hovered_index {
+                                    if self.state.edit_selected_index.is_some() {
+                                        if self.state.edit_selected_index.unwrap() == hovered_index {
+                                            self.state.edit_selected_index = None;
+                                        } else {
+                                            self.state.edit_selected_index = Some(hovered_index);
+                                        }
+                                    } else {
+                                        self.state.edit_selected_index = Some(hovered_index);
+                                    }
+                                }
+
                             }
                             if let KeyCode::Char(c) = key.code {
                                 match c {
@@ -496,14 +508,6 @@ impl Interactable for GlyphViewer {
                                         )?;
                                         return Ok(Vec::new());
                                     }
-                                    ' ' => {
-                                        if self.state.reordering_selected_index.is_some() {
-                                            self.state.reordering_selected_index = None;
-                                        } else if let Some(hovered_index) = self.state.reordering_hovered_index {
-                                            self.state.reordering_selected_index = Some(hovered_index);
-                                        }
-                                    }
-
                                     _ => {
 
                                     }

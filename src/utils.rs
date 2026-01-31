@@ -1,12 +1,7 @@
-use std::cell::{Ref, RefCell, RefMut};
-use std::collections::HashMap;
+use color_eyre::eyre::Result;
 use std::fs;
 use std::fs::DirEntry;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
-use color_eyre::eyre::Result;
-use rusqlite::Connection;
-use crate::model::{Entry, EntryRepository, LocalEntryState};
 
 pub fn cycle_add(value:u16, offset: u16, max: u16) -> u16 {
     if max == 0 {
