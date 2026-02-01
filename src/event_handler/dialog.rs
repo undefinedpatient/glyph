@@ -1,4 +1,4 @@
-use crate::app::dialog::{ConfirmDialog, EditLayoutDialog, NumberInputDialog, TextInputDialog};
+use crate::app::dialog::{ConfirmDialog, EditGlobalLayoutSizeDialog, NumberInputDialog, TextInputDialog};
 use crate::app::{Command, PageCommand};
 use crate::event_handler::{Focusable, Interactable};
 use color_eyre::Report;
@@ -185,7 +185,7 @@ impl Interactable for NumberInputDialog {
 /*
     Edit Layout Dialog
  */
-impl Interactable for EditLayoutDialog {
+impl Interactable for EditGlobalLayoutSizeDialog {
     fn handle(
         &mut self,
         key: &KeyEvent,

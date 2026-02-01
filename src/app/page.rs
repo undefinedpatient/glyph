@@ -1,10 +1,10 @@
 use crate::app::popup::ConfirmPopup;
-use crate::app::widget::{Button, DirectoryList};
+use crate::app::widget::{Button, DirectoryList, TextField};
 use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::AppCommand;
 use crate::app::{Component, Container};
-use crate::model::{Entry, GlyphRepository, LocalEntryState};
-use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphMode, GlyphNavigationBarState, GlyphPageState, GlyphViewerState, OpenGlyphPageState};
+use crate::model::{Entry, Glyph, GlyphRepository, LocalEntryState, Section};
+use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphEditContentState, GlyphMode, GlyphNavigationBarState, GlyphPageState, GlyphOldViewerState, OpenGlyphPageState, GlyphViewerState, GlyphReadState, GlyphLayoutState, GlyphEditState};
 use crate::state::widget::DirectoryListState;
 use crate::state::AppState;
 use crate::utils::cycle_offset;
@@ -12,6 +12,7 @@ use rusqlite::fallible_iterator::FallibleIterator;
 use rusqlite::Connection;
 use std::cell::RefCell;
 use std::rc::Rc;
+use rusqlite::types::Type::Text;
 use tui_scrollview::ScrollViewState;
 
 pub struct EntrancePage {
@@ -214,7 +215,8 @@ impl GlyphPage {
             dialogs: Vec::new(),
             containers: vec![
                 GlyphNavigationBar::new(entry_state.clone()).into(),
-                GlyphViewer::new(entry_state.clone()).into()
+                GlyphViewer::new(entry_state.clone()).into(),
+                // GlyphOldViewer::new(entry_state.clone()).into()
             ],
             components: Vec::new(),
             state: GlyphPageState {
@@ -294,30 +296,203 @@ impl From<GlyphNavigationBar> for Box<dyn Container> {
 }
 
 /*
-    Glyph Reader
+
+    Glyph Viewers
+
  */
+
+
+
+// Mediator
 pub struct GlyphViewer {
-    pub(crate) dialogs: Vec<Box<dyn Container>>,
-    pub(crate) state: GlyphViewerState
+    pub(crate) state: GlyphViewerState,
+    pub(crate) containers: [Box<dyn Container>; 3],
+}
+pub struct GlyphReadView {
+    pub containers: Vec<Box<dyn Container>>,
+    pub components: Vec<Box<dyn Component>>,
+    pub state: GlyphReadState,
 
 }
+
+pub struct GlyphLayoutView{
+    pub containers: Vec<Box<dyn Container>>,
+    pub components: Vec<Box<dyn Component>>,
+    pub state: GlyphLayoutState,
+
+}
+
+pub struct GlyphEditView {
+    pub containers: Vec<Box<dyn Container>>,
+    pub components: Vec<Box<dyn Component>>,
+    pub state: GlyphEditState,
+}
+
+pub struct GlyphEditContentView {
+    pub containers: Vec<Box<dyn Container>>,
+    pub components: Vec<Box<dyn Component>>,
+    pub state: GlyphEditContentState,
+}
+
 impl GlyphViewer {
+    pub fn new(entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+        let focus_state = Rc::new(RefCell::new(false));
+        Self {
+            containers: [
+                GlyphReadView::new(focus_state.clone(), entry_state.clone()).into(),
+                GlyphReadView::new(focus_state.clone(), entry_state.clone()).into(),
+                GlyphReadView::new(focus_state.clone(), entry_state.clone()).into(),
+            ],
+            state: GlyphViewerState {
+                is_focused: focus_state,
+                mode: GlyphMode::Read,
+                entry_state: entry_state
+            }
+        }
+    }
+}
+
+
+
+impl GlyphReadView {
+    pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+        Self {
+            containers: vec![],
+            components: vec![],
+            state: GlyphReadState {
+                is_focused: focus,
+
+
+                entry_state
+            }
+        }
+    }
+}
+impl GlyphLayoutView {
+    pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+        Self {
+            containers: vec![],
+            components: vec![],
+            state: GlyphLayoutState {
+                is_focused: focus,
+                hovered_index: None,
+                selected_coordinate: Vec::new(),
+
+                entry_state
+            }
+        }
+    }
+}
+impl GlyphEditView {
+    pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+        Self {
+            containers: vec![],
+            components: vec![],
+            state: GlyphEditState {
+                is_focused: focus,
+                hovered_index: None,
+                selected_sid: None,
+
+                entry_state
+            }
+        }
+    }
+}
+impl GlyphEditContentView {
+    pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+        Self {
+            containers: vec![
+                TextField::new("title", String::from("")).into(),
+                TextField::new("Content", String::from("")).into(),
+            ],
+            components: vec![
+                Button::new("Back").into(),
+                Button::new("Confirm").into(),
+            ],
+            state: GlyphEditContentState {
+                is_focused: focus,
+                hovered_index: None,
+                offset: 0,
+                entry_state
+            }
+        }
+    }
+    pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {
+        let max: u16 = (self.containers.len() + self.components.len()) as u16;
+        if let Some(hover_index) = self.state.hovered_index {
+            self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, max) as usize);
+        } else {
+            self.state.hovered_index = Some(0);
+        }
+    }
+}
+impl From<GlyphViewer> for Box<dyn Container> {
+    fn from(container: GlyphViewer) -> Self {
+        Box::new(container)
+    }
+}
+impl From<GlyphReadView> for Box<dyn Container> {
+    fn from(container: GlyphReadView) -> Self {
+        Box::new(container)
+    }
+}
+impl From<GlyphLayoutView> for Box<dyn Container> {
+    fn from(container: GlyphLayoutView) -> Self {
+        Box::new(container)
+    }
+}
+impl From<GlyphEditView> for Box<dyn Container> {
+    fn from(container: GlyphEditView) -> Self {
+        Box::new(container)
+    }
+}
+impl From<GlyphEditContentView> for Box<dyn Container> {
+    fn from(container: GlyphEditContentView) -> Self {
+        Box::new(container)
+    }
+}
+
+
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+ */
+pub struct GlyphOldViewer {
+    pub(crate) dialogs: Vec<Box<dyn Container>>,
+    pub(crate) state: GlyphOldViewerState,
+    pub(crate) mode_views: [Option<Box<dyn Container>>; 4],
+
+}
+impl GlyphOldViewer {
     pub fn new(entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
 
         Self {
             dialogs: Vec::new(),
-            state: GlyphViewerState {
+            state: GlyphOldViewerState {
                 is_focused: false,
 
                 edit_hovered_index: None,
-                edit_selected_index: None,
+                edit_selected_sid: None,
 
                 scroll_state: RefCell::new(ScrollViewState::new()),
                 layout_hovered_index: None,
                 layout_selected_coordinate: Vec::new(),
-                mode: GlyphMode::READ,
+                mode: GlyphMode::Read,
                 entry_state
-            }
+            },
+            mode_views: [const { None }; 4],
         }
     }
     pub(crate) fn cycle_section_hover(&mut self, offset: i16) -> () {
@@ -347,8 +522,12 @@ impl GlyphViewer {
         }
     }
 }
-impl From<GlyphViewer> for Box<dyn Container> {
-    fn from(container: GlyphViewer) -> Self {
-        Box::new(container)
-    }
-}
+// impl From<GlyphOldViewer> for Box<dyn Container> {
+//     fn from(container: GlyphOldViewer) -> Self {
+//         Box::new(container)
+//     }
+// }
+//
+//
+
+

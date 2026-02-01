@@ -15,6 +15,6 @@ pub struct NumberInputDialogState {
 pub struct EditLayoutDialogState{
     pub is_focused: bool,
     pub hovered_index: Option<usize>,
-    pub label_input: String,
-    pub position: i64,
+    pub input_width: u16,
+    pub input_height: u16,
 }

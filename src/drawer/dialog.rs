@@ -1,4 +1,4 @@
-use crate::app::dialog::{ConfirmDialog, EditLayoutDialog, NumberInputDialog, TextInputDialog};
+use crate::app::dialog::{ConfirmDialog, EditGlobalLayoutSizeDialog, NumberInputDialog, TextInputDialog};
 use crate::app::widget::LineButton;
 use crate::app::Convertible;
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
@@ -118,7 +118,7 @@ impl Drawable for NumberInputDialog {
         );
     }
 }
-impl Drawable for EditLayoutDialog {
+impl Drawable for EditGlobalLayoutSizeDialog {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
         let dialog_area: Rect = area.centered(Constraint::Length(42), Constraint::Length(8));
         let dialog_frame = Block::bordered()

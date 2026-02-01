@@ -182,42 +182,42 @@ impl From<NumberInputDialog> for Box<dyn Container> {
 
 
 
-pub struct EditLayoutDialog {
+pub struct EditGlobalLayoutSizeDialog {
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
     pub state: EditLayoutDialogState,
 
     pub on_submit: Option<Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
-impl EditLayoutDialog {
+impl EditGlobalLayoutSizeDialog {
     pub fn new() -> Self {
         Self {
             containers: vec![
-                TextField::new(
-                    "Layout Label",
-                    String::from("Untitled")
+                NumberField::new(
+                    "Width in Pixel",
+                    72
                 )
                     .on_exit(
                         Box::new(
                             |parent_state, state| {
-                                let _parent_state = parent_state.unwrap().downcast_mut::<EditLayoutDialog>().unwrap();
-                                let _state = state.unwrap().downcast_mut::<TextFieldState>().unwrap();
-                                _parent_state.state.label_input =   _state.chars.iter().collect::<String>();
+                                let _parent_state = parent_state.unwrap().downcast_mut::<EditGlobalLayoutSizeDialog>().unwrap();
+                                let _state = state.unwrap().downcast_mut::<NumberFieldState>().unwrap();
+                                _parent_state.state.input_width = _state.chars.iter().collect::<String>().parse().unwrap();
                                 Ok(Vec::new())
                             }
                         )
                     )
                     .into(),
                 NumberField::new(
-                    "Link to Section Index",
-                    0
+                    "Height in Pixel",
+                    240
                 )
                     .on_exit(
                         Box::new(
                             |parent_state, state| {
-                                let _parent_state = parent_state.unwrap().downcast_mut::<EditLayoutDialog>().unwrap();
+                                let _parent_state = parent_state.unwrap().downcast_mut::<EditGlobalLayoutSizeDialog>().unwrap();
                                 let _state = state.unwrap().downcast_mut::<NumberFieldState>().unwrap();
-                                _parent_state.state.position = _state.chars.iter().collect::<String>().parse().unwrap();
+                                _parent_state.state.input_height = _state.chars.iter().collect::<String>().parse().unwrap();
                                 Ok(Vec::new())
                             }
                         )
@@ -231,8 +231,8 @@ impl EditLayoutDialog {
             state: EditLayoutDialogState {
                 is_focused: false,
                 hovered_index: None,
-                label_input: String::new(),
-                position: 0
+                input_width: 72,
+                input_height: 240,
             },
             on_submit: None,
         }
@@ -252,8 +252,8 @@ impl EditLayoutDialog {
         }
     }
 }
-impl From<EditLayoutDialog> for Box<dyn Container> {
-    fn from(container: EditLayoutDialog) -> Self {
+impl From<EditGlobalLayoutSizeDialog> for Box<dyn Container> {
+    fn from(container: EditGlobalLayoutSizeDialog) -> Self {
         Box::new(container)
     }
 }

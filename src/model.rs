@@ -75,13 +75,13 @@ impl LocalEntryState {
             self.active_entry_id = Some(id);
         }
     }
-    pub fn get_local_active_entry_ref(&self) -> Option<&Entry> {
+    pub fn get_active_entry_ref(&self) -> Option<&Entry> {
         if let Some(active_entry_id) = self.active_entry_id {
             return self.entries.get(&active_entry_id);
         }
         None
     }
-    pub fn get_local_active_entry_mut(&mut self) -> Option<&mut Entry> {
+    pub fn get_active_entry_mut(&mut self) -> Option<&mut Entry> {
         if let Some(active_entry_id) = self.active_entry_id {
             return self.entries.get_mut(&active_entry_id);
         }
@@ -90,7 +90,7 @@ impl LocalEntryState {
     /*
         Create Section to active_entry
      */
-    pub fn create_section_to_active_entry(&mut self, title: &str, content: &str) -> Result<(i64)> {
+    pub fn create_section_to_active_entry(&mut self, title: &str, content: &str) -> Result<i64> {
         if let Some(id) = self.active_entry_id {
             let new_section: Section = Section::new(title, content, self.get_max_position(id)+1);
             let sid: i64 = SectionRepository::create_section(&self.connection, &id, &new_section)?;
@@ -159,7 +159,7 @@ impl LocalEntryState {
         }
     }
     pub fn get_active_entry_lid(&self) -> Option<i64> {
-        match self.get_local_active_entry_ref() {
+        match self.get_active_entry_ref() {
             Some(e) => Some(e.layout.0),
             None => None
         }
@@ -233,6 +233,7 @@ pub struct Entry {
 /*
     Section
  */
+#[derive(Clone)]
 pub struct Section {
     // pub entry_id: i64,
     pub position: i64,

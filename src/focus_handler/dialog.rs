@@ -1,4 +1,4 @@
-use crate::app::dialog::{ConfirmDialog, EditLayoutDialog, NumberInputDialog, TextInputDialog};
+use crate::app::dialog::{ConfirmDialog, EditGlobalLayoutSizeDialog, NumberInputDialog, TextInputDialog};
 use crate::app::Container;
 use crate::event_handler::Focusable;
 
@@ -86,7 +86,7 @@ impl Focusable for NumberInputDialog {
         None
     }
 }
-impl Focusable for EditLayoutDialog {
+impl Focusable for EditGlobalLayoutSizeDialog {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
