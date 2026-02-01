@@ -88,6 +88,11 @@ impl LocalEntryState {
         None
     }
     /*
+
+        Section Section
+
+     */
+    /*
         Create Section to active_entry
      */
     pub fn create_section_to_active_entry(&mut self, title: &str, content: &str) -> Result<i64> {
@@ -100,6 +105,20 @@ impl LocalEntryState {
         } else {
             Err(Report::msg("No active entry found"))
         }
+    }
+    /*
+        Update Section by sid
+     */
+    pub fn update_section_by_sid(&mut self, sid: &i64, section: Section) -> Result<()> {
+        let sid = SectionRepository::update_section(&self.connection, sid, &section)?;
+        let (eid, sid, section) = SectionRepository::read_by_id(&self.connection, &sid)?.unwrap();
+        // Update all entry having the same layout
+        let sections: &mut HashMap<i64, Section> = &mut self.entries.get_mut(&eid).unwrap().sections;
+
+        sections.remove(&sid);
+        sections.insert(sid, section);
+        Ok(())
+
     }
     pub fn get_num_sections(&self, eid: &i64) -> usize {
         if let Some(entry) = self.entries.get(eid){
@@ -389,11 +408,11 @@ impl GlyphRepository {
             entry_id    INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
             position    INTEGER NOT NULL,
             title       TEXT NOT NULL DEFAULT '',
-            content     TEXT NOT NULL DEFAULT '',
+            content     TEXT NOT NULL DEFAULT ''
 
-            UNIQUE (entry_id, position)
         )
         "
+            // UNIQUE (entry_id, position)
             , ())?;
         c.execute(
             "
@@ -434,7 +453,7 @@ impl EntryRepository {
         )?;
         let id: i64 = c.last_insert_rowid();
         for (sid, section) in &entry.sections {
-            SectionRepository::update_section(c, eid, sid, section)?;
+            SectionRepository::update_section(c, sid, section)?;
         }
         LayoutRepository::update_layout_by_lid(c, &entry.layout.0, &entry.layout.1)?;
         return Ok(id);
@@ -486,7 +505,7 @@ impl SectionRepository {
         let mut sections: HashMap<i64, Section> = HashMap::new();
         while let Some(row) = rows.next()? {
             let section = Self::to_section(row)?;
-            sections.insert(section.0, section.1);
+            sections.insert(section.1, section.2);
         }
         Ok(sections)
     }
@@ -500,36 +519,39 @@ impl SectionRepository {
         let id = c.last_insert_rowid();
         return Ok(id);
     }
-    pub fn update_section(c: &Connection, eid: &i64, sid: &i64, section: &Section) -> Result<i64> {
+    pub fn update_section(c: &Connection, sid: &i64, section: &Section) -> Result<i64> {
         c.execute(
             "
-                INSERT INTO sections (id, entry_id, position, title, content)
-                VALUES (?1, ?2, ?3, ?4, ?5)
-                ON CONFLICT (id)
-                DO UPDATE SET
-                    entry_id = ?2,
-                    position = ?3,
-                    title = ?4,
-                    content = ?5
+                UPDATE sections
+                SET
+                    position = ?2,
+                    title = ?3,
+                    content = ?4
+                WHERE id = ?1
             ",
-            params![sid, eid, section.position, section.title, section.content],
+            params![sid, section.position, section.title, section.content],
         )?;
         let id = c.last_insert_rowid();
         return Ok(id);
 
     }
-    pub fn read_by_id(c: &Connection, id: &i64) -> Result<Option<(i64, Section)>> {
+
+    /*
+        Return (eid, sid, section)
+     */
+    pub fn read_by_id(c: &Connection, id: &i64) -> Result<Option<(i64, i64, Section)>> {
         let mut stmt = c.prepare("SELECT id, entry_id, position, title, content FROM sections WHERE id = ?1")?;
         let mut rows: Rows = stmt.query(params![*id])?;
         rows.next()?.map(|row| {Self::to_section(row)}).transpose()
     }
-    pub fn to_section(row: &Row) -> Result<(i64, Section)> {
-        let id: i64 = row.get(0)?;
+    pub fn to_section(row: &Row) -> Result<(i64, i64, Section)> {
+        let eid: i64 = row.get(0)?;
+        let sid: i64 = row.get(1)?;
         Ok(
             (
-                id,
+                eid,
+                sid,
                 Section {
-                    // entry_id: row.get(1)?,
                     position: row.get(2)?,
                     title: row.get(3)?,
                     content: row.get(4)?,

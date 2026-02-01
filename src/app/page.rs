@@ -1,9 +1,10 @@
+use std::arch::x86_64::_mm256_bitshuffle_epi64_mask;
 use crate::app::popup::ConfirmPopup;
 use crate::app::widget::{Button, DirectoryList, TextField};
 use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::AppCommand;
-use crate::app::{Component, Container};
-use crate::model::{GlyphRepository, LocalEntryState};
+use crate::app::{Component, Container, Convertible};
+use crate::model::{GlyphRepository, LocalEntryState, Section};
 use crate::state::page::{
     CreateGlyphPageState,
     EntrancePageState,
@@ -18,12 +19,12 @@ use crate::state::page::{
     GlyphReadState,
     GlyphViewerState,
     OpenGlyphPageState};
-use crate::state::widget::DirectoryListState;
+use crate::state::widget::{DirectoryListState, TextFieldState};
 use crate::state::AppState;
 use crate::utils::cycle_offset;
 use rusqlite::fallible_iterator::FallibleIterator;
 use rusqlite::Connection;
-use std::cell::{Ref, RefCell};
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use tui_scrollview::ScrollViewState;
 
@@ -420,10 +421,12 @@ impl GlyphLayoutView {
 impl GlyphEditView {
     pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         let selected_sid: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(None));
+        let editing_sid : Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(None));
+
         Self {
             containers: vec![
-                GlyphEditOrderView::new(selected_sid.clone(), entry_state.clone()).into(),
-                GlyphEditContentView::new(selected_sid.clone(), entry_state.clone()).into()
+                GlyphEditOrderView::new(selected_sid.clone(), editing_sid.clone(), entry_state.clone(), focus.clone()).into(),
+                GlyphEditContentView::new(selected_sid.clone(), editing_sid.clone(), entry_state.clone(), focus.clone()).into()
             ],
             components: vec![
             ],
@@ -432,6 +435,7 @@ impl GlyphEditView {
                 hovered_index: None,
 
                 selected_sid,
+                editing_sid,
                 entry_state
             }
         }
@@ -439,17 +443,23 @@ impl GlyphEditView {
 }
 
 impl GlyphEditOrderView{
-    pub fn new(selected_sid: Rc<RefCell<Option<i64>>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+    pub fn new(
+        selected_sid: Rc<RefCell<Option<i64>>>,
+        editing_sid: Rc<RefCell<Option<i64>>>,
+        entry_state: Rc<RefCell<LocalEntryState>>,
+        is_focused: Rc<RefCell<bool>>,
+    ) -> Self {
         Self {
             containers: vec![
             ],
             components: vec![
             ],
             state: GlyphEditOrderState {
-                is_focused: false,
+                is_focused,
                 hovered_index: None,
 
                 selected_sid,
+                editing_sid,
                 entry_state
             }
         }
@@ -477,21 +487,60 @@ impl GlyphEditOrderView{
 }
 
 impl GlyphEditContentView {
-    pub fn new(selected_sid: Rc<RefCell<Option<i64>>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+    pub fn new(
+        selected_sid: Rc<RefCell<Option<i64>>>,
+        editing_sid: Rc<RefCell<Option<i64>>>,
+        entry_state: Rc<RefCell<LocalEntryState>>,
+        is_focused: Rc<RefCell<bool>>,
+    ) -> Self {
         Self {
             containers: vec![
-                TextField::new("title", String::from("")).into(),
-                TextField::new("Content", String::from("")).into(),
+                TextField::new("title", String::from(""))
+                    .on_exit(Box::new(
+                        |parent_state, state| {
+                            let _parent_state: &mut GlyphEditContentState = parent_state.unwrap().downcast_mut::<GlyphEditContentState>().unwrap();
+                            let _state: &mut TextFieldState = state.unwrap().downcast_mut::<TextFieldState>().unwrap();
+
+                            let section: &mut Section = _parent_state.section_buffer.as_mut().unwrap();
+                            section.title = _state.chars.iter().collect::<String>();
+                            Ok(Vec::new())
+                        } )
+                    )
+                    .into(),
+                TextField::new("Content", String::from(""))
+                    .on_exit(Box::new(
+                        |parent_state, state| {
+                            let _parent_state: &mut GlyphEditContentState = parent_state.unwrap().downcast_mut::<GlyphEditContentState>().unwrap();
+                            let _state: &mut TextFieldState = state.unwrap().downcast_mut::<TextFieldState>().unwrap();
+
+                            let section: &mut Section = _parent_state.section_buffer.as_mut().unwrap();
+                            section.content = _state.chars.iter().collect::<String>();
+                            Ok(Vec::new())
+                        } )
+                    )
+                    .into(),
             ],
             components: vec![
                 Button::new("Back").into(),
-                Button::new("Confirm").into(),
+                Button::new("Confirm")
+                    .on_interact(Box::new(
+                        |parent_state| {
+                            let _parent_state: &mut GlyphEditContentState = parent_state.unwrap().downcast_mut::<GlyphEditContentState>().unwrap();
+                            let sid = _parent_state.editing_sid.borrow_mut().unwrap();
+                            let section_buffer: Section = _parent_state.section_buffer.as_mut().unwrap().clone();
+                            let mut state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
+                            state.update_section_by_sid(&sid, section_buffer)?;
+                            Ok(Vec::new())
+                        }
+                    ))
+                    .into(),
             ],
             state: GlyphEditContentState {
-                is_focused: false,
+                is_focused,
                 hovered_index: None,
-
+                section_buffer: None,
                 selected_sid,
+                editing_sid,
                 entry_state
             }
         }
@@ -504,6 +553,27 @@ impl GlyphEditContentView {
             self.state.hovered_index = Some(0);
         }
     }
+
+    pub fn refresh_section(&mut self) -> () {
+        match self.state.selected_sid.borrow().as_ref() {
+            Some(sid) => {
+                let state = self.state.local_entry_state_ref().unwrap();
+                let eid = state.active_entry_id.unwrap();
+                let sections = state.get_sections_ref(&eid);
+                let section = sections.get(sid).unwrap().clone();
+                drop(state);
+                (*self.containers[0]).as_any_mut().downcast_mut::<TextField>().unwrap().replace(section.title.clone());
+                (*self.containers[1]).as_any_mut().downcast_mut::<TextField>().unwrap().replace(section.content.clone());
+                self.state.section_buffer = Some(section);
+            }
+            None => {
+                (*self.containers[0]).as_any_mut().downcast_mut::<TextField>().unwrap().replace(String::new());
+                (*self.containers[1]).as_any_mut().downcast_mut::<TextField>().unwrap().replace(String::new());
+                self.state.section_buffer = None;
+            }
+        }
+    }
+
 }
 impl From<GlyphViewer> for Box<dyn Container> {
     fn from(container: GlyphViewer) -> Self {

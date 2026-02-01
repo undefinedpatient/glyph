@@ -173,6 +173,9 @@ impl TextField {
             on_exit: None,
         }
     }
+    pub fn replace(&mut self, content: String) -> () {
+        self.state.chars = content.chars().collect();
+    }
     pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
         self.on_exit = Some(on_exit);
         self

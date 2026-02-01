@@ -5,7 +5,7 @@ use crate::utils::{get_dir_names, get_file_names};
 use ratatui::layout::{Constraint, Offset, Position, Rect};
 use ratatui::prelude::Stylize;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Borders, Clear, Widget};
+use ratatui::widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget, Wrap};
 use ratatui::Frame;
 
 impl Drawable for Button {
@@ -128,8 +128,8 @@ impl Drawable for DirectoryList {
 impl Drawable for TextField {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
         let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
-        let text = self.state.chars.iter().collect::<String>();
-        let text_line: Line = Line::from(text);
+        let content = self.state.chars.iter().collect::<String>();
+        let content_paragraph: Paragraph = Paragraph::new(Line::from(content)).wrap(Wrap{trim: true});
         let text_field_block: Block = Block::bordered()
             .title(self.state.label.as_str())
             .border_type(match draw_flag {
@@ -138,17 +138,17 @@ impl Drawable for TextField {
                 DrawFlag::FOCUSED => BorderType::Thick,
                 _ => BorderType::LightDoubleDashed,
             });
-        let text_line_area: Rect = text_field_block.inner(text_field_area);
+        let content_area: Rect = text_field_block.inner(text_field_area);
         if self.is_focused() {
             let cursor_position: Position = text_field_area.as_position().offset(Offset {
-                x: 1 + self.state.cursor_index as i32,
-                y: 1,
+                x: 1 + (self.state.cursor_index % content_area.width as usize) as i32,
+                y: 1 + (self.state.cursor_index /content_area.width as usize) as i32 ,
             });
             frame.set_cursor_position(cursor_position);
         }
         Clear.render(text_field_area, frame.buffer_mut());
         text_field_block.render(text_field_area, frame.buffer_mut());
-        text_line.render(text_line_area, frame.buffer_mut());
+        content_paragraph.render(content_area, frame.buffer_mut());
     }
 }
 /*

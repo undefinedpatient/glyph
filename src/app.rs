@@ -28,7 +28,8 @@ pub enum AppCommand {
 pub enum GlyphCommand {
     OpenGlyph(PathBuf), // Path to Glyph DB
     CreateGlyph(PathBuf, String), // Path to directory, name of DB
-    CreateEntry(String)
+    CreateEntry(String),
+    RefreshEditSection
 }
 pub enum PageCommand {
     PushDialog(Box<dyn Container>),

@@ -18,7 +18,7 @@ use tui_big_text::{BigText, PixelSize};
 
 macro_rules! block {
     ($title: expr, $flag: expr) => {
-         match $flag {
+        match $flag {
             DrawFlag::DEFAULT => {
                 Block::bordered().title($title)
             }
@@ -402,8 +402,20 @@ impl Drawable for GlyphEditView {
            Container Frame
         */
         let inner_areas = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(2)]).split(area);
-        self.containers[0].render(frame, inner_areas[0], DrawFlag::DEFAULT);
-        self.containers[1].render(frame, inner_areas[1], DrawFlag::DEFAULT);
+        self.containers[0].render(frame, inner_areas[0],
+                                  if self.state.editing_sid.borrow().is_none() {
+                                      DrawFlag::FOCUSED
+                                  } else {
+                                      DrawFlag::DEFAULT
+                                  }
+        );
+        self.containers[1].render(frame, inner_areas[1],
+                                  if self.state.editing_sid.borrow().is_some() {
+                                      DrawFlag::FOCUSED
+                                  } else {
+                                      DrawFlag::DEFAULT
+                                  }
+        );
 
     }
 }
@@ -413,6 +425,14 @@ impl Drawable for GlyphEditView {
 
 impl Drawable for GlyphEditOrderView{
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+
+        /*
+           Container Frame
+        */
+        let mut widget_frame: Block = block!("", draw_flag);
+
+        let inner_area = widget_frame.inner(area);
+        widget_frame.render(area, frame.buffer_mut());
 
         let state = self.state.entry_state.borrow();
         let eid = state.active_entry_id.unwrap();
@@ -426,7 +446,7 @@ impl Drawable for GlyphEditOrderView{
                 None
             }
         ).collect();
-        let edit_area = area.centered_horizontally(Constraint::Percentage(90));
+        let edit_area = inner_area.centered_horizontally(Constraint::Percentage(90));
         let draw_section_list: Vec<((u32, u32), Paragraph)> = section_list.iter().enumerate().map(
             |(i, (key, value)): (usize, &(&i64, &Section))| {
                 let text = Text::from(value.content.clone());
@@ -479,7 +499,14 @@ impl Drawable for GlyphEditOrderView{
 
 impl Drawable for GlyphEditContentView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
-        let lr_areas = Layout::horizontal( [Constraint::Length(42), Constraint::Fill(1)] ).split(area);
+        /*
+           Container Frame
+        */
+        let mut widget_frame: Block = block!("", draw_flag);
+
+        let inner_area = widget_frame.inner(area);
+        widget_frame.render(area, frame.buffer_mut());
+        let lr_areas = Layout::horizontal( [Constraint::Max(24), Constraint::Fill(1)] ).split(inner_area);
         let title_button_areas = Layout::vertical([Constraint::Length(5), Constraint::Fill(3)]).flex(Flex::SpaceBetween).split(lr_areas[0]);
         let button_areas = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(title_button_areas[1]);
 

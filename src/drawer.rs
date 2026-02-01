@@ -15,6 +15,7 @@ pub enum DrawFlag {
     DEFAULT = 0b0000_0000,
     HIGHLIGHTING = 0b0000_0001,
     FOCUSED = 0b0000_0010,
+    // DISABLED = 0b0000_0100,
 }
 pub trait Drawable {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag);
@@ -40,9 +41,9 @@ pub fn draw(frame: &mut Frame, app: &mut Application) {
 fn get_draw_flag(
     current_hover_index: Option<usize>,
     widget_index: usize,
-    include_focus: Option<bool>,
+    focused: Option<bool>,
 ) -> DrawFlag {
-    if let Some(should_focus) = include_focus {
+    if let Some(should_focus) = focused {
         if should_focus {
             return DrawFlag::FOCUSED;
         }
