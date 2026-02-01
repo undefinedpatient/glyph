@@ -4,6 +4,7 @@ use crate::event_handler::Focusable;
 use crate::model;
 use crate::model::{LayoutOrientation, LocalEntryState, Section};
 use crate::state::page::GlyphMode;
+use crate::theme::Theme;
 use color_eyre::owo_colors::OwoColorize;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect};
@@ -34,7 +35,7 @@ macro_rules! block {
 
 
 impl Drawable for EntrancePage {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
         */
@@ -69,17 +70,17 @@ impl Drawable for EntrancePage {
         for (i, button_interactable) in (&self.components).iter().enumerate() {
             if let Some(ci) = self.state.hovered_index {
                 if i == ci {
-                    button_interactable.render(frame, button_rects[i], DrawFlag::HIGHLIGHTING);
+                    button_interactable.render(frame, button_rects[i], DrawFlag::HIGHLIGHTING, theme);
                 } else {
-                    button_interactable.render(frame, button_rects[i], DrawFlag::DEFAULT);
+                    button_interactable.render(frame, button_rects[i], DrawFlag::DEFAULT, theme);
                 }
             }
-            button_interactable.render(frame, button_rects[i], DrawFlag::DEFAULT);
+            button_interactable.render(frame, button_rects[i], DrawFlag::DEFAULT, theme);
         }
     }
 }
 impl Drawable for CreateGlyphPage {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Outer Frame
         */
@@ -106,16 +107,19 @@ impl Drawable for CreateGlyphPage {
                 0,
                 Some(self.containers[0].is_focused()),
             ),
+            theme
         );
         self.components[0].render(
             frame,
             button_areas[0],
             get_draw_flag(self.state.hovered_index, 1, None),
+            theme
         );
         self.components[1].render(
             frame,
             button_areas[1],
             get_draw_flag(self.state.hovered_index, 2, None),
+            theme
         );
         /*
             Dialog
@@ -123,16 +127,16 @@ impl Drawable for CreateGlyphPage {
         if !self.dialogs.is_empty() {
             for (i, dialog) in self.dialogs.iter().enumerate() {
                 if i == self.dialogs.len() - 1 {
-                    dialog.render(frame, area, DrawFlag::FOCUSED);
+                    dialog.render(frame, area, DrawFlag::FOCUSED, theme);
                 } else {
-                    dialog.render(frame, area, DrawFlag::DEFAULT);
+                    dialog.render(frame, area, DrawFlag::DEFAULT, theme);
                 }
             }
         }
     }
 }
 impl Drawable for OpenGlyphPage {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Outer Frame
         */
@@ -159,22 +163,25 @@ impl Drawable for OpenGlyphPage {
                 0,
                 Some(self.containers[0].is_focused()),
             ),
+            theme
         );
         self.components[0].render(
             frame,
             button_areas[0],
             get_draw_flag(self.state.hovered_index, 1, None),
+            theme
         );
         self.components[1].render(
             frame,
             button_areas[1],
             get_draw_flag(self.state.hovered_index, 2, None),
+            theme
         );
     }
 }
 
 impl Drawable for GlyphPage {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Outer Frame
         */
@@ -191,8 +198,8 @@ impl Drawable for GlyphPage {
 
 
         page_frame.render(chunks[0], frame.buffer_mut());
-        self.containers[0].render(frame, content_areas[0], get_draw_flag(self.state.hovered_index, 0, Some(self.containers[0].is_focused())));
-        self.containers[1].render(frame, content_areas[1], get_draw_flag(self.state.hovered_index, 1, Some(self.containers[1].is_focused())));
+        self.containers[0].render(frame, content_areas[0], get_draw_flag(self.state.hovered_index, 0, Some(self.containers[0].is_focused())), theme);
+        self.containers[1].render(frame, content_areas[1], get_draw_flag(self.state.hovered_index, 1, Some(self.containers[1].is_focused())), theme);
 
 
         /*
@@ -201,9 +208,9 @@ impl Drawable for GlyphPage {
         if !self.dialogs.is_empty() {
             for (i, dialog) in self.dialogs.iter().enumerate() {
                 if i == self.dialogs.len() - 1 {
-                    dialog.render(frame, area, DrawFlag::FOCUSED);
+                    dialog.render(frame, area, DrawFlag::FOCUSED, theme);
                 } else {
-                    dialog.render(frame, area, DrawFlag::DEFAULT);
+                    dialog.render(frame, area, DrawFlag::DEFAULT, theme);
                 }
             }
         }
@@ -214,7 +221,7 @@ impl Drawable for GlyphPage {
  */
 
 impl Drawable for GlyphNavigationBar {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
         */
@@ -277,7 +284,7 @@ impl Drawable for GlyphNavigationBar {
 
 
 impl Drawable for GlyphViewer {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
         */
@@ -306,19 +313,19 @@ impl Drawable for GlyphViewer {
         }
         match self.state.mode {
             GlyphMode::Read => {
-                self.containers[0].as_ref().render(frame, inner_area, draw_flag);
+                self.containers[0].as_ref().render(frame, inner_area, draw_flag, theme);
             }
             GlyphMode::Edit => {
-                self.containers[1].as_ref().render(frame, inner_area, draw_flag);
+                self.containers[1].as_ref().render(frame, inner_area, draw_flag, theme);
             }
             GlyphMode::Layout => {
-                self.containers[2].as_ref().render(frame, inner_area, draw_flag);
+                self.containers[2].as_ref().render(frame, inner_area, draw_flag, theme);
             }
         }
     }
 }
 impl Drawable for GlyphReadView {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let entry_state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
         let entry_layout: &model::Layout = &entry_state.get_active_entry_ref().unwrap().layout.1;
         let areas: Vec<(u16, Rect)> = evaluate_read_areas(self, area, entry_layout, 0,0);
@@ -383,7 +390,7 @@ fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &model::Layout, d
 }
 
 impl Drawable for GlyphEditView {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
 
         // /*
         //     Dialog
@@ -407,14 +414,18 @@ impl Drawable for GlyphEditView {
                                       DrawFlag::FOCUSED
                                   } else {
                                       DrawFlag::DEFAULT
-                                  }
+                                  },
+                                  theme
+                                  ,
         );
         self.containers[1].render(frame, inner_areas[1],
                                   if self.state.editing_sid.borrow().is_some() {
                                       DrawFlag::FOCUSED
                                   } else {
                                       DrawFlag::DEFAULT
-                                  }
+                                  },
+                                  theme
+                                  ,
         );
 
     }
@@ -424,7 +435,7 @@ impl Drawable for GlyphEditView {
 
 
 impl Drawable for GlyphEditOrderView{
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
 
         /*
            Container Frame
@@ -498,7 +509,7 @@ impl Drawable for GlyphEditOrderView{
 }
 
 impl Drawable for GlyphEditContentView {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
         */
@@ -512,22 +523,26 @@ impl Drawable for GlyphEditContentView {
 
         let hover_index = self.state.hovered_index;
         self.containers[0].render(frame, title_button_areas[0],
-                                  get_draw_flag(hover_index, 0, Some(self.containers[0].is_focused()))
+                                  get_draw_flag(hover_index, 0, Some(self.containers[0].is_focused())),
+                                  theme
         );
         self.containers[1].render(frame, lr_areas[1],
-                                  get_draw_flag(hover_index, 1, Some(self.containers[1].is_focused()))
+                                  get_draw_flag(hover_index, 1, Some(self.containers[1].is_focused())),
+                                  theme
         );
         self.components[0].render(frame, button_areas[0],
-                                  get_draw_flag(hover_index, 2, Some(self.containers[0].is_focused()))
+                                  get_draw_flag(hover_index, 2, Some(self.containers[0].is_focused())),
+                                  theme
         );
         self.components[1].render(frame, button_areas[1],
-                                  get_draw_flag(hover_index, 3, Some(self.containers[1].is_focused()))
+                                  get_draw_flag(hover_index, 3, Some(self.containers[1].is_focused())),
+                                  theme
         );
     }
 }
 
 impl Drawable for GlyphLayoutView {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let entry_state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
         let entry_layout: &model::Layout = &entry_state.get_active_entry_ref().unwrap().layout.1;
         let layout_area = area.centered_horizontally(Constraint::Percentage(90));
@@ -538,9 +553,9 @@ impl Drawable for GlyphLayoutView {
         if !self.dialogs.is_empty() {
             for (i, dialog) in self.dialogs.iter().enumerate() {
                 if i == self.dialogs.len() - 1 {
-                    dialog.render(frame, area, DrawFlag::FOCUSED);
+                    dialog.render(frame, area, DrawFlag::FOCUSED, theme);
                 } else {
-                    dialog.render(frame, area, DrawFlag::DEFAULT);
+                    dialog.render(frame, area, DrawFlag::DEFAULT, theme);
                 }
             }
         }
@@ -617,82 +632,3 @@ fn evaluate_layout(me: &GlyphLayoutView, area: Rect, buffer: &mut Buffer, layout
     areas
 }
 
-//
-// impl Drawable for GlyphOldViewer {
-//     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
-//         /*
-//            Container Frame
-//         */
-//         let mut widget_frame: Block = block!("Content", draw_flag);
-//         match self.state.mode {
-//             GlyphMode::Read => {
-//                 widget_frame = widget_frame.title_top(Line::from("[ READ ]").right_aligned());
-//             }
-//             GlyphMode::Layout => {
-//                 widget_frame = widget_frame.title_top(Line::from("[ LAYOUT ]").right_aligned());
-//             }
-//             GlyphMode::Edit => {
-//                 widget_frame = widget_frame.title_top(Line::from("[ EDIT ]").right_aligned());
-//             }
-//         }
-//         let inner_area = widget_frame.inner(area);
-//         let inner_areas = Layout::horizontal(
-// [
-//                 Constraint::Fill(1),
-//                 Constraint::Length(144),
-//                 Constraint::Fill(1)
-//             ]
-//         ).split(inner_area);
-//         let content_area: Rect = inner_areas[1];
-//         widget_frame.render(area, frame.buffer_mut());
-//
-//
-//         /*
-//
-//          */
-//         if self.state.local_entry_state_ref().unwrap().active_entry_id.is_none() {
-//             let message: Paragraph = Paragraph::new("No Entry Selected").alignment(Alignment::Center);
-//             let center_area = content_area.centered(Constraint::Fill(1), Constraint::Length(3));
-//             message.render(center_area, frame.buffer_mut());
-//             return;
-//         }
-//         match self.state.mode  {
-//             /*
-//                 READ
-//              */
-//             GlyphMode::Read => {
-//                 draw_read_view(self, inner_areas[1], frame.buffer_mut(), draw_flag);
-//             }
-//             /*
-//                 LAYOUT
-//              */
-//             GlyphMode::Layout => {
-//                 let virtual_area = Size::new(content_area.width, content_area.height*3);
-//                 // let mut scroll_view = ScrollView::new(virtual_area);
-//                 // scroll_view = scroll_view.horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
-//                 draw_layout_view(self, inner_areas[1], frame.buffer_mut(), draw_flag);
-//                 // scroll_view.render(inner_area, frame.buffer_mut(), &mut self.state.scroll_state.borrow_mut());
-//             }
-//             /*
-//                EDIT
-//              */
-//             GlyphMode::Edit => {
-//                 draw_edit_view(self, frame, content_area);
-//             }
-//         }
-//
-//
-//         /*
-//             Dialog
-//          */
-//         if !self.dialogs.is_empty() {
-//             for (i, dialog) in self.dialogs.iter().enumerate() {
-//                 if i == self.dialogs.len() - 1 {
-//                     dialog.render(frame, area, DrawFlag::FOCUSED);
-//                 } else {
-//                     dialog.render(frame, area, DrawFlag::DEFAULT);
-//                 }
-//             }
-//         }
-//     }
-// }

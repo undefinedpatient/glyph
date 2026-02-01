@@ -564,7 +564,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tui-big-text",
- "tui-scrollview",
 ]
 
 [[package]]
@@ -1642,17 +1641,6 @@ dependencies = [
  "font8x8",
  "itertools 0.14.0",
  "ratatui-core",
-]
-
-[[package]]
-name = "tui-scrollview"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8ada5290cf63e5e718a13111020398979975d4df556a55ae88014aa8850f171"
-dependencies = [
- "indoc",
- "ratatui-core",
- "ratatui-widgets",
 ]
 
 [[package]]

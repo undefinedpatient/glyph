@@ -24,21 +24,25 @@ pub struct NumberFieldState {
     pub chars: Vec<char>,
     pub cursor_index: usize,
 }
-pub struct EditorState {
+
+pub enum EditMode {
+    Normal,
+    Insert,
+    Visual,
+    VisualLine
+}
+pub struct TextEditorState {
     pub is_focused: bool,
     pub label: String,
-    pub chars: Vec<Vec<char>>,
+    
+    pub mode: EditMode,
+    pub lines: Vec<Vec<char>>,
+    pub scroll_offset: usize,
     pub cursor_index: usize,
-    pub cursor_row: usize,
-}
-impl EditorState  {
-    pub(crate) fn new(label: &str) -> Self {
-        Self {
-            is_focused: false,
-            label: String::from(label),
-            chars: Vec::new(),
-            cursor_index: 0,
-            cursor_row: 0,
-        }
-    }
+    pub cursor_line_index: usize,
+
+    pub anchor: usize,
+    pub anchor_line: usize,
+
+    pub copy_buffer: Vec<Vec<char>>, // First line insert char, the rest directly insert line.
 }

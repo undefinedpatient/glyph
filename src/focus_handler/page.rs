@@ -1,4 +1,4 @@
-use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphEditContentView, GlyphEditOrderView, GlyphEditView, GlyphLayoutView, GlyphNavigationBar, GlyphOldViewer, GlyphPage, GlyphReadView, GlyphViewer, OpenGlyphPage};
+use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphEditContentView, GlyphEditOrderView, GlyphEditView, GlyphLayoutView, GlyphNavigationBar, GlyphPage, GlyphReadView, GlyphViewer, OpenGlyphPage};
 use crate::app::Container;
 use crate::event_handler::Focusable;
 
@@ -136,48 +136,6 @@ impl Focusable for GlyphNavigationBar {
         None
     }
 }
-/*
-    Glyph Reader (Subpage)
- */
-impl Focusable for GlyphOldViewer {
-    fn is_focused(&self) -> bool {
-        self.state.is_focused
-    }
-    fn set_focus(&mut self, value: bool) -> () {
-        self.state.is_focused = value;
-    }
-    fn focused_child_ref(&self) -> Option<&dyn Container> {
-        for container in &self.mode_views {
-            if let Some(con) = container {
-                if con.is_focused() {
-                    return Some(&**con);
-                }
-            }
-        }
-        None
-    }
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
-        for container in &mut self.mode_views {
-            if let Some(con) = container {
-                if con.is_focused() {
-                    return Some(&mut **con);
-                }
-            }
-        }
-        None
-    }
-    fn focused_child_index(&self) -> Option<usize> {
-        for (index, container) in &mut self.mode_views.iter().enumerate() {
-            if let Some(con) = container {
-                if con.is_focused() {
-                    return Some(index);
-                }
-            }
-        }
-        None
-    }
-}
-
 /*
     Glyph Viewers
  */

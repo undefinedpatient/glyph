@@ -1,15 +1,18 @@
-use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, TextField};
+use color_eyre::owo_colors::OwoColorize;
+use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, TextEditor, TextField};
 use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
+use crate::theme::Theme;
 use crate::utils::{get_dir_names, get_file_names};
-use ratatui::layout::{Constraint, Offset, Position, Rect};
+use ratatui::layout::{Constraint, Offset, Position, Rect, Rows};
 use ratatui::prelude::Stylize;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget, Wrap};
 use ratatui::Frame;
+use crate::state::widget::EditMode;
 
 impl Drawable for Button {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         match draw_flag {
             DrawFlag::HIGHLIGHTING => {
                 Line::from(["[", self.label.as_str(), "]"].concat())
@@ -27,7 +30,7 @@ impl Drawable for Button {
 }
 
 impl Drawable for LineButton {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let text = self.label.clone().to_string();
         match draw_flag {
             DrawFlag::HIGHLIGHTING => {
@@ -42,7 +45,7 @@ impl Drawable for LineButton {
     }
 }
 impl Drawable for DirectoryList {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
         */
@@ -126,7 +129,7 @@ impl Drawable for DirectoryList {
 */
 
 impl Drawable for TextField {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
         let content = self.state.chars.iter().collect::<String>();
         let content_paragraph: Paragraph = Paragraph::new(Line::from(content)).wrap(Wrap{trim: true});
@@ -155,7 +158,7 @@ impl Drawable for TextField {
    Number Field
 */
 impl Drawable for NumberField {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, p3: &dyn Theme) {
         let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
         let text = self.state.chars.iter().collect::<String>();
         let text_line: Line = Line::from(text);
@@ -178,5 +181,71 @@ impl Drawable for NumberField {
         Clear.render(text_field_area, frame.buffer_mut());
         text_field_block.render(text_field_area, frame.buffer_mut());
         text_line.render(text_line_area, frame.buffer_mut());
+    }
+}
+
+/*
+    Editor Wrapper
+ */
+impl Drawable for TextEditor {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
+        let mut border: Block = Block::bordered()
+            .title(self.state.label.as_str())
+            .border_type(match draw_flag {
+                DrawFlag::DEFAULT => BorderType::Plain,
+                DrawFlag::HIGHLIGHTING => BorderType::Double,
+                DrawFlag::FOCUSED => BorderType::Thick,
+                _ => BorderType::LightDoubleDashed,
+            });
+        match self.state.mode {
+            EditMode::Normal => {
+                border = border.title(Line::from("NORMAL").bold())
+            },
+            EditMode::Insert => {
+                border = border.title(Line::from("INSERT").bold()).yellow()
+            },
+            EditMode::Visual => {
+                border = border.title(Line::from("VISUAL").bold()).blue()
+            }
+            EditMode::VisualLine => {
+                border = border.title(Line::from("VISUAL LINE").bold()).cyan()
+            }
+
+        }
+        let inner_area = border.inner(area);
+        let line_rows: Rows = inner_area.rows();
+        border.render(area, frame.buffer_mut());
+        let lines: Vec<Line> = self.state.lines.iter().enumerate().map(
+            |(line_number, line)| {
+                let mut line = Line::from(
+                    vec![Span::from(line_number.to_string()+" ").dim(),
+                         Span::from(line.iter().collect::<String>())
+                    ]);
+
+
+
+
+
+                if line_number == self.state.cursor_line_index {
+                    line = line.bg(theme.surface_low_color());
+                } else {
+                    line = line.bg(theme.background_color());
+                }
+
+
+
+                line
+            }
+        ).collect();
+        for (line_number, line_row) in line_rows.into_iter().enumerate() {
+            lines.get(line_number).render(line_row, frame.buffer_mut());
+        }
+        if self.is_focused() {
+            let cursor_position: Position = inner_area.as_position().offset(Offset {
+                x: 2+ self.state.cursor_index as i32,
+                y: self.state.cursor_line_index as i32,
+            });
+            frame.set_cursor_position(cursor_position);
+        }
     }
 }

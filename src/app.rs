@@ -9,6 +9,7 @@ pub mod widget;
 use crate::drawer::Drawable;
 use crate::event_handler::{Focusable, Interactable};
 use crate::state::AppState;
+use crate::theme::Iceberg;
 use page::EntrancePage;
 
 pub enum Command {
@@ -163,7 +164,9 @@ impl Application {
         Application {
             page_states: vec![Box::new(EntrancePage::new())],
             popup_states: Vec::new(),
-            state: AppState { should_quit: false},
+            state: AppState {
+                theme: Iceberg,
+                should_quit: false},
             q_commands: Vec::new(),
         }
     }

@@ -2,7 +2,6 @@ use crate::model::{LocalEntryState, Section};
 use std::cell::{Ref, RefCell, RefMut};
 use std::path::PathBuf;
 use std::rc::Rc;
-use tui_scrollview::ScrollViewState;
 
 pub struct EntrancePageState {
     pub is_focused: bool,
@@ -36,23 +35,6 @@ pub struct GlyphNavigationBarState {
     pub line_height: usize,
     pub hovered_index: Option<usize>,
     pub offset: usize,
-    // Shared Data
-    pub entry_state: Rc<RefCell<LocalEntryState>>,
-}
-
-// OLDD
-pub struct GlyphOldViewerState {
-    pub is_focused: bool,
-    pub mode: GlyphMode,
-    pub scroll_state: RefCell<ScrollViewState>,
-
-
-    pub edit_hovered_index: Option<usize>,
-    pub edit_selected_sid: Option<i64>,
-
-    pub layout_hovered_index: Option<usize>,
-    pub layout_selected_coordinate: Vec<usize>,
-
     // Shared Data
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
@@ -249,24 +231,6 @@ impl GlyphEditOrderState {
     }
 }
 impl GlyphEditContentState{
-    pub(crate) fn local_entry_state_ref(&'_  self) -> Option<Ref<'_, LocalEntryState>> {
-        Ref::filter_map(
-            self.entry_state.try_borrow().ok()?,
-            |state| {
-                Some(state)
-            }
-        ).ok()
-    }
-    pub(crate) fn local_entry_state_mut(&'_ mut self) -> Option<RefMut<'_, LocalEntryState>> {
-        RefMut::filter_map(
-            self.entry_state.try_borrow_mut().ok()?,
-            |state| {
-                Some(state)
-            }
-        ).ok()
-    }
-}
-impl GlyphOldViewerState {
     pub(crate) fn local_entry_state_ref(&'_  self) -> Option<Ref<'_, LocalEntryState>> {
         Ref::filter_map(
             self.entry_state.try_borrow().ok()?,

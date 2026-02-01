@@ -4,6 +4,7 @@ mod popup;
 mod widget;
 
 use crate::app::Application;
+use crate::theme::Theme;
 use color_eyre::owo_colors::OwoColorize;
 use ratatui::layout::Rect;
 use ratatui::style::Stylize;
@@ -18,18 +19,18 @@ pub enum DrawFlag {
     // DISABLED = 0b0000_0100,
 }
 pub trait Drawable {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag);
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme);
 }
 pub fn draw(frame: &mut Frame, app: &mut Application) {
     for page in (*app.page_states).iter_mut().rev() {
         page.as_drawable_mut()
-            .render(frame, frame.area(), DrawFlag::DEFAULT);
+            .render(frame, frame.area(), DrawFlag::DEFAULT, &app.state.theme);
         break;
     }
     for popup in (*app.popup_states).iter_mut() {
         popup
             .as_drawable_mut()
-            .render(frame, frame.area(), DrawFlag::DEFAULT);
+            .render(frame, frame.area(), DrawFlag::DEFAULT, &app.state.theme);
     }
 }
 

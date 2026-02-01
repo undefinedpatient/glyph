@@ -2,11 +2,13 @@ use crate::app::dialog::{ConfirmDialog, EditGlobalLayoutSizeDialog, NumberInputD
 use crate::app::widget::LineButton;
 use crate::app::Convertible;
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
+use crate::theme::Theme;
 use ratatui::layout::{Alignment, Constraint, Layout, Rect};
 use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Widget};
 use ratatui::Frame;
+
 impl Drawable for TextInputDialog {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let dialog_area: Rect = area.centered(Constraint::Length(42), Constraint::Length(5));
         let dialog_frame = Block::bordered()
             .border_type(match draw_flag {
@@ -42,11 +44,12 @@ impl Drawable for TextInputDialog {
                 0,
                 Some(self.containers[0].is_focused()),
             ),
+            theme,
         );
     }
 }
 impl Drawable for ConfirmDialog {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let dialog_area: Rect = area.centered(Constraint::Length(42), Constraint::Length(5));
         let dialog_frame = Block::bordered()
             .border_type(match draw_flag {
@@ -79,7 +82,7 @@ impl Drawable for ConfirmDialog {
     }
 }
 impl Drawable for NumberInputDialog {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let dialog_area: Rect = area.centered(Constraint::Length(42), Constraint::Length(5));
         let dialog_frame = Block::bordered()
             .border_type(match draw_flag {
@@ -115,11 +118,12 @@ impl Drawable for NumberInputDialog {
                 0,
                 Some(self.containers[0].is_focused()),
             ),
+            theme
         );
     }
 }
 impl Drawable for EditGlobalLayoutSizeDialog {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let dialog_area: Rect = area.centered(Constraint::Length(42), Constraint::Length(8));
         let dialog_frame = Block::bordered()
             .border_type(match draw_flag {
@@ -161,6 +165,7 @@ impl Drawable for EditGlobalLayoutSizeDialog {
                 0,
                 Some(self.containers[0].is_focused()),
             ),
+            theme
         );
         self.containers[1].render(
             frame,
@@ -170,6 +175,7 @@ impl Drawable for EditGlobalLayoutSizeDialog {
                 1,
                 Some(self.containers[1].is_focused()),
             ),
+            theme
         );
     }
 }

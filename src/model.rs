@@ -110,8 +110,8 @@ impl LocalEntryState {
         Update Section by sid
      */
     pub fn update_section_by_sid(&mut self, sid: &i64, section: Section) -> Result<()> {
-        let sid = SectionRepository::update_section(&self.connection, sid, &section)?;
-        let (eid, sid, section) = SectionRepository::read_by_id(&self.connection, &sid)?.unwrap();
+        let _sid = SectionRepository::update_section(&self.connection, sid, &section)?;
+        let (eid, sid, section) = SectionRepository::read_by_id(&self.connection, sid)?.unwrap();
         // Update all entry having the same layout
         let sections: &mut HashMap<i64, Section> = &mut self.entries.get_mut(&eid).unwrap().sections;
 
@@ -545,8 +545,8 @@ impl SectionRepository {
         rows.next()?.map(|row| {Self::to_section(row)}).transpose()
     }
     pub fn to_section(row: &Row) -> Result<(i64, i64, Section)> {
-        let eid: i64 = row.get(0)?;
-        let sid: i64 = row.get(1)?;
+        let eid: i64 = row.get(1)?;
+        let sid: i64 = row.get(0)?;
         Ok(
             (
                 eid,

@@ -8,16 +8,16 @@ use crate::app::Command::{self, *};
 use crate::app::GlyphCommand::*;
 use crate::app::PageCommand::*;
 
+use crate::app::Convertible;
 use crate::event_handler::{Focusable, Interactable};
 use crate::model::{GlyphRepository, Layout, LayoutOrientation, LocalEntryState};
 use crate::state::dialog::TextInputDialogState;
-use crate::state::page::{CreateGlyphPageState, GlyphEditContentState, GlyphEditState, GlyphLayoutState, GlyphMode, GlyphPageState};
+use crate::state::page::{CreateGlyphPageState, GlyphEditState, GlyphLayoutState, GlyphMode, GlyphPageState};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use rusqlite::fallible_iterator::FallibleIterator;
 use std::any::Any;
 use std::cell::RefMut;
-use crate::app::Convertible;
 
 impl Interactable for EntrancePage {
     fn handle(
@@ -415,143 +415,6 @@ impl Interactable for GlyphNavigationBar {
     }
 }
 
-// impl Interactable for GlyphOldViewer {
-//     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
-//         if !self.is_focused() {
-//             self.set_focus(true);
-//             Ok(Vec::new())
-//         } else {
-//             /*
-//                 Process Dialog
-//              */
-//             if !self.dialogs.is_empty() {
-//                 let result = self.dialogs.last_mut().unwrap().handle(key, Some(&mut self.state));
-//                 return if result.is_err() {
-//                     result
-//                 } else {
-//                     let mut processed_commands: Vec<Command> = Vec::new();
-//                     let mut commands = result?;
-//                     while let Some(command) = commands.pop() {
-//                         match command {
-//                             PageCommand(page_command) => {
-//                                 match page_command {
-//                                     PopDialog => {
-//                                         self.dialogs.pop();
-//                                     }
-//                                     PushDialog(dialog) => {
-//                                         self.dialogs.push(dialog);
-//                                     }
-//                                 }
-//                             }
-//                             _ => {
-//                                 processed_commands.insert(0, command);
-//                             }
-//                         }
-//                     }
-//                     Ok(processed_commands)
-//                 }
-//             }
-//             match key.kind {
-//                 KeyEventKind::Press => {
-//                     // Mode Wide Key
-//                     if let KeyCode::Esc = key.code {
-//                         if self.state.layout_selected_coordinate.is_empty() && self.state.edit_selected_sid.is_none() {
-//                             self.set_focus(false);
-//                             return Ok(Vec::new());
-//                         }
-//                     }
-//                     if let KeyCode::Char(c) = key.code {
-//                         match c {
-//                             '`' => {
-//                                 match self.state.mode {
-//                                     GlyphMode::Read => {
-//                                         self.state.mode = GlyphMode::Layout;
-//                                     }
-//                                     GlyphMode::Layout => {
-//                                         self.state.mode = GlyphMode::Edit;
-//                                     }
-//                                     GlyphMode::Edit => {
-//                                         self.state.mode = GlyphMode::Read;
-//                                     }
-//                                     GlyphMode::EditContent => {
-//                                         self.state.mode = GlyphMode::Edit;
-//                                         self.mode_views[3].as_mut().unwrap().set_focus(false);
-//                                     }
-//                                 }
-//                             }
-//                             _ => {}
-//                         }
-//                     }
-//                 }
-//                 _ => {}
-//             }
-//             if self.focused_child_ref().is_none() {
-//                 match key.kind {
-//                     KeyEventKind::Press => {
-//                         // Mode Specific Action
-//                         match self.state.mode {
-//                             GlyphMode::Read => {
-//                                 Ok(Vec::new())
-//                             }
-//                             GlyphMode::Layout => {
-//                             }
-//                             GlyphMode::Edit => {
-//                                 if let KeyCode::Tab = key.code {
-//                                     self.cycle_section_hover(1);
-//                                     return Ok(Vec::new());
-//                                 }
-//                                 if let KeyCode::BackTab = key.code {
-//                                     self.cycle_section_hover(-1);
-//                                     return Ok(Vec::new());
-//                                 }
-//                                 if let KeyCode::Enter = key.code {
-//                                     let state = self.state.local_entry_state_ref().unwrap();
-//
-//                                     let mut section_list: Vec<(&i64, &Section)> = state.get_active_entry_ref().unwrap().sections.iter().map(
-//                                         |(key, value): (&i64, &Section)| {
-//                                             (key, value)
-//                                         }
-//                                     ).collect::<Vec<(&i64, &Section)>>();
-//                                     section_list.sort_by_key(|item|{*((*item).0)});
-//
-//
-//                                     if let Some(hovered_index) = self.state.edit_hovered_index {
-//                                         let hovered_sid = section_list[hovered_index].0.clone();
-//                                         drop(state);
-//                                         if self.state.edit_selected_sid.is_some() {
-//                                             if self.state.edit_selected_sid.unwrap() == hovered_sid {
-//                                                 self.state.edit_selected_sid = None;
-//                                             } else {
-//                                                 self.state.edit_selected_sid = Some(hovered_sid);
-//                                             }
-//                                         } else {
-//                                             self.state.edit_selected_sid = Some(hovered_sid);
-//                                         }
-//                                     }
-//                                 }
-//                                 if let KeyCode::Esc = key.code {
-//                                     self.state.edit_selected_sid = None;
-//                                 }
-//                                 Ok(Vec::new())
-//                             }
-//                             _ => {
-//
-//                                 return Ok(Vec::new());
-//                             }
-//                         }
-//                     }
-//                     _ => {
-//                         return Ok(Vec::new());
-//                     }
-//                 }
-//             } else {
-//                 let index: usize = self.focused_child_index().unwrap();
-//                 self.mode_views[index].as_mut().unwrap().handle(key, Some(&mut self.state))
-//             }
-//         }
-//     }
-// }
-
 impl Interactable for GlyphViewer {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
         if !self.is_focused() {
@@ -637,6 +500,7 @@ impl Interactable for GlyphEditOrderView {
                         }
                     }
                     if let KeyCode::Esc = key.code {
+                        self.state.hovered_index = None;
                         self.set_focus(false);
                     }
                     if let KeyCode::Char(c) = key.code {
@@ -653,11 +517,8 @@ impl Interactable for GlyphEditOrderView {
                                 let state: &mut GlyphEditState = parent_state.unwrap().downcast_mut::<GlyphEditState>().unwrap();
                                 let mut entry_state: RefMut<LocalEntryState> = state.local_entry_state_mut().unwrap();
                                 entry_state.create_section_to_active_entry(
-                                    "Hello Glyph",
-                                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n
-                                                                bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n
-                                                                cccccccccccccccccccccccccccccccccccccccccccccccc\n
-                                                                ddddddddddddddddddddddddddddddd"
+                                    "Section",
+                                    "Blank"
                                 )?;
                                 return Ok(Vec::new());
                             }

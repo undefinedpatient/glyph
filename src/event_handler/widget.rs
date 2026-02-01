@@ -1,10 +1,11 @@
-use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, TextField};
+use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, TextEditor, TextField};
 use crate::app::Command;
 use crate::event_handler::{Focusable, Interactable};
 use crate::utils::{get_dir_names, get_file_names};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::any::Any;
 use std::path::PathBuf;
+use crate::state::widget::EditMode;
 
 impl Interactable for Button {
     fn handle(
@@ -220,4 +221,251 @@ impl Interactable for NumberField {
             }
         }
     }
+}
+
+/*
+    Text Editor
+ */
+impl Interactable for TextEditor {
+    fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
+        match self.state.mode {
+            EditMode::Normal => {
+                handle_normal_mode(self, key, parent_state)
+            }
+            EditMode::Insert => {
+                handle_insert_mode(self, key)
+            }
+            EditMode::Visual => {
+                handle_visual_mode(self, key)
+            }
+            EditMode::VisualLine => {
+                handle_visual_line_mode(self, key)
+            }
+        }
+    }
+}
+fn handle_normal_mode(me: &mut TextEditor, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::eyre::Result<Vec<Command>> {
+    match key.kind {
+        KeyEventKind::Press => {
+            if let KeyCode::Esc = key.code {
+                me.set_focus(false);
+                if let Some(mut on_exit) = me.on_exit.take() {
+                    return (*on_exit)(parent_state, Some(&mut me.state));
+                };
+                return Ok(Vec::new());
+            }
+            if let KeyCode::Char(c) = key.code {
+                match c {
+                    'h' => {
+                        me.move_to_previous_char();
+                    }
+                    'j' => {
+                        me.move_to_next_line();
+                    }
+                    'k' => {
+                        me.move_to_previous_line();
+                    }
+                    'l' => {
+                        me.move_to_next_char();
+                    }
+                    'A' => {
+                        me.move_to_end_of_line();
+                        me.switch_mode(EditMode::Insert);
+                    }
+                    '0' => {
+                        me.move_to_start_of_line();
+                    }
+                    '$' => {
+                        me.move_to_end_of_line();
+                    }
+                    'I' => {
+                        me.move_to_start_of_line();
+                        me.switch_mode(EditMode::Insert);
+                    }
+                    'J' => {
+                        me.merge_with_next_line();
+                    }
+                    'w' => {
+                        me.move_to_next_word();
+                    }
+                    'b' => {
+                        me.move_to_previous_word();
+                    }
+                    'x' => {
+                        me.delete_char();
+                    }
+                    'o' => {
+                        me.insert_new_line_below();
+                        me.move_to_next_line();
+                        me.switch_mode(EditMode::Insert);
+                    }
+                    'O' => {
+                        me.insert_new_line_above();
+                        me.switch_mode(EditMode::Insert);
+                    }
+                    'i' => {
+                        me.switch_mode(EditMode::Insert);
+                    }
+                    'v' => {
+                        me.switch_mode(EditMode::Visual);
+                    }
+                    'V' => {
+                        me.switch_mode(EditMode::VisualLine);
+                    }
+                    _ => {
+
+                    }
+                }
+            }
+            if let KeyCode::Left = key.code {
+                me.move_to_previous_char();
+            }
+            if let KeyCode::Right = key.code {
+                me.move_to_next_char();
+            }
+            if let KeyCode::Up = key.code {
+                me.move_to_previous_line();
+            }
+            if let KeyCode::Down = key.code {
+                me.move_to_next_line();
+            }
+            if let KeyCode::Backspace = key.code {
+                me.move_to_previous_char();
+            }
+            Ok(Vec::new())
+        }
+        _ => Ok(Vec::new()),
+    }
+}
+fn handle_insert_mode(me: &mut TextEditor, key: &KeyEvent) -> color_eyre::eyre::Result<Vec<Command>> {
+    match key.kind {
+        KeyEventKind::Press => {
+            if let KeyCode::Esc = key.code {
+                me.switch_mode(EditMode::Normal);
+            }
+            if let KeyCode::Char(c) = key.code {
+                me.insert_char(c);
+            }
+            if let KeyCode::Left = key.code {
+                me.move_to_previous_char();
+            }
+            if let KeyCode::Right = key.code {
+                me.move_to_next_char();
+            }
+            if let KeyCode::Up = key.code {
+                me.move_to_previous_line();
+            }
+            if let KeyCode::Down = key.code {
+                me.move_to_next_line();
+            }
+            if let KeyCode::Backspace = key.code {
+                me.move_to_previous_char();
+                me.delete_char();
+            }
+            if let KeyCode::Enter = key.code {
+                me.cut_into_next_newline();
+            }
+            Ok(Vec::new())
+        }
+        _ => Ok(Vec::new()),
+    }
+
+}
+fn handle_visual_mode(me: &mut TextEditor, key: &KeyEvent) -> color_eyre::eyre::Result<Vec<Command>> {
+    match key.kind {
+        KeyEventKind::Press => {
+            if let KeyCode::Esc = key.code {
+                me.switch_mode(EditMode::Normal);
+            }
+            if let KeyCode::Char(c) = key.code {
+                match c {
+                    'h' => {
+                        me.move_to_previous_char();
+                    }
+                    'j' => {
+                        me.move_to_next_line();
+                    }
+                    'k' => {
+                        me.move_to_previous_line();
+                    }
+                    'l' => {
+                        me.move_to_next_char();
+                    }
+                    'i' => {
+                        me.switch_mode(EditMode::Insert);
+                    }
+                    _ => {
+
+                    }
+                }
+            }
+            if let KeyCode::Left = key.code {
+                me.move_to_next_char();
+            }
+            if let KeyCode::Right = key.code {
+                me.move_to_previous_char();
+            }
+            if let KeyCode::Up = key.code {
+                me.move_to_next_line();
+            }
+            if let KeyCode::Down = key.code {
+                me.move_to_previous_line();
+            }
+            if let KeyCode::Backspace = key.code {
+                me.move_to_previous_char();
+            }
+            Ok(Vec::new())
+        }
+        _ => Ok(Vec::new()),
+    }
+
+}
+fn handle_visual_line_mode(me: &mut TextEditor, key: &KeyEvent) -> color_eyre::eyre::Result<Vec<Command>> {
+    match key.kind {
+        KeyEventKind::Press => {
+            if let KeyCode::Esc = key.code {
+                me.switch_mode(EditMode::Normal);
+            }
+            if let KeyCode::Char(c) = key.code {
+                match c {
+                    'h' => {
+                        me.move_to_previous_char();
+                    }
+                    'j' => {
+                        me.move_to_next_line();
+                    }
+                    'k' => {
+                        me.move_to_previous_line();
+                    }
+                    'l' => {
+                        me.move_to_next_char();
+                    }
+                    'i' => {
+                        me.switch_mode(EditMode::Insert);
+                    }
+                    _ => {
+
+                    }
+                }
+            }
+            if let KeyCode::Left = key.code {
+                me.move_to_next_char();
+            }
+            if let KeyCode::Right = key.code {
+                me.move_to_previous_char();
+            }
+            if let KeyCode::Up = key.code {
+                me.move_to_next_line();
+            }
+            if let KeyCode::Down = key.code {
+                me.move_to_previous_line();
+            }
+            if let KeyCode::Backspace = key.code {
+                me.move_to_previous_char();
+            }
+            Ok(Vec::new())
+        }
+        _ => Ok(Vec::new()),
+    }
+
 }
