@@ -1,20 +1,19 @@
-use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphEditContentView, GlyphNavigationBar, GlyphPage, GlyphOldViewer, OpenGlyphPage, GlyphViewer, GlyphReadView, GlyphLayoutView, GlyphEditView};
+use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphEditContentView, GlyphEditOrderView, GlyphEditView, GlyphLayoutView, GlyphNavigationBar, GlyphPage, GlyphReadView, GlyphViewer, OpenGlyphPage};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use crate::model;
 use crate::model::{LayoutOrientation, LocalEntryState, Section};
-use crate::state::page::{GlyphEditContentState, GlyphMode, GlyphReadState};
+use crate::state::page::GlyphMode;
 use color_eyre::owo_colors::OwoColorize;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Alignment, Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect, Size};
+use ratatui::layout::{Alignment, Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Text};
-use ratatui::widgets::{Block, BorderType, Paragraph, Widget, Wrap};
+use ratatui::widgets::{Block, BorderType, Padding, Paragraph, Widget, Wrap};
 use ratatui::Frame;
 use std::cell::Ref;
 use std::collections::HashMap;
 use std::rc::Rc;
-use serde::de::Unexpected::Option;
 use tui_big_text::{BigText, PixelSize};
 
 macro_rules! block {
@@ -273,233 +272,9 @@ impl Drawable for GlyphNavigationBar {
     }
 }
 
-impl Drawable for GlyphOldViewer {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
-        /*
-           Container Frame
-        */
-        let mut widget_frame: Block = block!("Content", draw_flag);
-        match self.state.mode {
-            GlyphMode::Read => {
-                widget_frame = widget_frame.title_top(Line::from("[ READ ]").right_aligned());
-            }
-            GlyphMode::Layout => {
-                widget_frame = widget_frame.title_top(Line::from("[ LAYOUT ]").right_aligned());
-            }
-            GlyphMode::Edit => {
-                widget_frame = widget_frame.title_top(Line::from("[ EDIT ]").right_aligned());
-            }
-            GlyphMode::EditContent => {
-                widget_frame = widget_frame.title_top(Line::from("[ EDIT TEXT ]").right_aligned());
-            }
-        }
-        let inner_area = widget_frame.inner(area);
-        let inner_areas = Layout::horizontal(
-[
-                Constraint::Fill(1),
-                Constraint::Length(144),
-                Constraint::Fill(1)
-            ]
-        ).split(inner_area);
-        let content_area: Rect = inner_areas[1];
-        widget_frame.render(area, frame.buffer_mut());
 
 
-        /*
 
-         */
-        if self.state.local_entry_state_ref().unwrap().active_entry_id.is_none() {
-            let message: Paragraph = Paragraph::new("No Entry Selected").alignment(Alignment::Center);
-            let center_area = content_area.centered(Constraint::Fill(1), Constraint::Length(3));
-            message.render(center_area, frame.buffer_mut());
-            return;
-        }
-        match self.state.mode  {
-            /*
-                READ
-             */
-            GlyphMode::Read => {
-                draw_read_view(self, inner_areas[1], frame.buffer_mut(), draw_flag);
-            }
-            /*
-                LAYOUT
-             */
-            GlyphMode::Layout => {
-                let virtual_area = Size::new(content_area.width, content_area.height*3);
-                // let mut scroll_view = ScrollView::new(virtual_area);
-                // scroll_view = scroll_view.horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
-                draw_layout_view(self, inner_areas[1], frame.buffer_mut(), draw_flag);
-                // scroll_view.render(inner_area, frame.buffer_mut(), &mut self.state.scroll_state.borrow_mut());
-            }
-            /*
-               EDIT
-             */
-            GlyphMode::Edit => {
-                draw_edit_view(self, frame, content_area);
-            }
-            /*
-               EDIT CONTENT
-             */
-            GlyphMode::EditContent => {
-                self.mode_views[3].as_ref().unwrap().render(frame, content_area, DrawFlag::DEFAULT);
-            }
-        }
-
-
-        /*
-            Dialog
-         */
-        if !self.dialogs.is_empty() {
-            for (i, dialog) in self.dialogs.iter().enumerate() {
-                if i == self.dialogs.len() - 1 {
-                    dialog.render(frame, area, DrawFlag::FOCUSED);
-                } else {
-                    dialog.render(frame, area, DrawFlag::DEFAULT);
-                }
-            }
-        }
-    }
-}
-
-fn draw_layout_view(me: &GlyphOldViewer, layout_area: Rect, buffer: &mut Buffer, draw_flag: DrawFlag) {
-    let entry_state: Ref<LocalEntryState> = me.state.local_entry_state_ref().unwrap();
-    let entry_layout: &model::Layout = &entry_state.get_active_entry_ref().unwrap().layout.1;
-    evaluate_layout(me, layout_area, buffer, entry_layout, 0,0);
-}
-
-fn draw_read_view(me: &GlyphOldViewer, layout_area: Rect, buffer: &mut Buffer, draw_flag: DrawFlag) {
-
-}
-
-
-fn evaluate_layout(me: &GlyphOldViewer, area: Rect, buffer: &mut Buffer, layout: &model::Layout, depth: u16, at: usize) -> Vec<(u16, Rect)>{
-    let mut target_section_text: String = "None".to_string();
-    if let Some(position_target) = layout.section_index {
-        target_section_text = position_target.to_string();
-    }
-
-    let focused_coordinate = me.state.layout_selected_coordinate.clone();
-    let mut block: Block = Block::bordered().title(layout.label.as_str());
-    if depth == focused_coordinate.len() as u16 {
-        if let Some(focused_index) = focused_coordinate.last() {
-            if *focused_index == at {
-                block = block.border_type(BorderType::Thick);
-            }
-        } else if depth == 0 {
-            block = block.border_type(BorderType::Thick);
-        }
-    } else if let Some(hovered_index) = me.state.layout_hovered_index {
-        if depth == focused_coordinate.len() as u16 + 1 && at == hovered_index  {
-            block = block.border_type(BorderType::Double);
-        }
-    }
-    if !layout.sub_layouts.is_empty() {
-        block = block.title_bottom(Line::from(target_section_text).dim());
-    } else {
-        block = block.title_bottom(Line::from(target_section_text));
-
-    }
-
-    let recursive_area: Rect = block.inner(area);
-    block.render(area, buffer);
-
-
-    // Process the child
-    let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
-        |(index, sub)| {
-            if (sub.details.flex != 0) {
-                Constraint::Fill(sub.details.flex)
-            } else {
-                Constraint::Length(sub.details.length)
-            }
-        }
-    ).collect();
-    let sub_areas =
-        match layout.details.orientation {
-            LayoutOrientation::Vertical => {
-                Layout::vertical(constraints).split(recursive_area)
-            }
-            LayoutOrientation::Horizontal => {
-                Layout::horizontal(constraints).split(recursive_area)
-            }
-        };
-
-    let mut areas: Vec<(u16, Rect)> = vec![];
-    if let Some(section_index) = layout.section_index {
-        areas.push((section_index, recursive_area));
-    }
-    for (i, sub_layout) in layout.sub_layouts.iter().enumerate() {
-        areas = [areas, evaluate_layout(
-            me,
-            sub_areas[i],
-            buffer,
-            sub_layout,
-            depth + 1,
-            i,
-        )].concat()
-    }
-    areas
-}
-
-fn draw_edit_view(me: &GlyphOldViewer, frame: &mut Frame, section_area: Rect) {
-    let entry_state:Ref<LocalEntryState> = me.state.entry_state.borrow();
-    let active_entry_id: i64 = entry_state.active_entry_id.unwrap();
-    let entry= entry_state.entries.get(&active_entry_id).unwrap();
-    let mut section_list: Vec<(&i64, &Section)> = entry.sections.iter().map(
-        |(key, value): (&i64, &Section)| {
-            (key, value)
-        }
-    ).collect::<Vec<(&i64, &Section)>>();
-    section_list.sort_by_key(|item|{*((*item).0)});
-
-    let draw_section_list: Vec<((u32, u32), Paragraph)> = section_list.iter().enumerate().map(
-        |(i, (key, value)): (usize, &(&i64, &Section))| {
-            let text = Text::from(value.content.clone());
-            let mut section_dimension: (u32, u32) = (Text::width(&text) as u32 + 2, Text::height(&text) as u32 + 3);
-
-            let mut paragraph_frame: Block = Block::bordered();
-            if let Some(index) = me.state.edit_hovered_index {
-                if index == i {
-                    paragraph_frame = paragraph_frame.border_type(BorderType::Double)
-                }
-            }
-            if let Some(sid) = me.state.edit_selected_sid {
-                if sid == **key {
-                    paragraph_frame = paragraph_frame.border_type(BorderType::Thick)
-                }
-
-            }
-            let paragraph = Paragraph::new(text)
-                .block(paragraph_frame.title(value.title.clone()).title_bottom(value.position.to_string()));
-
-            return (section_dimension, paragraph);
-        }
-    ).collect();
-
-
-    let mut stack_height: u16 = 0u16;
-    let section_constraints: Vec<Constraint> = draw_section_list.iter().take_while(
-        |((w,h), paragraph): &&((u32, u32), Paragraph)|{
-            if stack_height>section_area.height {
-                return false;
-            }
-            stack_height += *h as u16;
-            true
-        }).map(
-        |((w,h),_)| {
-            Constraint::Length(*h as u16)
-        }
-    ).collect();
-    let section_areas = Layout::vertical(section_constraints).split(section_area);
-
-    for (index, (_ ,paragraph)) in draw_section_list.iter().enumerate() {
-        if index >= section_areas.len() {
-            break;
-        }
-        paragraph.render(section_areas[index], frame.buffer_mut());
-    }
-
-}
 
 impl Drawable for GlyphViewer {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
@@ -511,14 +286,11 @@ impl Drawable for GlyphViewer {
             GlyphMode::Read => {
                 widget_frame = widget_frame.title_top(Line::from("[ READ ]").right_aligned());
             }
-            GlyphMode::Layout => {
-                widget_frame = widget_frame.title_top(Line::from("[ LAYOUT ]").right_aligned());
-            }
             GlyphMode::Edit => {
                 widget_frame = widget_frame.title_top(Line::from("[ EDIT ]").right_aligned());
             }
-            GlyphMode::EditContent => {
-                widget_frame = widget_frame.title_top(Line::from("[ EDIT TEXT ]").right_aligned());
+            GlyphMode::Layout => {
+                widget_frame = widget_frame.title_top(Line::from("[ LAYOUT ]").right_aligned());
             }
         }
         let inner_area = widget_frame.inner(area);
@@ -536,14 +308,11 @@ impl Drawable for GlyphViewer {
             GlyphMode::Read => {
                 self.containers[0].as_ref().render(frame, inner_area, draw_flag);
             }
-            GlyphMode::Layout => {
+            GlyphMode::Edit => {
                 self.containers[1].as_ref().render(frame, inner_area, draw_flag);
             }
-            GlyphMode::Edit => {
+            GlyphMode::Layout => {
                 self.containers[2].as_ref().render(frame, inner_area, draw_flag);
-            }
-            GlyphMode::EditContent => {
-                self.containers[3].as_ref().render(frame, inner_area, draw_flag);
             }
         }
     }
@@ -612,18 +381,101 @@ fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &model::Layout, d
     areas
 
 }
-impl Drawable for GlyphLayoutView {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
 
-    }
-
-}
 impl Drawable for GlyphEditView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
 
+        // /*
+        //     Dialog
+        //  */
+        // if !self.dialogs.is_empty() {
+        //     for (i, dialog) in self.dialogs.iter().enumerate() {
+        //         if i == self.dialogs.len() - 1 {
+        //             dialog.render(frame, area, DrawFlag::FOCUSED);
+        //         } else {
+        //             dialog.render(frame, area, DrawFlag::DEFAULT);
+        //         }
+        //     }
+        // }
+
+        /*
+           Container Frame
+        */
+        let inner_areas = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(2)]).split(area);
+        self.containers[0].render(frame, inner_areas[0], DrawFlag::DEFAULT);
+        self.containers[1].render(frame, inner_areas[1], DrawFlag::DEFAULT);
+
     }
 }
 
+
+
+
+impl Drawable for GlyphEditOrderView{
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+
+        let state = self.state.entry_state.borrow();
+        let eid = state.active_entry_id.unwrap();
+        let sections_ref = state.get_sections_ref(&eid);
+        let section_order = self.get_sids();
+        let section_list: Vec<(&i64, &Section)> = section_order.iter().filter_map(
+            |sid| {
+                if let Some(section) = sections_ref.get(sid) {
+                    return Some((sid, section));
+                }
+                None
+            }
+        ).collect();
+        let edit_area = area.centered_horizontally(Constraint::Percentage(90));
+        let draw_section_list: Vec<((u32, u32), Paragraph)> = section_list.iter().enumerate().map(
+            |(i, (key, value)): (usize, &(&i64, &Section))| {
+                let text = Text::from(value.content.clone());
+                let mut section_dimension: (u32, u32) = (Text::width(&text) as u32 + 2, Text::height(&text) as u32 + 3);
+
+                let mut paragraph_frame: Block = Block::bordered();
+                if let Some(index) = self.state.hovered_index {
+                    if index == i {
+                        paragraph_frame = paragraph_frame.border_type(BorderType::Double)
+                    }
+                }
+                if let Ok(o_sid) = self.state.selected_sid.try_borrow() {
+                    if let Some(sid) = *o_sid {
+                        if sid == **key {
+                            paragraph_frame = paragraph_frame.border_type(BorderType::Thick)
+                        }
+                    }
+                }
+                let paragraph = Paragraph::new(text)
+                    .block(paragraph_frame.title(value.title.clone()).title_bottom(value.position.to_string()));
+
+                return (section_dimension, paragraph);
+            }
+        ).collect();
+
+
+        let mut stack_height: u16 = 0u16;
+        let section_constraints: Vec<Constraint> = draw_section_list.iter().take_while(
+            |((w,h), paragraph): &&((u32, u32), Paragraph)|{
+                if stack_height>area.height {
+                    return false;
+                }
+                stack_height += *h as u16;
+                true
+            }).map(
+            |((w,h),_)| {
+                Constraint::Length(*h as u16)
+            }
+        ).collect();
+        let section_areas = Layout::vertical(section_constraints).split(edit_area);
+
+        for (index, (_ ,paragraph)) in draw_section_list.iter().enumerate() {
+            if index >= section_areas.len() {
+                break;
+            }
+            paragraph.render(section_areas[index], frame.buffer_mut());
+        }
+    }
+}
 
 impl Drawable for GlyphEditContentView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
@@ -646,3 +498,174 @@ impl Drawable for GlyphEditContentView {
         );
     }
 }
+
+impl Drawable for GlyphLayoutView {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+        let entry_state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
+        let entry_layout: &model::Layout = &entry_state.get_active_entry_ref().unwrap().layout.1;
+        let layout_area = area.centered_horizontally(Constraint::Percentage(90));
+        evaluate_layout(self, layout_area, frame.buffer_mut(), entry_layout, 0, Vec::new());
+        /*
+            Dialog
+         */
+        if !self.dialogs.is_empty() {
+            for (i, dialog) in self.dialogs.iter().enumerate() {
+                if i == self.dialogs.len() - 1 {
+                    dialog.render(frame, area, DrawFlag::FOCUSED);
+                } else {
+                    dialog.render(frame, area, DrawFlag::DEFAULT);
+                }
+            }
+        }
+    }
+
+}
+
+fn evaluate_layout(me: &GlyphLayoutView, area: Rect, buffer: &mut Buffer, layout: &model::Layout, depth: u16, at: Vec<usize>) -> Vec<(u16, Rect)>{
+    let mut target_section_text: String = "None".to_string();
+    if let Some(position_target) = layout.section_index {
+        target_section_text = position_target.to_string();
+    }
+
+    let focused_coordinate = &me.state.selected_coordinate;
+
+    let mut block: Block = Block::bordered().title(layout.label.as_str()).padding(Padding {left: 1, right: 1, top: 1, bottom: 1});
+    if at == *focused_coordinate {
+        block = block.border_type(BorderType::Thick).title_style(Style::new().bold());
+
+    } else if let Some(hovered_index) = me.state.hovered_index {
+        let mut hover_coordinate = me.state.selected_coordinate.clone();
+        hover_coordinate.push(hovered_index);
+        if hover_coordinate == at {
+            block = block.border_type(BorderType::Double);
+        }
+    }
+    if !layout.sub_layouts.is_empty() {
+        block = block.title_bottom(Line::from("(Disabled)").dim());
+    } else {
+        block = block.title_bottom(Line::from(target_section_text));
+
+    }
+
+    let recursive_area: Rect = block.inner(area);
+    block.render(area, buffer);
+
+
+    // Process the child
+    let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
+        |(index, sub)| {
+            if (sub.details.flex != 0) {
+                Constraint::Fill(sub.details.flex)
+            } else {
+                Constraint::Length(sub.details.length)
+            }
+        }
+    ).collect();
+    let sub_areas =
+        match layout.details.orientation {
+            LayoutOrientation::Vertical => {
+                Layout::vertical(constraints).split(recursive_area)
+            }
+            LayoutOrientation::Horizontal => {
+                Layout::horizontal(constraints).split(recursive_area)
+            }
+        };
+
+    let mut areas: Vec<(u16, Rect)> = vec![];
+    if let Some(section_index) = layout.section_index {
+        areas.push((section_index, recursive_area));
+    }
+    for (i, sub_layout) in layout.sub_layouts.iter().enumerate() {
+        let mut sub_at = at.clone();
+        sub_at.push(i);
+        areas = [areas, evaluate_layout(
+            me,
+            sub_areas[i],
+            buffer,
+            sub_layout,
+            depth + 1,
+            sub_at
+        )].concat()
+    }
+    areas
+}
+
+//
+// impl Drawable for GlyphOldViewer {
+//     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag) {
+//         /*
+//            Container Frame
+//         */
+//         let mut widget_frame: Block = block!("Content", draw_flag);
+//         match self.state.mode {
+//             GlyphMode::Read => {
+//                 widget_frame = widget_frame.title_top(Line::from("[ READ ]").right_aligned());
+//             }
+//             GlyphMode::Layout => {
+//                 widget_frame = widget_frame.title_top(Line::from("[ LAYOUT ]").right_aligned());
+//             }
+//             GlyphMode::Edit => {
+//                 widget_frame = widget_frame.title_top(Line::from("[ EDIT ]").right_aligned());
+//             }
+//         }
+//         let inner_area = widget_frame.inner(area);
+//         let inner_areas = Layout::horizontal(
+// [
+//                 Constraint::Fill(1),
+//                 Constraint::Length(144),
+//                 Constraint::Fill(1)
+//             ]
+//         ).split(inner_area);
+//         let content_area: Rect = inner_areas[1];
+//         widget_frame.render(area, frame.buffer_mut());
+//
+//
+//         /*
+//
+//          */
+//         if self.state.local_entry_state_ref().unwrap().active_entry_id.is_none() {
+//             let message: Paragraph = Paragraph::new("No Entry Selected").alignment(Alignment::Center);
+//             let center_area = content_area.centered(Constraint::Fill(1), Constraint::Length(3));
+//             message.render(center_area, frame.buffer_mut());
+//             return;
+//         }
+//         match self.state.mode  {
+//             /*
+//                 READ
+//              */
+//             GlyphMode::Read => {
+//                 draw_read_view(self, inner_areas[1], frame.buffer_mut(), draw_flag);
+//             }
+//             /*
+//                 LAYOUT
+//              */
+//             GlyphMode::Layout => {
+//                 let virtual_area = Size::new(content_area.width, content_area.height*3);
+//                 // let mut scroll_view = ScrollView::new(virtual_area);
+//                 // scroll_view = scroll_view.horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
+//                 draw_layout_view(self, inner_areas[1], frame.buffer_mut(), draw_flag);
+//                 // scroll_view.render(inner_area, frame.buffer_mut(), &mut self.state.scroll_state.borrow_mut());
+//             }
+//             /*
+//                EDIT
+//              */
+//             GlyphMode::Edit => {
+//                 draw_edit_view(self, frame, content_area);
+//             }
+//         }
+//
+//
+//         /*
+//             Dialog
+//          */
+//         if !self.dialogs.is_empty() {
+//             for (i, dialog) in self.dialogs.iter().enumerate() {
+//                 if i == self.dialogs.len() - 1 {
+//                     dialog.render(frame, area, DrawFlag::FOCUSED);
+//                 } else {
+//                     dialog.render(frame, area, DrawFlag::DEFAULT);
+//                 }
+//             }
+//         }
+//     }
+// }

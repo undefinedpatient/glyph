@@ -1,4 +1,4 @@
-use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphEditContentView, GlyphNavigationBar, GlyphPage, GlyphOldViewer, OpenGlyphPage, GlyphViewer, GlyphReadView, GlyphLayoutView, GlyphEditView};
+use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphEditContentView, GlyphEditOrderView, GlyphEditView, GlyphLayoutView, GlyphNavigationBar, GlyphOldViewer, GlyphPage, GlyphReadView, GlyphViewer, OpenGlyphPage};
 use crate::app::Container;
 use crate::event_handler::Focusable;
 
@@ -216,7 +216,7 @@ impl Focusable for GlyphReadView {
     fn focused_child_index(&self) -> Option<usize> {
         None
     }
-    
+
 }
 impl Focusable for GlyphLayoutView {
     fn is_focused(&self) -> bool {
@@ -235,7 +235,7 @@ impl Focusable for GlyphLayoutView {
     fn focused_child_index(&self) -> Option<usize> {
         None
     }
-    
+
 }
 impl Focusable for GlyphEditView {
 
@@ -257,13 +257,29 @@ impl Focusable for GlyphEditView {
     }
 }
 
-impl Focusable for GlyphEditContentView {
+impl Focusable for GlyphEditOrderView{
     fn is_focused(&self) -> bool {
-        self.state.is_focused.borrow().clone()
+        self.state.is_focused
     }
     fn set_focus(&mut self, value: bool) -> () {
-        let mut focus = self.state.is_focused.borrow_mut();
-        *focus = value;
+        self.state.is_focused = value;
+    }
+    fn focused_child_ref(&self) -> Option<&dyn Container> {
+        None
+    }
+    fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
+        None
+    }
+    fn focused_child_index(&self) -> Option<usize> {
+        None
+    }
+}
+impl Focusable for GlyphEditContentView {
+    fn is_focused(&self) -> bool {
+        self.state.is_focused
+    }
+    fn set_focus(&mut self, value: bool) -> () {
+        self.state.is_focused = value;
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {
         for container in &self.containers {

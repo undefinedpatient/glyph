@@ -1,4 +1,4 @@
-use crate::model::{Entry, LocalEntryState, Section};
+use crate::model::LocalEntryState;
 use std::cell::{Ref, RefCell, RefMut};
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -61,21 +61,19 @@ pub struct GlyphOldViewerState {
 /*
 
     Glyph Views
-    
+
  */
 
 pub enum GlyphMode {
     Read,
     Layout,
     Edit,
-    EditContent,
 }
-
 // This is the mediator of all views
 pub struct GlyphViewerState {
     pub is_focused: Rc<RefCell<bool>>, // Shared state across all view
     pub mode: GlyphMode,
-    
+
     // Shared Data
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
@@ -90,8 +88,8 @@ pub struct GlyphReadState {
 pub struct GlyphEditState {
     pub is_focused: Rc<RefCell<bool>>, // Shared state across all view
     pub hovered_index: Option<usize>,
-    pub selected_sid: Option<i64>,
     // Shared Data
+    pub selected_sid: Rc<RefCell<Option<i64>>>,
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
 
@@ -104,12 +102,19 @@ pub struct GlyphLayoutState {
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
 
-pub struct GlyphEditContentState {
-    pub is_focused: Rc<RefCell<bool>>, // Shared state across all view
+pub struct GlyphEditOrderState {
+    pub is_focused: bool, // Shared state across all view
     pub hovered_index: Option<usize>,
-    pub offset: usize,
 
     // Shared Data
+    pub selected_sid: Rc<RefCell<Option<i64>>>,
+    pub entry_state: Rc<RefCell<LocalEntryState>>,
+}
+pub struct GlyphEditContentState {
+    pub is_focused: bool, // Shared state across all view
+    pub hovered_index: Option<usize>,
+    // Shared Data
+    pub selected_sid: Rc<RefCell<Option<i64>>>,
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
 impl GlyphPageState {
@@ -202,7 +207,26 @@ impl GlyphLayoutState{
         ).ok()
     }
 }
+
 impl GlyphEditState{
+    pub(crate) fn local_entry_state_ref(&'_  self) -> Option<Ref<'_, LocalEntryState>> {
+        Ref::filter_map(
+            self.entry_state.try_borrow().ok()?,
+            |state| {
+                Some(state)
+            }
+        ).ok()
+    }
+    pub(crate) fn local_entry_state_mut(&'_ mut self) -> Option<RefMut<'_, LocalEntryState>> {
+        RefMut::filter_map(
+            self.entry_state.try_borrow_mut().ok()?,
+            |state| {
+                Some(state)
+            }
+        ).ok()
+    }
+}
+impl GlyphEditOrderState {
     pub(crate) fn local_entry_state_ref(&'_  self) -> Option<Ref<'_, LocalEntryState>> {
         Ref::filter_map(
             self.entry_state.try_borrow().ok()?,

@@ -3,16 +3,28 @@ use crate::app::widget::{Button, DirectoryList, TextField};
 use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::AppCommand;
 use crate::app::{Component, Container};
-use crate::model::{Entry, Glyph, GlyphRepository, LocalEntryState, Section};
-use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphEditContentState, GlyphMode, GlyphNavigationBarState, GlyphPageState, GlyphOldViewerState, OpenGlyphPageState, GlyphViewerState, GlyphReadState, GlyphLayoutState, GlyphEditState};
+use crate::model::{GlyphRepository, LocalEntryState};
+use crate::state::page::{
+    CreateGlyphPageState,
+    EntrancePageState,
+    GlyphEditContentState,
+    GlyphEditOrderState,
+    GlyphEditState,
+    GlyphLayoutState,
+    GlyphMode,
+    GlyphNavigationBarState,
+    GlyphOldViewerState,
+    GlyphPageState,
+    GlyphReadState,
+    GlyphViewerState,
+    OpenGlyphPageState};
 use crate::state::widget::DirectoryListState;
 use crate::state::AppState;
 use crate::utils::cycle_offset;
 use rusqlite::fallible_iterator::FallibleIterator;
 use rusqlite::Connection;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::rc::Rc;
-use rusqlite::types::Type::Text;
 use tui_scrollview::ScrollViewState;
 
 pub struct EntrancePage {
@@ -316,6 +328,7 @@ pub struct GlyphReadView {
 }
 
 pub struct GlyphLayoutView{
+    pub dialogs: Vec<Box<dyn Container>>,
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
     pub state: GlyphLayoutState,
@@ -326,6 +339,12 @@ pub struct GlyphEditView {
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
     pub state: GlyphEditState,
+}
+
+pub struct GlyphEditOrderView{
+    pub containers: Vec<Box<dyn Container>>,
+    pub components: Vec<Box<dyn Component>>,
+    pub state: GlyphEditOrderState,
 }
 
 pub struct GlyphEditContentView {
@@ -340,8 +359,8 @@ impl GlyphViewer {
         Self {
             containers: [
                 GlyphReadView::new(focus_state.clone(), entry_state.clone()).into(),
-                GlyphReadView::new(focus_state.clone(), entry_state.clone()).into(),
-                GlyphReadView::new(focus_state.clone(), entry_state.clone()).into(),
+                GlyphEditView::new(focus_state.clone(), entry_state.clone()).into(),
+                GlyphLayoutView::new(focus_state.clone(), entry_state.clone()).into(),
             ],
             state: GlyphViewerState {
                 is_focused: focus_state,
@@ -362,7 +381,6 @@ impl GlyphReadView {
             state: GlyphReadState {
                 is_focused: focus,
 
-
                 entry_state
             }
         }
@@ -371,6 +389,7 @@ impl GlyphReadView {
 impl GlyphLayoutView {
     pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         Self {
+            dialogs: vec![],
             containers: vec![],
             components: vec![],
             state: GlyphLayoutState {
@@ -382,24 +401,83 @@ impl GlyphLayoutView {
             }
         }
     }
+    pub(crate) fn cycle_layout_hover(&mut self, offset: i16) -> () {
+        let select_coordinate: Vec<usize> = self.state.selected_coordinate.clone();
+        let state = self.state.local_entry_state_ref().unwrap();
+        let eid = state.active_entry_id.unwrap();
+        let ref_layout = state.get_entry_layout_ref(&eid).unwrap();
+        let len = ref_layout.get_layout_at_ref(&select_coordinate).unwrap().sub_layouts.len();
+        drop(state);
+        if let Some(hover_index) = self.state.hovered_index{
+            self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, len as u16) as usize);
+        } else {
+            if len > 0 {
+                self.state.hovered_index = Some(0);
+            }
+        }
+    }
 }
 impl GlyphEditView {
     pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+        let selected_sid: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(None));
         Self {
-            containers: vec![],
-            components: vec![],
+            containers: vec![
+                GlyphEditOrderView::new(selected_sid.clone(), entry_state.clone()).into(),
+                GlyphEditContentView::new(selected_sid.clone(), entry_state.clone()).into()
+            ],
+            components: vec![
+            ],
             state: GlyphEditState {
                 is_focused: focus,
                 hovered_index: None,
-                selected_sid: None,
 
+                selected_sid,
                 entry_state
             }
         }
     }
 }
+
+impl GlyphEditOrderView{
+    pub fn new(selected_sid: Rc<RefCell<Option<i64>>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+        Self {
+            containers: vec![
+            ],
+            components: vec![
+            ],
+            state: GlyphEditOrderState {
+                is_focused: false,
+                hovered_index: None,
+
+                selected_sid,
+                entry_state
+            }
+        }
+    }
+    pub(crate) fn cycle_section_hover(&mut self, offset: i16) -> () {
+        let state = self.state.local_entry_state_mut().unwrap();
+        let eid = state.active_entry_id.unwrap();
+        let len = state.get_num_sections(&eid);
+        drop(state);
+        if let Some(hover_index) = self.state.hovered_index {
+            self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, len as u16) as usize);
+        } else {
+            self.state.hovered_index = Some(0);
+        }
+    }
+    pub(crate) fn get_sids(&self) -> Vec<i64> {
+        let entry_state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
+        let active_entry_id: i64 = entry_state.active_entry_id.unwrap();
+        let entry= entry_state.entries.get(&active_entry_id).unwrap();
+        entry.sections.iter().map(
+            |(key, value)| {*key}
+        ).collect::<Vec<i64>>()
+    }
+
+}
+
 impl GlyphEditContentView {
-    pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+    pub fn new(selected_sid: Rc<RefCell<Option<i64>>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         Self {
             containers: vec![
                 TextField::new("title", String::from("")).into(),
@@ -410,9 +488,10 @@ impl GlyphEditContentView {
                 Button::new("Confirm").into(),
             ],
             state: GlyphEditContentState {
-                is_focused: focus,
+                is_focused: false,
                 hovered_index: None,
-                offset: 0,
+
+                selected_sid,
                 entry_state
             }
         }
@@ -443,6 +522,11 @@ impl From<GlyphLayoutView> for Box<dyn Container> {
 }
 impl From<GlyphEditView> for Box<dyn Container> {
     fn from(container: GlyphEditView) -> Self {
+        Box::new(container)
+    }
+}
+impl From<GlyphEditOrderView> for Box<dyn Container> {
+    fn from(container: GlyphEditOrderView) -> Self {
         Box::new(container)
     }
 }
@@ -493,17 +577,6 @@ impl GlyphOldViewer {
                 entry_state
             },
             mode_views: [const { None }; 4],
-        }
-    }
-    pub(crate) fn cycle_section_hover(&mut self, offset: i16) -> () {
-        let state = self.state.local_entry_state_mut().unwrap();
-        let eid = state.active_entry_id.unwrap();
-        let len = state.get_local_num_sections(&eid);
-        drop(state);
-        if let Some(hover_index) = self.state.edit_hovered_index {
-            self.state.edit_hovered_index = Some(cycle_offset(hover_index as u16, offset, len as u16) as usize);
-        } else {
-            self.state.edit_hovered_index = Some(0);
         }
     }
     pub(crate) fn cycle_layout_hover(&mut self, offset: i16) -> () {

@@ -101,12 +101,16 @@ impl LocalEntryState {
             Err(Report::msg("No active entry found"))
         }
     }
-    pub fn get_local_num_sections(&self, eid: &i64) -> usize {
+    pub fn get_num_sections(&self, eid: &i64) -> usize {
         if let Some(entry) = self.entries.get(eid){
             entry.sections.len()
         } else {
             0
         }
+    }
+    pub fn get_sections_ref(&self, eid: &i64) -> &HashMap<i64, Section> {
+        let entry: &Entry = self.entries.get(eid).unwrap();
+        &entry.sections
     }
 
 
