@@ -408,18 +408,24 @@ impl Drawable for GlyphEditView {
         /*
            Container Frame
         */
+        let focused_panel_index = *self.state.focused_panel_index.borrow();
         let inner_areas = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(2)]).split(area);
         self.containers[0].render(frame, inner_areas[0],
-                                  if self.state.editing_sid.borrow().is_none() {
+                                  if !self.is_focused() {
+                                      DrawFlag::DEFAULT
+                                  }
+                                  else if focused_panel_index == 0 {
                                       DrawFlag::FOCUSED
                                   } else {
                                       DrawFlag::DEFAULT
                                   },
                                   theme
-                                  ,
         );
         self.containers[1].render(frame, inner_areas[1],
-                                  if self.state.editing_sid.borrow().is_some() {
+                                  if !self.is_focused() {
+                                      DrawFlag::DEFAULT
+                                  }
+                                  else if focused_panel_index == 1 {
                                       DrawFlag::FOCUSED
                                   } else {
                                       DrawFlag::DEFAULT
@@ -440,7 +446,8 @@ impl Drawable for GlyphEditOrderView{
         /*
            Container Frame
         */
-        let mut widget_frame: Block = block!("", draw_flag);
+        let mut widget_frame: Block = block!("", draw_flag).title(Line::from("(q)").right_aligned());
+
 
         let inner_area = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
@@ -469,7 +476,7 @@ impl Drawable for GlyphEditOrderView{
                         paragraph_frame = paragraph_frame.border_type(BorderType::Double)
                     }
                 }
-                if let Ok(o_sid) = self.state.selected_sid.try_borrow() {
+                if let Ok(o_sid) = self.state.editing_sid.try_borrow() {
                     if let Some(sid) = *o_sid {
                         if sid == **key {
                             paragraph_frame = paragraph_frame.border_type(BorderType::Thick)
@@ -513,7 +520,14 @@ impl Drawable for GlyphEditContentView {
         /*
            Container Frame
         */
-        let mut widget_frame: Block = block!("", draw_flag);
+        let mut widget_frame: Block = block!("", draw_flag).title_top("(e)");
+
+
+        // When has no editing sid
+        if self.state.editing_sid.borrow().is_none() {
+            widget_frame = widget_frame.dim();
+        }
+
 
         let inner_area = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
@@ -523,6 +537,7 @@ impl Drawable for GlyphEditContentView {
 
         let hover_index = self.state.hovered_index;
         self.containers[0].render(frame, title_button_areas[0],
+
                                   get_draw_flag(hover_index, 0, Some(self.containers[0].is_focused())),
                                   theme
         );

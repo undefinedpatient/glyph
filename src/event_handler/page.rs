@@ -12,7 +12,7 @@ use crate::app::Convertible;
 use crate::event_handler::{Focusable, Interactable};
 use crate::model::{GlyphRepository, Layout, LayoutOrientation, LocalEntryState};
 use crate::state::dialog::TextInputDialogState;
-use crate::state::page::{CreateGlyphPageState, GlyphEditState, GlyphLayoutState, GlyphMode, GlyphPageState};
+use crate::state::page::{CreateGlyphPageState, GlyphEditContentState, GlyphEditState, GlyphLayoutState, GlyphMode, GlyphPageState};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use rusqlite::fallible_iterator::FallibleIterator;
@@ -494,14 +494,16 @@ impl Interactable for GlyphEditOrderView {
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.state.hovered_index {
-                            let mut sid = self.state.selected_sid.borrow_mut();
-                            *sid = Some(self.get_sids()[index]);
+                            let mut editing_sid = self.state.editing_sid.borrow_mut();
+                            *editing_sid = Some(self.get_sids()[index]);
                             return Ok(vec![GlyphCommand(RefreshEditSection)]);
                         }
                     }
                     if let KeyCode::Esc = key.code {
-                        self.state.hovered_index = None;
-                        self.set_focus(false);
+                        // Directly mutating parent state to lose focus
+                        let parent_state = parent_state.unwrap().downcast_mut::<GlyphEditState>().unwrap();
+                        *parent_state.is_focused.borrow_mut() = false;
+                        return Ok(Vec::new());
                     }
                     if let KeyCode::Char(c) = key.code {
                         match c {
@@ -523,9 +525,7 @@ impl Interactable for GlyphEditOrderView {
                                 return Ok(Vec::new());
                             }
                             'e' => {
-                                if let Some(sid) = *self.state.selected_sid.borrow_mut() {
-                                    self.state.editing_sid.borrow_mut().replace(sid);
-                                }
+                                *self.state.focused_panel_index.borrow_mut() = 1;
                                 return Ok(Vec::new());
                             }
                             _ => {
@@ -550,8 +550,33 @@ impl Interactable for GlyphEditOrderView {
 }
 impl Interactable for GlyphEditView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
-        if self.state.editing_sid.borrow().is_some() {
-            self.containers[1].as_mut().handle(key, Some(&mut self.state))
+        let focused_panel_index = *self.state.focused_panel_index.borrow();
+        if focused_panel_index == 1 {
+            let result = self.containers[1].as_mut().handle(key, Some(&mut self.state));
+            return if result.is_err() {
+                result
+            } else {
+                let mut processed_commands: Vec<Command> = Vec::new();
+                let mut commands = result?;
+                while let Some(command) = commands.pop() {
+                    match command {
+                        GlyphCommand(com) => {
+                            match com {
+                                RefreshEditSection => {
+                                    (*self.containers[1]).as_any_mut().downcast_mut::<GlyphEditContentView>().unwrap().refresh_section();
+                                }
+                                _ => {
+                                    processed_commands.insert(0, GlyphCommand(com));
+                                }
+                            }
+                        }
+                        _ => {
+                            processed_commands.insert(0, command);
+                        }
+                    }
+                }
+                Ok(processed_commands)
+            }
         } else {
             let result = self.containers[0].as_mut().handle(key, Some(&mut self.state));
             return if result.is_err() {
@@ -587,6 +612,8 @@ impl Interactable for GlyphEditView {
 
 impl Interactable for GlyphEditContentView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
+        // When no editing section exist, none of the child widget should process user input
+        let has_section_editing =  self.state.editing_sid.borrow().is_some();
         if self.focused_child_ref().is_none() {
             match key.kind {
                 KeyEventKind::Press => {
@@ -599,12 +626,26 @@ impl Interactable for GlyphEditContentView {
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Esc = key.code {
-                        self.state.editing_sid.borrow_mut().take();
-                        return Ok(Vec::new());
-
+                        // Directly mutating parent state to lose focus
+                        let parent_state = parent_state.unwrap().downcast_mut::<GlyphEditState>().unwrap();
+                        *parent_state.is_focused.borrow_mut() = false;
+                    }
+                    if let KeyCode::Char(c) = key.code {
+                        match c {
+                            'q' => {
+                                *self.state.focused_panel_index.borrow_mut() = 0;
+                                return Ok(Vec::new());
+                            }
+                            _ => {
+                                return Ok(Vec::new());
+                            }
+                        }
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.state.hovered_index {
+                            if !has_section_editing {
+                                return Ok(Vec::new());
+                            }
                             match index {
                                 0 => {
                                     self.containers[0].set_focus(true);
@@ -613,10 +654,10 @@ impl Interactable for GlyphEditContentView {
                                     self.containers[1].set_focus(true);
                                 }
                                 2 => {
-                                    self.components[0].handle(key, Some(&mut self.state))?;
+                                    return self.components[0].handle(key, Some(&mut self.state))
                                 }
                                 3 => {
-                                    self.components[1].handle(key, Some(&mut self.state))?;
+                                    return self.components[1].handle(key, Some(&mut self.state))
                                 }
                                 _ => {
                                 }
@@ -630,6 +671,8 @@ impl Interactable for GlyphEditContentView {
                 }
             }
         } else {
+
+
             let index: usize = self.focused_child_index().unwrap();
             let mut result =
                 self.containers[index].handle(key, Some(&mut self.state));

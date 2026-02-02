@@ -69,9 +69,10 @@ pub struct GlyphReadState {
 
 pub struct GlyphEditState {
     pub is_focused: Rc<RefCell<bool>>, // Shared state across all view
+    pub focused_panel_index: Rc<RefCell<usize>>, // It is either Ordering or Editing
     pub hovered_index: Option<usize>,
     // Shared Data
-    pub selected_sid: Rc<RefCell<Option<i64>>>,
+
     pub editing_sid: Rc<RefCell<Option<i64>>>,
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
@@ -86,20 +87,20 @@ pub struct GlyphLayoutState {
 }
 
 pub struct GlyphEditOrderState {
-    pub is_focused: Rc<RefCell<bool>>, // Shared state across all view
+    // pub is_focused: Rc<RefCell<bool>>, // Shared state across all view
     pub hovered_index: Option<usize>,
+    pub focused_panel_index: Rc<RefCell<usize>>, // It is either Ordering or Editing
 
     // Shared Data
-    pub selected_sid: Rc<RefCell<Option<i64>>>,
     pub editing_sid: Rc<RefCell<Option<i64>>>,
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
 pub struct GlyphEditContentState {
-    pub is_focused: Rc<RefCell<bool>>, // Shared state across all view
+    // pub is_focused: Rc<RefCell<bool>>, // Shared state across all view
     pub hovered_index: Option<usize>,
+    pub focused_panel_index: Rc<RefCell<usize>>, // It is either Ordering or Editing
     pub section_buffer: Option<Section>,
     // Shared Data
-    pub selected_sid: Rc<RefCell<Option<i64>>>,
     pub editing_sid: Rc<RefCell<Option<i64>>>,
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }

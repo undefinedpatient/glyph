@@ -174,6 +174,7 @@ impl TextField {
     }
     pub fn replace(&mut self, content: String) -> () {
         self.state.chars = content.chars().collect();
+        self.state.cursor_index = 0;
     }
     pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
         self.on_exit = Some(on_exit);
@@ -306,7 +307,8 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
         let parsed_content_1: Vec<Vec<char>> = parsed_content_0.iter().map(
             |line| line.chars().collect::<Vec<char>>(),
         ).collect::<Vec<Vec<char>>>();
-        self.state.lines = parsed_content_1
+        self.state.lines = parsed_content_1;
+        self.state.cursor_index = 0;
     }
 
     pub fn switch_mode(&mut self, mode: EditMode) {
@@ -414,7 +416,7 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
         let line_index = self.state.cursor_line_index;
         if let Some(current_line) = self.state.lines.get_mut(line_index) {
             let from = self.state.cursor_index;
-            let to = current_line.len()-1;
+            let to = current_line.len().saturating_sub(1);
             let mut portion = self.remove_line_portion(from, to);
             self.insert_new_line_below();
             if let Some(next_line) = self.state.lines.get_mut(line_index+1) {
@@ -427,6 +429,9 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
 
     }
     fn remove_line_portion(&mut self, from:usize, to:usize) -> Vec<char> {
+        if from == to {
+            return vec![];
+        }
         if let Some(current_line) = self.state.lines.get_mut(self.state.cursor_line_index) {
             let captured: Vec<char> = current_line[from..=to].to_vec();
             for i in from..=to{

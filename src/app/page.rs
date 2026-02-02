@@ -1,7 +1,7 @@
 use crate::app::popup::ConfirmPopup;
 use crate::app::widget::{Button, DirectoryList, TextEditor, TextField};
 use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
-use crate::app::Command::AppCommand;
+use crate::app::Command::{AppCommand, GlyphCommand};
 use crate::app::{Component, Container, Convertible};
 use crate::model::{GlyphRepository, LocalEntryState, Section};
 use crate::state::page::{
@@ -24,6 +24,7 @@ use rusqlite::fallible_iterator::FallibleIterator;
 use rusqlite::Connection;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
+use crate::app::GlyphCommand::RefreshEditSection;
 
 pub struct EntrancePage {
     pub components: Vec<Box<dyn Component>>,
@@ -414,21 +415,20 @@ impl GlyphLayoutView {
 }
 impl GlyphEditView {
     pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
-        let selected_sid: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(None));
         let editing_sid : Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(None));
-
+        let focused_panel_index: Rc<RefCell<usize>> = Rc::new(RefCell::new(0));
         Self {
             containers: vec![
-                GlyphEditOrderView::new(selected_sid.clone(), editing_sid.clone(), entry_state.clone(), focus.clone()).into(),
-                GlyphEditContentView::new(selected_sid.clone(), editing_sid.clone(), entry_state.clone(), focus.clone()).into()
+                GlyphEditOrderView::new(editing_sid.clone(), entry_state.clone(), focused_panel_index.clone()).into(),
+                GlyphEditContentView::new(editing_sid.clone(), entry_state.clone(), focused_panel_index.clone()).into()
             ],
             components: vec![
             ],
             state: GlyphEditState {
                 is_focused: focus,
+                focused_panel_index,
                 hovered_index: None,
 
-                selected_sid,
                 editing_sid,
                 entry_state
             }
@@ -437,10 +437,9 @@ impl GlyphEditView {
 }
 impl GlyphEditOrderView{
     pub fn new(
-        selected_sid: Rc<RefCell<Option<i64>>>,
         editing_sid: Rc<RefCell<Option<i64>>>,
         entry_state: Rc<RefCell<LocalEntryState>>,
-        is_focused: Rc<RefCell<bool>>,
+        focused_panel_index: Rc<RefCell<usize>>,
     ) -> Self {
         Self {
             containers: vec![
@@ -448,10 +447,9 @@ impl GlyphEditOrderView{
             components: vec![
             ],
             state: GlyphEditOrderState {
-                is_focused,
+                focused_panel_index,
                 hovered_index: None,
 
-                selected_sid,
                 editing_sid,
                 entry_state
             }
@@ -480,10 +478,9 @@ impl GlyphEditOrderView{
 }
 impl GlyphEditContentView {
     pub fn new(
-        selected_sid: Rc<RefCell<Option<i64>>>,
         editing_sid: Rc<RefCell<Option<i64>>>,
         entry_state: Rc<RefCell<LocalEntryState>>,
-        is_focused: Rc<RefCell<bool>>,
+        focused_panel_index: Rc<RefCell<usize>>,
     ) -> Self {
         Self {
             containers: vec![
@@ -491,10 +488,15 @@ impl GlyphEditContentView {
                     .on_exit(Box::new(
                         |parent_state, state| {
                             let _parent_state: &mut GlyphEditContentState = parent_state.unwrap().downcast_mut::<GlyphEditContentState>().unwrap();
+                            // When no editing section exist
+                            if _parent_state.editing_sid.borrow().is_none() {
+                                return Ok(Vec::new());
+                            }
                             let _state: &mut TextFieldState = state.unwrap().downcast_mut::<TextFieldState>().unwrap();
 
                             let section: &mut Section = _parent_state.section_buffer.as_mut().unwrap();
                             section.title = _state.chars.iter().collect::<String>();
+
                             Ok(Vec::new())
                         } )
                     )
@@ -503,6 +505,10 @@ impl GlyphEditContentView {
                     .on_exit(Box::new(
                         |parent_state, state| {
                             let _parent_state: &mut GlyphEditContentState = parent_state.unwrap().downcast_mut::<GlyphEditContentState>().unwrap();
+                            // When no editing section exist
+                            if _parent_state.editing_sid.borrow().is_none() {
+                                return Ok(Vec::new());
+                            }
                             let _state: &mut TextEditorState = state.unwrap().downcast_mut::<TextEditorState>().unwrap();
 
                             let section: &mut Section = _parent_state.section_buffer.as_mut().unwrap();
@@ -518,11 +524,26 @@ impl GlyphEditContentView {
                     .into()
             ],
             components: vec![
-                Button::new("Back").into(),
-                Button::new("Confirm")
+                Button::new("Revert")
                     .on_interact(Box::new(
                         |parent_state| {
                             let _parent_state: &mut GlyphEditContentState = parent_state.unwrap().downcast_mut::<GlyphEditContentState>().unwrap();
+                            // When no editing section exist
+                            if _parent_state.editing_sid.borrow().is_none() {
+                                return Ok(Vec::new());
+                            }
+                            Ok(vec![GlyphCommand(RefreshEditSection)])
+                        }
+                    ))
+                    .into(),
+                Button::new("Update")
+                    .on_interact(Box::new(
+                        |parent_state| {
+                            let _parent_state: &mut GlyphEditContentState = parent_state.unwrap().downcast_mut::<GlyphEditContentState>().unwrap();
+                            // When no editing section exist
+                            if _parent_state.editing_sid.borrow().is_none() {
+                                return Ok(Vec::new());
+                            }
                             let sid = _parent_state.editing_sid.borrow_mut().unwrap();
                             let section_buffer: Section = _parent_state.section_buffer.as_mut().unwrap().clone();
                             let mut state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
@@ -533,12 +554,11 @@ impl GlyphEditContentView {
                     .into(),
             ],
             state: GlyphEditContentState {
-                is_focused,
+                focused_panel_index,
                 hovered_index: None,
                 section_buffer: None,
 
 
-                selected_sid,
                 editing_sid,
                 entry_state
             }
@@ -554,7 +574,7 @@ impl GlyphEditContentView {
     }
 
     pub fn refresh_section(&mut self) -> () {
-        match self.state.selected_sid.borrow().as_ref() {
+        match self.state.editing_sid.borrow().as_ref() {
             Some(sid) => {
                 let state = self.state.local_entry_state_ref().unwrap();
                 let eid = state.active_entry_id.unwrap();

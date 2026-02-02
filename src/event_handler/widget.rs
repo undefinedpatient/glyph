@@ -151,7 +151,9 @@ impl Interactable for TextField {
                     if let KeyCode::Esc = key.code {
                         self.set_focus(false);
                         if let Some(mut on_exit) = self.on_exit.take() {
-                            return (*on_exit)(parent_state, Some(&mut self.state));
+                            let result = (*on_exit)(parent_state, Some(&mut self.state));
+                            self.on_exit = Some(on_exit);
+                            return result;
                         };
                         return Ok(Vec::new());
                     }
@@ -250,7 +252,9 @@ fn handle_normal_mode(me: &mut TextEditor, key: &KeyEvent, parent_state: Option<
             if let KeyCode::Esc = key.code {
                 me.set_focus(false);
                 if let Some(mut on_exit) = me.on_exit.take() {
-                    return (*on_exit)(parent_state, Some(&mut me.state));
+                    let result = (*on_exit)(parent_state, Some(&mut me.state));
+                    me.on_exit = Some(on_exit);
+                    return result;
                 };
                 return Ok(Vec::new());
             }

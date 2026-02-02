@@ -215,11 +215,15 @@ impl Focusable for GlyphEditView {
 
 impl Focusable for GlyphEditOrderView{
     fn is_focused(&self) -> bool {
-        self.state.is_focused.borrow().clone()
+        self.state.focused_panel_index.borrow().clone() == 0
     }
     fn set_focus(&mut self, value: bool) -> () {
-        let mut focus = self.state.is_focused.borrow_mut();
-        *focus = value;
+        let mut focused_panel_index= self.state.focused_panel_index.borrow_mut();
+        if value {
+            *focused_panel_index = 0
+        } else {
+            *focused_panel_index = 1
+        }
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {
         None
@@ -233,11 +237,16 @@ impl Focusable for GlyphEditOrderView{
 }
 impl Focusable for GlyphEditContentView {
     fn is_focused(&self) -> bool {
-        self.state.is_focused.borrow().clone()
+        self.state.focused_panel_index.borrow().clone() == 1
     }
     fn set_focus(&mut self, value: bool) -> () {
-        let mut focus = self.state.is_focused.borrow_mut();
-        *focus = value;
+        let mut focused_panel_index= self.state.focused_panel_index.borrow_mut();
+        if value {
+            *focused_panel_index = 1
+        } else {
+            *focused_panel_index = 0
+        }
+        
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {
         for container in &self.containers {

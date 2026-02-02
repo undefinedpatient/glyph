@@ -222,10 +222,6 @@ impl Drawable for TextEditor {
                          Span::from(line.iter().collect::<String>())
                     ]);
 
-
-
-
-
                 if line_number == self.state.cursor_line_index {
                     line = line.bg(theme.surface_low_color());
                 } else {
