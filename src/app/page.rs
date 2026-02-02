@@ -474,6 +474,16 @@ impl GlyphEditOrderView{
             |(key, value)| {*key}
         ).collect::<Vec<i64>>()
     }
+    
+    // Return the active selected section as Mutable Reference
+    pub(crate) fn get_editing_section_mut(&mut self) -> RefMut<Section> {
+        let editing_sid: i64 = self.state.editing_sid.borrow().unwrap().clone();
+        let entry_state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
+        let active_entry_id: i64 = entry_state.active_entry_id.unwrap();
+        RefMut::map(entry_state, |state|{
+            state.entries.get_mut(&active_entry_id).unwrap().sections.get_mut(&editing_sid).unwrap()
+        })
+    }
 
 }
 impl GlyphEditContentView {

@@ -10,7 +10,7 @@ use crate::app::PageCommand::*;
 
 use crate::app::Convertible;
 use crate::event_handler::{Focusable, Interactable};
-use crate::model::{GlyphRepository, Layout, LayoutOrientation, LocalEntryState};
+use crate::model::{GlyphRepository, Layout, LayoutOrientation, LocalEntryState, Section};
 use crate::state::dialog::TextInputDialogState;
 use crate::state::page::{CreateGlyphPageState, GlyphEditContentState, GlyphEditState, GlyphLayoutState, GlyphMode, GlyphPageState};
 use color_eyre::eyre::Result;
@@ -507,6 +507,37 @@ impl Interactable for GlyphEditOrderView {
                     }
                     if let KeyCode::Char(c) = key.code {
                         match c {
+                            '+' => {
+                                if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
+                                    return Ok(Vec::new());
+                                }
+                                if self.state.editing_sid.borrow().is_none() {
+                                    return Ok(Vec::new());
+                                }
+                                let sid = self.state.editing_sid.borrow().unwrap().clone();
+                                let mut section: Section = self.get_editing_section_mut().clone();
+                                section.position = section.position + 1;
+                                
+                                let mut state = self.state.local_entry_state_mut().unwrap();
+                                state.update_section_by_sid(&sid, section)?;
+                                return Ok(Vec::new());
+
+                            }
+                            '-' => {
+                                if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
+                                    return Ok(Vec::new());
+                                }
+                                if self.state.editing_sid.borrow().is_none() {
+                                    return Ok(Vec::new());
+                                }
+                                let sid = self.state.editing_sid.borrow().unwrap().clone();
+                                let mut section: Section = self.get_editing_section_mut().clone();
+                                section.position = section.position - 1;
+
+                                let mut state = self.state.local_entry_state_mut().unwrap();
+                                state.update_section_by_sid(&sid, section)?;
+                                return Ok(Vec::new());
+                            }
                             'j' => {
                                 self.cycle_section_hover(1);
                                 return Ok(Vec::new());

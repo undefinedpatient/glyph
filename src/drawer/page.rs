@@ -300,7 +300,7 @@ impl Drawable for GlyphViewer {
                 widget_frame = widget_frame.title_top(Line::from("[ LAYOUT ]").right_aligned());
             }
         }
-        let inner_area = widget_frame.inner(area);
+        let inner_area = widget_frame.inner(area.centered_horizontally(Constraint::Percentage(90)));
         widget_frame.render(area, frame.buffer_mut());
         /*
             Body
@@ -409,8 +409,8 @@ impl Drawable for GlyphEditView {
            Container Frame
         */
         let focused_panel_index = *self.state.focused_panel_index.borrow();
-        let inner_areas = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(2)]).split(area);
-        self.containers[0].render(frame, inner_areas[0],
+        let edit_areas = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(2)]).split(area);
+        self.containers[0].render(frame, edit_areas[0],
                                   if !self.is_focused() {
                                       DrawFlag::DEFAULT
                                   }
@@ -421,7 +421,7 @@ impl Drawable for GlyphEditView {
                                   },
                                   theme
         );
-        self.containers[1].render(frame, inner_areas[1],
+        self.containers[1].render(frame, edit_areas[1],
                                   if !self.is_focused() {
                                       DrawFlag::DEFAULT
                                   }
@@ -560,8 +560,7 @@ impl Drawable for GlyphLayoutView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let entry_state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
         let entry_layout: &model::Layout = &entry_state.get_active_entry_ref().unwrap().layout.1;
-        let layout_area = area.centered_horizontally(Constraint::Percentage(90));
-        evaluate_layout(self, layout_area, frame.buffer_mut(), entry_layout, 0, Vec::new());
+        evaluate_layout(self, area, frame.buffer_mut(), entry_layout, 0, Vec::new());
         /*
             Dialog
          */
