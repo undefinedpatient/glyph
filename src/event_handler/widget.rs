@@ -290,10 +290,10 @@ fn handle_normal_mode(me: &mut TextEditor, key: &KeyEvent, parent_state: Option<
                         me.merge_with_next_line();
                     }
                     'w' => {
-                        me.move_to_next_word();
+                        me.move_to_next_word()?;
                     }
                     'b' => {
-                        me.move_to_previous_word();
+                        me.move_to_previous_word()?;
                     }
                     'x' => {
                         me.delete_char();

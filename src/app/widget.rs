@@ -330,46 +330,30 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
     pub fn move_to_previous_char(&mut self) {
         self.state.cursor_index = self.state.cursor_index.saturating_sub(1);
     }
-    pub fn move_to_next_word(&mut self) {
-        if !self.move_forward_to(' ') {
+    pub fn move_to_next_word(&mut self) -> Result<()> {
+        self.move_to_next_char();
+        let _y: usize = self.state.cursor_line_index;
+        let _x: usize = self.state.cursor_index.clamp(0, self.state.lines[_y].len()-1);
+        if let Some((x, y)) = self.find_next(_x, _y,' ') {
+            self.state.cursor_index = x;
+        } else {
             self.move_to_end_of_line();
-        } else {
-            self.move_to_next_char();
         }
+        Ok(())
     }
-    pub fn move_to_previous_word(&mut self) {
-        if !self.move_backward_to(' '){
+    pub fn move_to_previous_word(&mut self) -> Result<()> {
+        self.move_to_previous_char();
+        let _y: usize = self.state.cursor_line_index;
+        let _x: usize = self.state.cursor_index.clamp(0, self.state.lines[_y].len()-1);
+        if let Some((x, y)) = self.find_previous(_x.saturating_sub(1), _y,' ') {
+            self.state.cursor_index = x;
+            self.move_to_next_char();
+        } else {
             self.move_to_start_of_line();
-        } else {
-            self.move_to_next_char();
         }
+        Ok(())
     }
-    pub fn move_forward_to(&mut self, delimiter: char) -> bool {
-        if let Some(current_line) = self.state.lines.get(self.state.cursor_line_index) {
-            let current_line_len: usize = current_line.len();
-            let current_cursor_index: usize = self.state.cursor_index;
-            for (i, c) in (*current_line)[current_cursor_index+1..current_line_len].iter().enumerate() {
-                if *c == delimiter {
-                    self.state.cursor_index = self.state.cursor_index + i;
-                    return true;
-                }
-            }
-        }
-        false
-    }
-    pub fn move_backward_to(&mut self, delimiter: char) -> bool{
-        if let Some(current_line) = self.state.lines.get(self.state.cursor_line_index) {
-            let current_cursor_index: usize = self.state.cursor_index;
 
-            for (i, c) in current_line[0..current_cursor_index].iter().enumerate().rev() {
-                if *c == delimiter {
-                    self.state.cursor_index = i;
-                    return true;
-                }
-            }
-        }
-        false
-    }
     pub fn move_to_end_of_line(&mut self) {
         if let Some(current_line) = self.state.lines.get(self.state.cursor_line_index) {
             self.state.cursor_index = current_line.len();
@@ -450,6 +434,41 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
     fn delete_line(&mut self, at: usize) {
         if let Some(current_line) = self.state.lines.get(at) {
             self.state.lines.remove(at);
+        }
+    }
+
+    fn find_next(&mut self, x: usize, y: usize, character: char) -> Option<(usize, usize)> {
+        if let Some(current_line) = self.state.lines.get(y) {
+            // If x exceed the len of the line, or the line is empty.
+            let len = current_line.len();
+            if current_line.is_empty() || current_line.get(x).is_none() {
+                return None;
+            }
+            for (i, c) in (*current_line)[x..len].iter().enumerate() {
+                if (*c) == character {
+                    return Some((i+x, y));
+                }
+            }
+            None
+        } else {
+            None // Such line does not exist.
+        }
+    }
+    fn find_previous(&mut self, x: usize, y: usize, character: char) -> Option<(usize, usize)> {
+        if let Some(current_line) = self.state.lines.get(y) {
+            // If x exceed the len of the line, or the line is empty.
+            let len = current_line.len();
+            if current_line.is_empty() || current_line.get(x).is_none() {
+                return None;
+            }
+            for (i, c) in (*current_line)[0..=x].iter().enumerate().rev() {
+                if *c == character {
+                    return Some((i, y));
+                }
+            }
+            None
+        } else {
+            None // Such line does not exist.
         }
     }
 }

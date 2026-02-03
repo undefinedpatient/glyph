@@ -541,10 +541,12 @@ impl Interactable for GlyphEditOrderView {
                                 }
                                 let sid = self.state.editing_sid.borrow().unwrap().clone();
                                 let mut section: Section = self.get_editing_section_mut().clone();
+                                let eid: i64 = self.state.local_entry_state_ref().unwrap().active_entry_id.unwrap();
                                 section.position = section.position + 1;
                                 
                                 let mut state = self.state.local_entry_state_mut().unwrap();
                                 state.update_section_by_sid(&sid, section)?;
+                                state.sort_sections_by_position(&eid);
                                 drop(state);
                                 return Ok(Vec::new());
 
@@ -556,12 +558,14 @@ impl Interactable for GlyphEditOrderView {
                                 if self.state.editing_sid.borrow().is_none() {
                                     return Ok(Vec::new());
                                 }
-                                let sid = self.state.editing_sid.borrow().unwrap().clone();
+                                let sid: i64 = self.state.editing_sid.borrow().unwrap().clone();
                                 let mut section: Section = self.get_editing_section_mut().clone();
+                                let eid: i64 = self.state.local_entry_state_ref().unwrap().active_entry_id.unwrap();
                                 section.position = section.position - 1;
 
                                 let mut state = self.state.local_entry_state_mut().unwrap();
                                 state.update_section_by_sid(&sid, section)?;
+                                state.sort_sections_by_position(&eid);
                                 drop(state);
                                 return Ok(Vec::new());
                             }

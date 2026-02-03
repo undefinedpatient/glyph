@@ -212,6 +212,13 @@ impl LocalEntryState {
             }
         ).collect()
     }
+    pub fn sort_sections_by_position(&mut self, eid: &i64) -> () {
+        if let Some(entry) = self.get_entry_mut(eid) {
+            entry.sections.sort_by(|cur, nex| {
+                (*cur).1.position.cmp(&(*nex).1.position)
+            })
+        }
+    }
 
 
 
