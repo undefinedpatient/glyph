@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 pub struct LocalEntryState {
-    pub entries: HashMap<i64, Entry>,
+    pub entries: Vec<(i64, Entry)>,
     pub layouts: HashMap<i64, Layout>,
     pub connection: Connection,
     pub active_entry_id: Option<i64>,
@@ -36,13 +36,29 @@ impl LocalEntryState {
     /*
         Create New Entry, return Entry ID
      */
+    pub fn get_entry_ref(&self, eid: &i64) -> Option<&Entry> {
+        for (_eid, entry) in &self.entries {
+            if *_eid == *eid {
+                return Some(entry);
+            }
+        }
+        None
+    }
+    pub fn get_entry_mut(&mut self, eid: &i64) -> Option<&mut Entry> {
+        for (_eid, entry) in &mut self.entries {
+            if *_eid == *eid {
+                return Some(entry);
+            }
+        }
+        None
+    }
     pub fn create_default_entry(&mut self, entry_name: &str) -> Result<i64> {
         let entry_id: i64 = EntryRepository::create_default_entry(&self.connection, entry_name)?;
         let result = EntryRepository::read_by_id(&self.connection, &entry_id);
         match result {
             Ok(succ) => {
                 if let Some((id, entry)) = succ {
-                    self.entries.insert(id, entry);
+                    self.entries.push((id, entry));
                     self.reconstruct_entry_order();
                     Ok(id)
                 } else {
@@ -60,7 +76,7 @@ impl LocalEntryState {
         EntryRepository::update_name(&self.connection, &eid, new_name)?;
         let (eid, entry) = EntryRepository::read_by_id(&self.connection, &eid)?.unwrap();
 
-        let current_entry = self.entries.get_mut(&eid).unwrap();
+        let current_entry: &mut Entry = self.get_entry_mut(&eid).unwrap();
         current_entry.update_name(&entry);
         Ok(())
     }
@@ -70,7 +86,17 @@ impl LocalEntryState {
     pub fn delete_active_entry(&mut self) -> Result<usize> {
         if let Some(id) = self.active_entry_id {
             let result = EntryRepository::delete_by_id(&self.connection, &id);
-            self.entries.remove(&id);
+            let mut remove_index: i8 = -1;
+            for (index, entry) in self.entries.iter().enumerate() {
+                if (*entry).0 == id {
+                    remove_index = index as i8;
+                    break;
+                }
+            }
+            if remove_index == -1 {
+                return Err(Report::msg("Entry could not be found"));
+            }
+            self.entries.remove(remove_index as usize);
             self.reconstruct_entry_order();
             self.active_entry_id = None;
             result
@@ -92,13 +118,13 @@ impl LocalEntryState {
     }
     pub fn get_active_entry_ref(&self) -> Option<&Entry> {
         if let Some(active_entry_id) = self.active_entry_id {
-            return self.entries.get(&active_entry_id);
+            return self.get_entry_ref(&active_entry_id);
         }
         None
     }
     pub fn get_active_entry_mut(&mut self) -> Option<&mut Entry> {
         if let Some(active_entry_id) = self.active_entry_id {
-            return self.entries.get_mut(&active_entry_id);
+            return self.get_entry_mut(&active_entry_id);
         }
         None
     }
@@ -111,10 +137,10 @@ impl LocalEntryState {
         Create Section to active_entry
      */
     pub fn create_section_to_active_entry(&mut self, title: &str, content: &str) -> Result<i64> {
-        if let Some(id) = self.active_entry_id {
-            let new_section: Section = Section::new(title, content, self.get_max_position_section(id)+1);
-            let sid: i64 = SectionRepository::create_section(&self.connection, &id, &new_section)?;
-            let active_entry = self.entries.get_mut(&id).unwrap();
+        if let Some(eid) = self.active_entry_id {
+            let new_section: Section = Section::new(title, content, self.get_max_position_section(&eid)+1);
+            let sid: i64 = SectionRepository::create_section(&self.connection, &eid, &new_section)?;
+            let active_entry = self.get_entry_mut(&eid).unwrap();
             active_entry.sections.insert(sid, new_section);
             Ok(sid)
         } else {
@@ -128,7 +154,7 @@ impl LocalEntryState {
         let _sid = SectionRepository::update_section(&self.connection, sid, &section)?;
         let (eid, sid, section) = SectionRepository::read_by_id(&self.connection, sid)?.unwrap();
         // Update all entry having the same layout
-        let sections: &mut HashMap<i64, Section> = &mut self.entries.get_mut(&eid).unwrap().sections;
+        let sections: &mut HashMap<i64, Section> = &mut self.get_entry_mut(&eid).unwrap().sections;
 
         sections.remove(&sid);
         sections.insert(sid, section);
@@ -136,15 +162,18 @@ impl LocalEntryState {
 
     }
     pub fn get_num_sections(&self, eid: &i64) -> usize {
-        if let Some(entry) = self.entries.get(eid){
+        if let Some(entry) = self.get_entry_ref(eid){
             entry.sections.len()
         } else {
             0
         }
     }
     pub fn get_sections_ref(&self, eid: &i64) -> &HashMap<i64, Section> {
-        let entry: &Entry = self.entries.get(eid).unwrap();
-        &entry.sections
+        &self.get_entry_ref(eid).unwrap().sections
+    }
+
+    pub fn get_sections_sid(&self, eid: &i64) -> Vec<i64> {
+        self.get_entry_ref(&eid).unwrap().sections.keys().cloned().collect()
     }
 
 
@@ -155,30 +184,6 @@ impl LocalEntryState {
         Layout Section
 
      */
-
-    /*
-        Get reference to Layout by lid via searching in Local Entries
-     */
-    // pub fn get_layout_ref(&self, lid: &i64) -> Option<&Layout> {
-    //      self.entries.iter().find_map(
-    //         |item| {
-    //             if item.1.layout.0 == *lid {
-    //                 return Some(&item.1.layout.1);
-    //             }
-    //             None
-    //         }
-    //     )
-    // }
-    // pub fn get_layout_mut(&mut self, lid: &i64) -> Option<&mut Layout> {
-    //     self.entries.iter_mut().find_map(
-    //         |item| {
-    //             if item.1.layout.0 == *lid {
-    //                 return Some(&mut item.1.layout.1);
-    //             }
-    //             None
-    //         }
-    //     )
-    // }
     pub fn get_layout_ref(&self, lid: &i64) -> Option<&Layout> {
         self.layouts.get(lid)
     }
@@ -186,7 +191,7 @@ impl LocalEntryState {
         self.layouts.get_mut(lid)
     }
     pub fn get_entry_layout_ref(&self, eid: &i64) -> Option<&Layout> {
-        match self.entries.get(eid) {
+        match self.get_entry_ref(eid) {
             Some(e) => {
                 let target_lid: i64 = e.layout_id;
                 self.layouts.get(&target_lid)
@@ -195,7 +200,7 @@ impl LocalEntryState {
         }
     }
     pub fn get_entry_layout_mut(&mut self, eid: &i64) -> Option<&mut Layout> {
-        match self.entries.get_mut(eid) {
+        match self.get_entry_mut(eid) {
             Some(e) => {
                 let target_lid: i64 = e.layout_id;
                 self.layouts.get_mut(&target_lid)
@@ -224,8 +229,8 @@ impl LocalEntryState {
             }
         ).collect();
     }
-    fn get_max_position_section(&self, eid: i64) -> i64 {
-        let sections = &self.entries.get(&eid).unwrap().sections;
+    fn get_max_position_section(&self, eid: &i64) -> i64 {
+        let sections = &self.get_entry_ref(eid).unwrap().sections;
         let mut max: i64 = 0;
         for (sid, section) in sections {
             if section.position > max {
@@ -233,6 +238,16 @@ impl LocalEntryState {
             }
         }
         max
+    }
+    fn get_min_position_section(&self, eid: &i64) -> i64 {
+        let sections = &self.get_entry_ref(eid).unwrap().sections;
+        let mut min: i64 = 0;
+        for (sid, section) in sections {
+            if section.position > min {
+                min = section.position;
+            }
+        }
+        min
     }
 }
 
@@ -255,7 +270,6 @@ pub struct Glyph {
 pub struct Entry {
     pub entry_name: String,
     pub sections: HashMap<i64, Section>,
-    // pub layout: (i64, Layout),
     pub layout_id: i64,
 }
 
@@ -498,13 +512,13 @@ impl EntryRepository {
         rows.next()?.map(|row| {Self::map_row_to_eid_entry(c, row)}).transpose()
     }
 
-    pub fn read_all(c: &Connection) -> Result<HashMap<i64, Entry>> {
-        let mut stmt = c.prepare("SELECT id, entry_name FROM entries")?;
+    pub fn read_all(c: &Connection) -> Result<Vec<(i64, Entry)>> {
+        let mut stmt: Statement = c.prepare("SELECT id, entry_name FROM entries")?;
         let mut rows: Rows = stmt.query(params![])?;
-        let mut entries: HashMap<i64, Entry> = HashMap::new();
+        let mut entries: Vec<(i64, Entry)> = Vec::new();
         while let Some(row) = rows.next()? {
             let entry = Self::map_row_to_eid_entry(c, row)?;
-            entries.insert(entry.0, entry.1);
+            entries.push(entry);
         }
         Ok(entries)
     }

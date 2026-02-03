@@ -401,37 +401,6 @@ impl GlyphReadView {
         }
     }
 }
-impl GlyphLayoutView {
-    pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
-        Self {
-            dialogs: vec![],
-            containers: vec![],
-            components: vec![],
-            state: GlyphLayoutState {
-                is_focused: focus,
-                hovered_index: None,
-                selected_coordinate: Vec::new(),
-
-                entry_state
-            }
-        }
-    }
-    pub(crate) fn cycle_layout_hover(&mut self, offset: i16) -> () {
-        let select_coordinate: Vec<usize> = self.state.selected_coordinate.clone();
-        let state = self.state.local_entry_state_ref().unwrap();
-        let eid = state.active_entry_id.unwrap();
-        let ref_layout = state.get_entry_layout_ref(&eid).unwrap();
-        let len = ref_layout.get_layout_at_ref(&select_coordinate).unwrap().sub_layouts.len();
-        drop(state);
-        if let Some(hover_index) = self.state.hovered_index{
-            self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, len as u16) as usize);
-        } else {
-            if len > 0 {
-                self.state.hovered_index = Some(0);
-            }
-        }
-    }
-}
 impl GlyphEditView {
     pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         let editing_sid : Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(None));
@@ -485,22 +454,14 @@ impl GlyphEditOrderView{
             self.state.hovered_index = Some(0);
         }
     }
-    pub(crate) fn get_sids(&self) -> Vec<i64> {
-        let entry_state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
-        let active_entry_id: i64 = entry_state.active_entry_id.unwrap();
-        let entry= entry_state.entries.get(&active_entry_id).unwrap();
-        entry.sections.iter().map(
-            |(key, value)| {*key}
-        ).collect::<Vec<i64>>()
-    }
-    
+
     // Return the active selected section as Mutable Reference
     pub(crate) fn get_editing_section_mut(&mut self) -> RefMut<Section> {
         let editing_sid: i64 = self.state.editing_sid.borrow().unwrap().clone();
         let entry_state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
         let active_entry_id: i64 = entry_state.active_entry_id.unwrap();
         RefMut::map(entry_state, |state|{
-            state.entries.get_mut(&active_entry_id).unwrap().sections.get_mut(&editing_sid).unwrap()
+            state.get_entry_mut(&active_entry_id).unwrap().sections.get_mut(&editing_sid).unwrap()
         })
     }
 
@@ -621,7 +582,38 @@ impl GlyphEditContentView {
             }
         }
     }
+}
 
+impl GlyphLayoutView {
+    pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+        Self {
+            dialogs: vec![],
+            containers: vec![],
+            components: vec![],
+            state: GlyphLayoutState {
+                is_focused: focus,
+                hovered_index: None,
+                selected_coordinate: Vec::new(),
+
+                entry_state
+            }
+        }
+    }
+    pub(crate) fn cycle_layout_hover(&mut self, offset: i16) -> () {
+        let select_coordinate: Vec<usize> = self.state.selected_coordinate.clone();
+        let state = self.state.local_entry_state_ref().unwrap();
+        let eid = state.active_entry_id.unwrap();
+        let ref_layout = state.get_entry_layout_ref(&eid).unwrap();
+        let len = ref_layout.get_layout_at_ref(&select_coordinate).unwrap().sub_layouts.len();
+        drop(state);
+        if let Some(hover_index) = self.state.hovered_index{
+            self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, len as u16) as usize);
+        } else {
+            if len > 0 {
+                self.state.hovered_index = Some(0);
+            }
+        }
+    }
 }
 impl From<GlyphViewer> for Box<dyn Container> {
     fn from(container: GlyphViewer) -> Self {

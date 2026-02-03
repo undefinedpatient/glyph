@@ -518,7 +518,6 @@ impl Interactable for GlyphEditOrderView {
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.state.hovered_index {
                             let mut editing_sid = self.state.editing_sid.borrow_mut();
-                            *editing_sid = Some(self.get_sids()[index]);
                             return Ok(vec![GlyphCommand(RefreshEditSection)]);
                         }
                     }
@@ -543,6 +542,7 @@ impl Interactable for GlyphEditOrderView {
                                 
                                 let mut state = self.state.local_entry_state_mut().unwrap();
                                 state.update_section_by_sid(&sid, section)?;
+                                drop(state);
                                 return Ok(Vec::new());
 
                             }
@@ -559,6 +559,7 @@ impl Interactable for GlyphEditOrderView {
 
                                 let mut state = self.state.local_entry_state_mut().unwrap();
                                 state.update_section_by_sid(&sid, section)?;
+                                drop(state);
                                 return Ok(Vec::new());
                             }
                             'j' => {

@@ -456,8 +456,7 @@ impl Drawable for GlyphEditOrderView{
         let state = self.state.entry_state.borrow();
         let eid = state.active_entry_id.unwrap();
         let sections_ref = state.get_sections_ref(&eid);
-        let section_order = self.get_sids();
-        let section_list: Vec<(&i64, &Section)> = section_order.iter().filter_map(
+        let section_list: Vec<(&i64, &Section)> = self.state.section_sid_order.iter().filter_map(
             |sid| {
                 if let Some(section) = sections_ref.get(sid) {
                     return Some((sid, section));
