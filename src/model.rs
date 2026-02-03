@@ -136,12 +136,36 @@ impl LocalEntryState {
     /*
         Create Section to active_entry
      */
+    pub fn get_section_ref(&self, eid: &i64, sid: &i64) -> Option<&Section> {
+        if let Some(entry) = self.get_entry_ref(eid) {
+            for (_sid, section) in &entry.sections {
+                if *_sid == *sid {
+                    return Some(section);
+                }
+            }
+            return None;
+        } else {
+            None
+        }
+    }
+    pub fn get_section_mut(&mut self, eid: &i64, sid: &i64) -> Option<&mut Section> {
+        if let Some(entry) = self.get_entry_mut(eid) {
+            for (_sid, section) in &mut entry.sections {
+                if *_sid == *sid {
+                    return Some(section);
+                }
+            }
+            return None;
+        } else {
+            None
+        }
+    }
     pub fn create_section_to_active_entry(&mut self, title: &str, content: &str) -> Result<i64> {
         if let Some(eid) = self.active_entry_id {
             let new_section: Section = Section::new(title, content, self.get_max_position_section(&eid)+1);
             let sid: i64 = SectionRepository::create_section(&self.connection, &eid, &new_section)?;
             let active_entry = self.get_entry_mut(&eid).unwrap();
-            active_entry.sections.insert(sid, new_section);
+            active_entry.sections.push((sid, new_section));
             Ok(sid)
         } else {
             Err(Report::msg("No active entry found"))
@@ -154,10 +178,19 @@ impl LocalEntryState {
         let _sid = SectionRepository::update_section(&self.connection, sid, &section)?;
         let (eid, sid, section) = SectionRepository::read_by_id(&self.connection, sid)?.unwrap();
         // Update all entry having the same layout
-        let sections: &mut HashMap<i64, Section> = &mut self.get_entry_mut(&eid).unwrap().sections;
+        let sections: &mut Vec<(i64, Section)> = &mut self.get_entry_mut(&eid).unwrap().sections;
 
-        sections.remove(&sid);
-        sections.insert(sid, section);
+        let mut section_index_to_remove: usize = usize::MAX;
+        for (index, item) in sections.iter().enumerate() {
+            if (*item).0 == sid {
+                section_index_to_remove = index as usize;
+            }
+        }
+        if section_index_to_remove == usize::MAX {
+            return Err(Report::msg("No active entry found"));
+        }
+        sections.remove(section_index_to_remove);
+        sections.push((sid, section));
         Ok(())
 
     }
@@ -168,12 +201,16 @@ impl LocalEntryState {
             0
         }
     }
-    pub fn get_sections_ref(&self, eid: &i64) -> &HashMap<i64, Section> {
+    pub fn get_sections_ref(&self, eid: &i64) -> &Vec<(i64, Section)> {
         &self.get_entry_ref(eid).unwrap().sections
     }
 
     pub fn get_sections_sid(&self, eid: &i64) -> Vec<i64> {
-        self.get_entry_ref(&eid).unwrap().sections.keys().cloned().collect()
+        self.get_entry_ref(eid).unwrap().sections.iter().map(
+            |(sid, section)| {
+                sid.clone()
+            }
+        ).collect()
     }
 
 
@@ -269,7 +306,7 @@ pub struct Glyph {
  */
 pub struct Entry {
     pub entry_name: String,
-    pub sections: HashMap<i64, Section>,
+    pub sections: Vec<(i64, Section)>,
     pub layout_id: i64,
 }
 
@@ -538,13 +575,13 @@ impl EntryRepository {
 }
 pub struct SectionRepository {}
 impl SectionRepository {
-    pub fn read_by_entry_id(c: &Connection, entry_id: &i64) -> Result<HashMap<i64, Section>> {
+    pub fn read_by_entry_id(c: &Connection, entry_id: &i64) -> Result<Vec<(i64, Section)>> {
         let mut stmt = c.prepare("SELECT id, entry_id, position, title, content FROM sections WHERE entry_id = ?1")?;
         let mut rows: Rows = stmt.query(params![*entry_id])?;
-        let mut sections: HashMap<i64, Section> = HashMap::new();
+        let mut sections: Vec<(i64, Section)> = Vec::new();
         while let Some(row) = rows.next()? {
-            let section = Self::to_section(row)?;
-            sections.insert(section.1, section.2);
+            let section = Self::map_row_to_id_section(row)?;
+            sections.push((section.1, section.2));
         }
         Ok(sections)
     }
@@ -581,9 +618,9 @@ impl SectionRepository {
     pub fn read_by_id(c: &Connection, id: &i64) -> Result<Option<(i64, i64, Section)>> {
         let mut stmt = c.prepare("SELECT id, entry_id, position, title, content FROM sections WHERE id = ?1")?;
         let mut rows: Rows = stmt.query(params![*id])?;
-        rows.next()?.map(|row| {Self::to_section(row)}).transpose()
+        rows.next()?.map(|row| {Self::map_row_to_id_section(row)}).transpose()
     }
-    pub fn to_section(row: &Row) -> Result<(i64, i64, Section)> {
+    pub fn map_row_to_id_section(row: &Row) -> Result<(i64, i64, Section)> {
         let eid: i64 = row.get(1)?;
         let sid: i64 = row.get(0)?;
         Ok(

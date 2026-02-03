@@ -330,7 +330,7 @@ impl Drawable for GlyphReadView {
         let eid: i64 = entry_state.active_entry_id.unwrap();
         let layout = entry_state.get_entry_layout_ref(&eid).unwrap();
         let areas: Vec<(u16, Rect)> = evaluate_read_areas(self, area, layout, 0,0);
-        let ref_sections: &HashMap<i64, Section> = &entry_state.get_active_entry_ref().unwrap().sections;
+        let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
         for (sid, section) in ref_sections {
             if let Some((position, area)) = areas.iter().find(
                 |(position, area)|{
@@ -455,18 +455,10 @@ impl Drawable for GlyphEditOrderView{
 
         let state = self.state.entry_state.borrow();
         let eid = state.active_entry_id.unwrap();
-        let sections_ref = state.get_sections_ref(&eid);
-        let section_list: Vec<(&i64, &Section)> = self.state.section_sid_order.iter().filter_map(
-            |sid| {
-                if let Some(section) = sections_ref.get(sid) {
-                    return Some((sid, section));
-                }
-                None
-            }
-        ).collect();
+        let section_list: &Vec<(i64, Section)> = state.get_sections_ref(&eid);
         let edit_area = inner_area.centered_horizontally(Constraint::Percentage(90));
         let draw_section_list: Vec<((u32, u32), Paragraph)> = section_list.iter().enumerate().map(
-            |(i, (key, value)): (usize, &(&i64, &Section))| {
+            |(i, (key, value)): (usize, &(i64, Section))| {
                 let text = Text::from(value.content.clone());
                 let mut section_dimension: (u32, u32) = (Text::width(&text) as u32 + 2, Text::height(&text) as u32 + 3);
 
@@ -478,7 +470,7 @@ impl Drawable for GlyphEditOrderView{
                 }
                 if let Ok(o_sid) = self.state.editing_sid.try_borrow() {
                     if let Some(sid) = *o_sid {
-                        if sid == **key {
+                        if sid == *key {
                             paragraph_frame = paragraph_frame.border_type(BorderType::Thick)
                         }
                     }

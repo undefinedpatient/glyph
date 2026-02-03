@@ -461,7 +461,7 @@ impl GlyphEditOrderView{
         let entry_state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
         let active_entry_id: i64 = entry_state.active_entry_id.unwrap();
         RefMut::map(entry_state, |state|{
-            state.get_entry_mut(&active_entry_id).unwrap().sections.get_mut(&editing_sid).unwrap()
+            state.get_section_mut(&active_entry_id, &editing_sid).unwrap()
         })
     }
 
@@ -566,10 +566,10 @@ impl GlyphEditContentView {
     pub fn refresh_section(&mut self) -> () {
         match self.state.editing_sid.borrow().as_ref() {
             Some(sid) => {
-                let state = self.state.local_entry_state_ref().unwrap();
-                let eid = state.active_entry_id.unwrap();
-                let sections = state.get_sections_ref(&eid);
-                let section = sections.get(sid).unwrap().clone();
+                let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
+                let eid: i64 = state.active_entry_id.unwrap();
+                let sections: &Vec<(i64, Section)> = state.get_sections_ref(&eid);
+                let section: Section = state.get_section_ref(&eid, &sid).unwrap().clone();
                 drop(state);
                 (*self.containers[0]).as_any_mut().downcast_mut::<TextField>().unwrap().replace(section.title.clone());
                 (*self.containers[1]).as_any_mut().downcast_mut::<TextEditor>().unwrap().replace(section.content.clone());

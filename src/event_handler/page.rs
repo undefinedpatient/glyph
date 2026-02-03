@@ -17,7 +17,7 @@ use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use rusqlite::fallible_iterator::FallibleIterator;
 use std::any::Any;
-use std::cell::RefMut;
+use std::cell::{Ref, RefMut};
 
 impl Interactable for EntrancePage {
     fn handle(
@@ -517,7 +517,10 @@ impl Interactable for GlyphEditOrderView {
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.state.hovered_index {
-                            let mut editing_sid = self.state.editing_sid.borrow_mut();
+                            let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
+                            let eid = state.active_entry_id.unwrap();
+                            let sections: &Vec<(i64, Section)> = state.get_sections_ref(&eid);
+                            *self.state.editing_sid.borrow_mut() = Some((*sections.get(index).unwrap()).0);
                             return Ok(vec![GlyphCommand(RefreshEditSection)]);
                         }
                     }
