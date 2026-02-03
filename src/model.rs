@@ -1,13 +1,13 @@
 use color_eyre::eyre::Result;
 use color_eyre::Report;
-use rusqlite::{params, Connection, Row, Rows};
+use rusqlite::{params, Connection, Row, Rows, Statement};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
 pub struct LocalEntryState {
     pub entries: HashMap<i64, Entry>,
-    // pub sections: HashMap<(i64, i64), Entry>,
+    pub layouts: HashMap<i64, Layout>,
     pub connection: Connection,
     pub active_entry_id: Option<i64>,
     pub updated_entry_ids:  Vec<i64>,
@@ -17,13 +17,15 @@ pub struct LocalEntryState {
 impl LocalEntryState {
     pub fn new(c: Connection) -> Self {
         let entries = EntryRepository::read_all(&c).unwrap();
+        let layouts: HashMap<i64, Layout> = LayoutRepository::read_all(&c).unwrap();
         let ordered_entries: Vec<(i64, String)> = entries.iter().map(
             |(id,entry)| {
                 (id.clone(), entry.entry_name.clone())
             }
         ).collect();
         Self {
-            entries: entries,
+            entries,
+            layouts,
             connection: c,
             active_entry_id: None,
             updated_entry_ids: Vec::new(),
@@ -34,8 +36,8 @@ impl LocalEntryState {
     /*
         Create New Entry, return Entry ID
      */
-    pub fn create_new_entry(&mut self, entry_name: &str) -> Result<i64> {
-        let entry_id: i64 = EntryRepository::create_entry(&self.connection, entry_name)?;
+    pub fn create_default_entry(&mut self, entry_name: &str) -> Result<i64> {
+        let entry_id: i64 = EntryRepository::create_default_entry(&self.connection, entry_name)?;
         let result = EntryRepository::read_by_id(&self.connection, &entry_id);
         match result {
             Ok(succ) => {
@@ -77,7 +79,7 @@ impl LocalEntryState {
         }
     }
 
-    pub fn toggle_local_active_entry_id(&mut self, id: i64) {
+    pub fn toggle_active_entry_id(&mut self, id: i64) {
         if let Some(oid) = self.active_entry_id {
             if oid == id {
                 self.active_entry_id = None;
@@ -110,7 +112,7 @@ impl LocalEntryState {
      */
     pub fn create_section_to_active_entry(&mut self, title: &str, content: &str) -> Result<i64> {
         if let Some(id) = self.active_entry_id {
-            let new_section: Section = Section::new(title, content, self.get_max_position(id)+1);
+            let new_section: Section = Section::new(title, content, self.get_max_position_section(id)+1);
             let sid: i64 = SectionRepository::create_section(&self.connection, &id, &new_section)?;
             let active_entry = self.entries.get_mut(&id).unwrap();
             active_entry.sections.insert(sid, new_section);
@@ -157,48 +159,48 @@ impl LocalEntryState {
     /*
         Get reference to Layout by lid via searching in Local Entries
      */
+    // pub fn get_layout_ref(&self, lid: &i64) -> Option<&Layout> {
+    //      self.entries.iter().find_map(
+    //         |item| {
+    //             if item.1.layout.0 == *lid {
+    //                 return Some(&item.1.layout.1);
+    //             }
+    //             None
+    //         }
+    //     )
+    // }
+    // pub fn get_layout_mut(&mut self, lid: &i64) -> Option<&mut Layout> {
+    //     self.entries.iter_mut().find_map(
+    //         |item| {
+    //             if item.1.layout.0 == *lid {
+    //                 return Some(&mut item.1.layout.1);
+    //             }
+    //             None
+    //         }
+    //     )
+    // }
     pub fn get_layout_ref(&self, lid: &i64) -> Option<&Layout> {
-         self.entries.iter().find_map(
-            |item| {
-                if item.1.layout.0 == *lid {
-                    return Some(&item.1.layout.1);
-                }
-                None
-            }
-        )
+        self.layouts.get(lid)
     }
     pub fn get_layout_mut(&mut self, lid: &i64) -> Option<&mut Layout> {
-        self.entries.iter_mut().find_map(
-            |item| {
-                if item.1.layout.0 == *lid {
-                    return Some(&mut item.1.layout.1);
-                }
-                None
-            }
-        )
+        self.layouts.get_mut(lid)
     }
     pub fn get_entry_layout_ref(&self, eid: &i64) -> Option<&Layout> {
         match self.entries.get(eid) {
-            Some(e) => Some(&e.layout.1),
+            Some(e) => {
+                let target_lid: i64 = e.layout_id;
+                self.layouts.get(&target_lid)
+            },
             None => None,
         }
     }
     pub fn get_entry_layout_mut(&mut self, eid: &i64) -> Option<&mut Layout> {
         match self.entries.get_mut(eid) {
-            Some(e) => Some(&mut e.layout.1),
+            Some(e) => {
+                let target_lid: i64 = e.layout_id;
+                self.layouts.get_mut(&target_lid)
+            },
             None => None,
-        }
-    }
-    pub fn get_entry_lid(&self, eid: &i64) -> Option<i64> {
-        match self.entries.get(eid) {
-            Some(e) => Some(e.layout.0),
-            None => None
-        }
-    }
-    pub fn get_active_entry_lid(&self) -> Option<i64> {
-        match self.get_active_entry_ref() {
-            Some(e) => Some(e.layout.0),
-            None => None
         }
     }
 
@@ -207,15 +209,7 @@ impl LocalEntryState {
      */
     pub fn update_layout_by_lid(&mut self, lid: &i64, layout: Layout) -> Result<()> {
         LayoutRepository::update_layout_by_lid(&self.connection, &lid, &layout)?;
-
-        // Update all entry having the same layout
-        self.entries.iter_mut().for_each(
-            |(eid, entry)| {
-                if (entry.layout.0 == *lid) {
-                    entry.layout.1 = layout.clone();
-                }
-            }
-        );
+        *self.layouts.get_mut(&lid).unwrap() = layout;
         Ok(())
     }
     /*
@@ -223,9 +217,6 @@ impl LocalEntryState {
         Helpers
 
      */
-
-
-
     fn reconstruct_entry_order(&mut self) -> () {
         self.ordered_entries = self.entries.iter().map(
             |(id,entry)| {
@@ -233,7 +224,7 @@ impl LocalEntryState {
             }
         ).collect();
     }
-    fn get_max_position(&self, eid: i64) -> i64 {
+    fn get_max_position_section(&self, eid: i64) -> i64 {
         let sections = &self.entries.get(&eid).unwrap().sections;
         let mut max: i64 = 0;
         for (sid, section) in sections {
@@ -264,7 +255,8 @@ pub struct Glyph {
 pub struct Entry {
     pub entry_name: String,
     pub sections: HashMap<i64, Section>,
-    pub layout: (i64, Layout),
+    // pub layout: (i64, Layout),
+    pub layout_id: i64,
 }
 
 impl Entry {
@@ -449,17 +441,17 @@ impl GlyphRepository {
 }
 
 impl EntryRepository {
-    pub fn create_entry(c: &Connection, entry_name: &str) -> Result<i64> {
+    pub fn create_default_entry(c: &Connection, entry_name: &str) -> Result<i64> {
         c.execute(
             "INSERT INTO entries (entry_name) VALUES (?1)",
             params![entry_name],
         )?;
-        let id: i64 = c.last_insert_rowid();
+        let eid: i64 = c.last_insert_rowid();
         c.execute(
             "INSERT INTO layouts (entry_id, content) VALUES (?1, ?2)",
-            params![id,  serde_json::to_string(&Layout::new())?],
+            params![eid,  serde_json::to_string(&Layout::new())?],
         )?;
-        return Ok(id);
+        return Ok(eid);
     }
     pub fn update_entry(c: &Connection, eid: &i64, entry: &Entry) -> Result<(i64)> {
         c.execute(
@@ -475,7 +467,6 @@ impl EntryRepository {
         for (sid, section) in &entry.sections {
             SectionRepository::update_section(c, sid, section)?;
         }
-        LayoutRepository::update_layout_by_lid(c, &entry.layout.0, &entry.layout.1)?;
         return Ok(id);
     }
     pub fn update_name(c: &Connection, eid: &i64, new_name: &str) -> Result<()> {
@@ -525,7 +516,7 @@ impl EntryRepository {
             Entry {
                 entry_name: row.get(1)?,
                 sections: SectionRepository::read_by_entry_id(c, &id)?,
-                layout: LayoutRepository::read_by_eid(c, &id)?
+                layout_id: LayoutRepository::read_by_eid(c, &id)?.0
             }
         )
         )
@@ -597,14 +588,24 @@ impl SectionRepository {
 
 pub struct LayoutRepository {}
 impl LayoutRepository {
-    pub fn read_by_eid(c: &Connection, entry_id: &i64) -> Result<(i64, Layout)> {
+    pub fn read_all(c: &Connection) -> Result<HashMap<i64, Layout>> {
+        let mut stmt: Statement = c.prepare("SELECT id, entry_id, content FROM layouts")?;
+        let mut rows: Rows = stmt.query(params![])?;
+        let mut layouts: HashMap<i64, Layout> = HashMap::new();
+        while let Some(row) = rows.next()? {
+            let layout = Self::map_row_to_id_layout(row)?;
+            layouts.insert(layout.0, layout.2);
+        }
+        Ok(layouts)
+    }
+    pub fn read_by_eid(c: &Connection, eid: &i64) -> Result<(i64, i64, Layout)> {
         let mut stmt = c.prepare("SELECT id, entry_id, content FROM layouts WHERE entry_id = ?1")?;
-        let mut rows: Rows = stmt.query(params![*entry_id])?;
+        let mut rows: Rows = stmt.query(params![*eid])?;
 
         match rows.next() {
             Ok(row) => {
                 if let Some(row) = row {
-                    Self::to_layout(row)
+                    Self::map_row_to_id_layout(row)
                 } else {
                     Err(Report::msg("Layout does not exists!"))
                 }
@@ -614,14 +615,14 @@ impl LayoutRepository {
             }
         }
     }
-    pub fn read_by_lid(c: &Connection, lid: &i64) -> Result<(i64, Layout)> {
+    pub fn read_by_lid(c: &Connection, lid: &i64) -> Result<(i64, i64, Layout)> {
         let mut stmt = c.prepare("SELECT id, entry_id, content FROM layouts WHERE id = ?1")?;
         let mut rows: Rows = stmt.query(params![*lid])?;
 
         match rows.next() {
             Ok(row) => {
                 if let Some(row) = row {
-                    Self::to_layout(row)
+                    Self::map_row_to_id_layout(row)
                 } else {
                     Err(Report::msg("Layout does not exists!"))
                 }
@@ -683,14 +684,10 @@ impl LayoutRepository {
     /*
         Read a whole row, return (lid, Layout)
      */
-    pub fn to_layout(row: &Row) -> Result<(i64, Layout)> {
-        let id: i64 = row.get(0)?;
+    pub fn map_row_to_id_layout(row: &Row) -> Result<(i64, i64, Layout)> {
+        let lid: i64 = row.get(0)?;
+        let eid: i64 = row.get(1)?;
         let layout_data: String = row.get(2)?;
-        Ok(
-            (
-                id,
-                serde_json::from_str(layout_data.as_str())?,
-            )
-        )
+        Ok((eid, lid, serde_json::from_str(layout_data.as_str())?))
     }
 }

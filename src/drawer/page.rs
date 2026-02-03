@@ -327,8 +327,9 @@ impl Drawable for GlyphViewer {
 impl Drawable for GlyphReadView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let entry_state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
-        let entry_layout: &model::Layout = &entry_state.get_active_entry_ref().unwrap().layout.1;
-        let areas: Vec<(u16, Rect)> = evaluate_read_areas(self, area, entry_layout, 0,0);
+        let eid: i64 = entry_state.active_entry_id.unwrap();
+        let layout = entry_state.get_entry_layout_ref(&eid).unwrap();
+        let areas: Vec<(u16, Rect)> = evaluate_read_areas(self, area, layout, 0,0);
         let ref_sections: &HashMap<i64, Section> = &entry_state.get_active_entry_ref().unwrap().sections;
         for (sid, section) in ref_sections {
             if let Some((position, area)) = areas.iter().find(
@@ -559,8 +560,9 @@ impl Drawable for GlyphEditContentView {
 impl Drawable for GlyphLayoutView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let entry_state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
-        let entry_layout: &model::Layout = &entry_state.get_active_entry_ref().unwrap().layout.1;
-        evaluate_layout(self, area, frame.buffer_mut(), entry_layout, 0, Vec::new());
+        let eid: i64 = entry_state.active_entry_id.unwrap();
+        let layout = entry_state.get_entry_layout_ref(&eid).unwrap();
+        evaluate_layout(self, area, frame.buffer_mut(), layout, 0, Vec::new());
         /*
             Dialog
          */

@@ -10,7 +10,7 @@ use crate::app::PageCommand::*;
 
 use crate::app::Convertible;
 use crate::event_handler::{Focusable, Interactable};
-use crate::model::{GlyphRepository, Layout, LayoutOrientation, LocalEntryState, Section};
+use crate::model::{Entry, GlyphRepository, Layout, LayoutOrientation, LocalEntryState, Section};
 use crate::state::dialog::TextInputDialogState;
 use crate::state::page::{CreateGlyphPageState, GlyphEditContentState, GlyphEditState, GlyphLayoutState, GlyphMode, GlyphPageState};
 use color_eyre::eyre::Result;
@@ -351,7 +351,7 @@ impl Interactable for GlyphNavigationBar {
                                     let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                     let selected_id: i64 = self.state.local_entry_state_ref().unwrap().ordered_entries[index].0;
                                     let mut local_entry_state = self.state.local_entry_state_mut().unwrap();
-                                    local_entry_state.toggle_local_active_entry_id(selected_id)
+                                    local_entry_state.toggle_active_entry_id(selected_id)
                                 }
                                 return Ok(Vec::new());
 
@@ -367,7 +367,7 @@ impl Interactable for GlyphNavigationBar {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                                         let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
                                                         let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                        let id = local_entry_state.create_new_entry(_state.text_input.as_str())?;
+                                                        let id = local_entry_state.create_default_entry(_state.text_input.as_str())?;
 
                                                         // Reconstruct the list of entry display
                                                         Ok(vec![])
@@ -391,9 +391,8 @@ impl Interactable for GlyphNavigationBar {
                                                         let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
                                                         let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
                                                         let new_entry_name: &str = _state.text_input.as_str();
-                                                        let mut eid: i64 = local_entry_state.get_active_entry_lid().unwrap();
+                                                        let mut eid: i64 = local_entry_state.active_entry_id.unwrap();
                                                         local_entry_state.update_entry_name_by_eid(&eid, new_entry_name)?;
-                                                        // Reconstruct the list of entry display
                                                         Ok(vec![])
                                                     })
                                                 ).into()
@@ -805,9 +804,10 @@ impl Interactable for GlyphLayoutView {
                         'A' => {
                             let target_coor = self.state.selected_coordinate.clone();
                             let mut state = self.state.local_entry_state_mut().unwrap();
+                            let entry = state.get_active_entry_ref().unwrap();
                             let eid = state.active_entry_id.unwrap();
-                            let lid = state.get_active_entry_lid().unwrap();
-                            let mut layout = state.get_layout_ref(&lid).unwrap().clone();
+                            let lid: i64 = entry.layout_id;
+                            let mut layout: Layout = state.get_entry_layout_ref(&eid).unwrap().clone();
                             layout.insert_sublayout_under(
                                 Layout::new(),
                                 &target_coor,
@@ -828,8 +828,9 @@ impl Interactable for GlyphLayoutView {
                             self.state.hovered_index = None;
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             // Get Active eid
+                            let entry: &Entry = state.get_active_entry_ref().unwrap();
                             let eid = state.active_entry_id.unwrap();
-                            let lid = state.get_active_entry_lid().unwrap();
+                            let lid = entry.layout_id;
                             // Update
                             let mut layout = state.get_layout_ref(&lid).unwrap().clone();
                             layout.remove_sublayout(&target_coor)?;
@@ -844,8 +845,9 @@ impl Interactable for GlyphLayoutView {
                             let target_coor = self.state.selected_coordinate.clone();
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             // Get Active eid
+                            let entry: &Entry = state.get_active_entry_ref().unwrap();
                             let eid = state.active_entry_id.unwrap();
-                            let lid = state.get_active_entry_lid().unwrap();
+                            let lid = entry.layout_id;
                             // Update
                             let mut layout = state.get_layout_ref(&lid).unwrap().clone();
                             let mut sublayout = layout.get_layout_at_mut(&target_coor).unwrap();
@@ -866,8 +868,9 @@ impl Interactable for GlyphLayoutView {
                             let target_coor = self.state.selected_coordinate.clone();
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             // Get Active eid
+                            let entry: &Entry = state.get_active_entry_ref().unwrap();
                             let eid = state.active_entry_id.unwrap();
-                            let lid = state.get_active_entry_lid().unwrap();
+                            let lid = entry.layout_id;
                             // Update
                             let mut layout = state.get_layout_ref(&lid).unwrap().clone();
                             let mut sublayout = layout.get_layout_at_mut(&target_coor).unwrap();
@@ -890,8 +893,9 @@ impl Interactable for GlyphLayoutView {
                             let target_coor = self.state.selected_coordinate.clone();
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             // Get Active eid
-                            let eid = state.active_entry_id.unwrap();
-                            let lid = state.get_active_entry_lid().unwrap();
+                            let eid: i64 = state.active_entry_id.unwrap();
+                            let entry: &Entry = state.get_active_entry_ref().unwrap();
+                            let lid: i64 = entry.layout_id;
                             // Update
                             let mut layout = state.get_layout_ref(&lid).unwrap().clone();
                             let mut sublayout = layout.get_layout_at_mut(&target_coor).unwrap();
@@ -908,7 +912,7 @@ impl Interactable for GlyphLayoutView {
                             return Ok(Vec::new());
 
                         }
-                        'r' => {
+                        'R' => {
                             if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
                                 return Ok(Vec::new());
                             }
@@ -930,8 +934,9 @@ impl Interactable for GlyphLayoutView {
                                         let target_coord = _parent_state.selected_coordinate.clone();
                                         let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
 
-                                        let eid : i64 = local_entry_state.active_entry_id.unwrap();
-                                        let lid: i64 = local_entry_state.get_active_entry_lid().unwrap();
+                                        let eid: i64 = local_entry_state.active_entry_id.unwrap();
+                                        let entry: &Entry = local_entry_state.get_active_entry_ref().unwrap();
+                                        let lid: i64 = entry.layout_id;
                                         let mut new_layout = local_entry_state.get_entry_layout_ref(&eid).unwrap().clone();
                                         new_layout.get_layout_at_mut(&target_coord).unwrap().label = _state.text_input.clone();
 
