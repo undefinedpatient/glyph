@@ -361,7 +361,7 @@ impl Interactable for GlyphNavigationBar {
                                     vec![
                                         PageCommand(
                                             PushDialog(
-                                                TextInputDialog::new( "Entry Name", "untitled").on_submit(
+                                                TextInputDialog::new( "New Entry Name", "untitled").on_submit(
                                                     // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
                                                     Box::new(|parent_state, state| {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
@@ -369,6 +369,30 @@ impl Interactable for GlyphNavigationBar {
                                                         let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
                                                         let id = local_entry_state.create_new_entry(_state.text_input.as_str())?;
 
+                                                        // Reconstruct the list of entry display
+                                                        Ok(vec![])
+                                                    })
+                                                ).into()
+                                            )
+                                        )
+                                    ]
+                                );
+                            }
+                            'R' => {
+                                let active_entry_name: String = self.get_focused_entry_ref().unwrap().entry_name.clone();
+                                return Ok(
+                                    vec![
+                                        PageCommand(
+                                            PushDialog(
+                                                TextInputDialog::new( "Rename Entry", active_entry_name.as_str()).on_submit(
+                                                    // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
+                                                    Box::new(|parent_state, state| {
+                                                        let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                                        let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
+                                                        let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
+                                                        let new_entry_name: &str = _state.text_input.as_str();
+                                                        let mut eid: i64 = local_entry_state.get_active_entry_lid().unwrap();
+                                                        local_entry_state.update_entry_name_by_eid(&eid, new_entry_name)?;
                                                         // Reconstruct the list of entry display
                                                         Ok(vec![])
                                                     })

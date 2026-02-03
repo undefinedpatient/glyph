@@ -3,7 +3,7 @@ use crate::app::widget::{Button, DirectoryList, TextEditor, TextField};
 use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::{AppCommand, GlyphCommand};
 use crate::app::{Component, Container, Convertible};
-use crate::model::{GlyphRepository, LocalEntryState, Section};
+use crate::model::{Entry, GlyphRepository, LocalEntryState, Section};
 use crate::state::page::{
     CreateGlyphPageState,
     EntrancePageState,
@@ -23,6 +23,7 @@ use crate::utils::cycle_offset;
 use rusqlite::fallible_iterator::FallibleIterator;
 use rusqlite::Connection;
 use std::cell::{Ref, RefCell, RefMut};
+use color_eyre::eyre::Result;
 use std::rc::Rc;
 use crate::app::GlyphCommand::RefreshEditSection;
 
@@ -295,6 +296,24 @@ impl GlyphNavigationBar {
             } else {
                 self.state.hovered_index = Some(0);
             }
+        }
+    }
+    pub fn get_focused_entry_ref(&'_ mut self) -> Option<Ref<'_, Entry>> {
+        if let Ok(state) = self.state.entry_state.try_borrow() {
+            Some(Ref::map(state, |local_entry_state| {
+                local_entry_state.get_active_entry_ref().unwrap()
+            }))
+        } else {
+            None
+        }
+    }
+    pub fn get_focused_entry_mut(&'_ mut self) -> Option<RefMut<'_, Entry>> {
+        if let Ok(state) = self.state.entry_state.try_borrow_mut() {
+            Some(RefMut::map(state, |local_entry_state| {
+                local_entry_state.get_active_entry_mut().unwrap()
+            }))
+        } else {
+            None
         }
     }
 

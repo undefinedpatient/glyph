@@ -130,7 +130,7 @@ impl Drawable for DirectoryList {
 
 impl Drawable for TextField {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
-        let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
+        // let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
         let content = self.state.chars.iter().collect::<String>();
         let content_paragraph: Paragraph = Paragraph::new(Line::from(content)).wrap(Wrap{trim: true});
         let text_field_block: Block = Block::bordered()
@@ -141,16 +141,16 @@ impl Drawable for TextField {
                 DrawFlag::FOCUSED => BorderType::Thick,
                 _ => BorderType::LightDoubleDashed,
             });
-        let content_area: Rect = text_field_block.inner(text_field_area);
+        let content_area: Rect = text_field_block.inner(area);
         if self.is_focused() {
-            let cursor_position: Position = text_field_area.as_position().offset(Offset {
+            let cursor_position: Position = area.as_position().offset(Offset {
                 x: 1 + (self.state.cursor_index % content_area.width as usize) as i32,
                 y: 1 + (self.state.cursor_index /content_area.width as usize) as i32 ,
             });
             frame.set_cursor_position(cursor_position);
         }
-        Clear.render(text_field_area, frame.buffer_mut());
-        text_field_block.render(text_field_area, frame.buffer_mut());
+        // Clear.render(area, frame.buffer_mut());
+        text_field_block.render(area, frame.buffer_mut());
         content_paragraph.render(content_area, frame.buffer_mut());
     }
 }

@@ -7,6 +7,7 @@ use std::path::PathBuf;
 
 pub struct LocalEntryState {
     pub entries: HashMap<i64, Entry>,
+    // pub sections: HashMap<(i64, i64), Entry>,
     pub connection: Connection,
     pub active_entry_id: Option<i64>,
     pub updated_entry_ids:  Vec<i64>,
@@ -48,6 +49,18 @@ impl LocalEntryState {
             }
             Err(e) => Err(e)
         }
+    }
+    /*
+        Update Entry by ID
+     */
+    pub fn update_entry_name_by_eid(&mut self, eid: &i64, new_name: &str) -> Result<()> {
+
+        EntryRepository::update_name(&self.connection, &eid, new_name)?;
+        let (eid, entry) = EntryRepository::read_by_id(&self.connection, &eid)?.unwrap();
+
+        let current_entry = self.entries.get_mut(&eid).unwrap();
+        current_entry.update_name(&entry);
+        Ok(())
     }
     /*
         Delete Entry by ID
@@ -254,6 +267,13 @@ pub struct Entry {
     pub layout: (i64, Layout),
 }
 
+impl Entry {
+    pub fn update_name(&mut self, other: &Entry) -> () {
+        if self.entry_name != other.entry_name {
+            self.entry_name = other.entry_name.clone();
+        }
+    }
+}
 /*
     Section
  */
@@ -444,11 +464,10 @@ impl EntryRepository {
     pub fn update_entry(c: &Connection, eid: &i64, entry: &Entry) -> Result<(i64)> {
         c.execute(
             "
-                INSERT INTO entries (id, entry_name)
-                VALUES (?1, ?2)
-                ON CONFLICT (id)
-                DO UPDATE SET
-                    entry_name = ?2,
+                UPDATE entries
+                SET
+                    entry_name = ?2
+                WHERE id = ?1
             ",
             params![eid, entry.entry_name],
         )?;
@@ -458,6 +477,20 @@ impl EntryRepository {
         }
         LayoutRepository::update_layout_by_lid(c, &entry.layout.0, &entry.layout.1)?;
         return Ok(id);
+    }
+    pub fn update_name(c: &Connection, eid: &i64, new_name: &str) -> Result<()> {
+        if c.execute(
+            "
+                UPDATE entries
+                SET
+                    entry_name = ?2
+                WHERE id = ?1
+            ",
+            params![eid, new_name],
+        )? != 1 {
+            return Err(Report::msg("Tried to update name but there is no entry"));
+        }
+        return Ok(());
     }
 
 
@@ -471,7 +504,7 @@ impl EntryRepository {
     pub fn read_by_id(c: &Connection, id: &i64) -> Result<Option<(i64, Entry)>> {
         let mut stmt = c.prepare("SELECT id, entry_name FROM entries WHERE id = ?1")?;
         let mut rows: Rows = stmt.query(params![*id])?;
-        rows.next()?.map(|row| {Self::to_entry(c, row)}).transpose()
+        rows.next()?.map(|row| {Self::map_row_to_eid_entry(c, row)}).transpose()
     }
 
     pub fn read_all(c: &Connection) -> Result<HashMap<i64, Entry>> {
@@ -479,13 +512,13 @@ impl EntryRepository {
         let mut rows: Rows = stmt.query(params![])?;
         let mut entries: HashMap<i64, Entry> = HashMap::new();
         while let Some(row) = rows.next()? {
-            let entry = Self::to_entry(c, row)?;
+            let entry = Self::map_row_to_eid_entry(c, row)?;
             entries.insert(entry.0, entry.1);
         }
         Ok(entries)
     }
 
-    fn to_entry(c: &Connection, row: &Row) -> Result<(i64, Entry)> {
+    fn map_row_to_eid_entry(c: &Connection, row: &Row) -> Result<(i64, Entry)> {
         let id: i64 = row.get(0)?;
         Ok((
             id,
