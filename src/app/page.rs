@@ -248,14 +248,12 @@ impl From<GlyphPage> for Box<dyn Container> {
  */
 
 pub struct GlyphNavigationBar {
-    pub dialogs: Vec<Box<dyn Container>>,
     pub state: GlyphNavigationBarState
 }
 
 impl GlyphNavigationBar {
     pub fn new(entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         Self {
-            dialogs: Vec::new(),
             state: GlyphNavigationBarState {
                 is_focused: false,
                 line_height: 1,
@@ -337,13 +335,10 @@ pub struct GlyphReadView {
 
 pub struct GlyphEditView {
     pub containers: Vec<Box<dyn Container>>,
-    pub components: Vec<Box<dyn Component>>,
     pub state: GlyphEditState,
 }
 
 pub struct GlyphEditOrderView{
-    pub containers: Vec<Box<dyn Container>>,
-    pub components: Vec<Box<dyn Component>>,
     pub state: GlyphEditOrderState,
 }
 
@@ -354,16 +349,12 @@ pub struct GlyphEditContentView {
 }
 
 pub struct GlyphLayoutView{
-    pub dialogs: Vec<Box<dyn Container>>,
     pub containers: Vec<Box<dyn Container>>,
-    pub components: Vec<Box<dyn Component>>,
     pub state: GlyphLayoutState,
 
 }
 
 pub struct GlyphLayoutOverview {
-    pub containers: Vec<Box<dyn Container>>,
-    pub components: Vec<Box<dyn Component>>,
     pub state: GlyphLayoutOverviewState,
 }
 
@@ -413,8 +404,6 @@ impl GlyphEditView {
                 GlyphEditOrderView::new(editing_sid.clone(), entry_state.clone(), focused_panel_index.clone()).into(),
                 GlyphEditContentView::new(editing_sid.clone(), entry_state.clone(), focused_panel_index.clone()).into()
             ],
-            components: vec![
-            ],
             state: GlyphEditState {
                 shared_focus: shared_focus,
                 focused_panel_index,
@@ -433,10 +422,6 @@ impl GlyphEditOrderView{
         focused_panel_index: Rc<RefCell<usize>>,
     ) -> Self {
         Self {
-            containers: vec![
-            ],
-            components: vec![
-            ],
             state: GlyphEditOrderState {
                 focused_panel_index,
                 hovered_index: None,
@@ -592,14 +577,12 @@ impl GlyphLayoutView {
         let focused_panel_index = Rc::new(RefCell::new(0));
         let selected_coordinate: Rc<RefCell<Vec<usize>>> = Rc::new(RefCell::new(vec![]));
         Self {
-            dialogs: vec![],
             containers: vec![
                 GlyphLayoutOverview::new(selected_coordinate.clone(), entry_state.clone(), focused_panel_index.clone()).into(),
                 GlyphLayoutEditView::new(selected_coordinate.clone(), entry_state.clone(), focused_panel_index.clone()).into()
             ],
-            components: vec![],
             state: GlyphLayoutState {
-                shared_focus: shared_focus,
+                shared_focus,
                 focused_panel_index,
                 selected_coordinate,
 
@@ -617,9 +600,6 @@ impl GlyphLayoutOverview {
         focused_panel_index: Rc<RefCell<usize>>,
     ) -> Self {
         Self {
-            containers: Vec::new(),
-            components: Vec::new(),
-
             state: GlyphLayoutOverviewState {
                 focused_panel_index,
                 hovered_index: None,

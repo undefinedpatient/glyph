@@ -54,16 +54,20 @@ impl LocalEntryState {
     }
     pub fn create_default_entry(&mut self, entry_name: &str) -> Result<i64> {
         let entry_id: i64 = EntryRepository::create_default_entry(&self.connection, entry_name)?;
-        let result = EntryRepository::read_by_id(&self.connection, &entry_id);
-        match result {
-            Ok(succ) => {
-                if let Some((id, entry)) = succ {
-                    self.entries.push((id, entry));
-                    self.reconstruct_entry_order();
-                    Ok(id)
-                } else {
-                    Err(Report::msg("Entry Created, but could not be found"))
-                }
+        let entry_result = EntryRepository::read_by_id(&self.connection, &entry_id);
+        let layout_result = LayoutRepository::read_by_eid(&self.connection, &entry_id);
+        match layout_result {
+            Ok((eid, lid, layout)) => {
+                self.layouts.insert(lid, layout);
+                self.reconstruct_entry_order();
+            }
+            Err(e) => return Err(e)
+        };
+        match entry_result {
+            Ok((eid, entry)) => {
+                self.entries.push((eid, entry));
+                self.reconstruct_entry_order();
+                Ok(eid)
             }
             Err(e) => Err(e)
         }
@@ -74,7 +78,7 @@ impl LocalEntryState {
     pub fn update_entry_name_by_eid(&mut self, eid: &i64, new_name: &str) -> Result<()> {
 
         EntryRepository::update_name(&self.connection, &eid, new_name)?;
-        let (eid, entry) = EntryRepository::read_by_id(&self.connection, &eid)?.unwrap();
+        let (eid, entry) = EntryRepository::read_by_id(&self.connection, &eid)?;
 
         let current_entry: &mut Entry = self.get_entry_mut(&eid).unwrap();
         current_entry.update_name(&entry);
@@ -359,7 +363,7 @@ pub struct Layout {
 impl Layout {
     pub fn new() -> Self {
         Self {
-            label: String::new(),
+            label: String::from("Root"),
             section_index: None,
             sub_layouts: Vec::new(),
             details: LayoutDetails::new()
@@ -550,10 +554,10 @@ impl EntryRepository {
         Ok(num_of_row_deleted)
     }
 
-    pub fn read_by_id(c: &Connection, id: &i64) -> Result<Option<(i64, Entry)>> {
+    pub fn read_by_id(c: &Connection, id: &i64) -> Result<(i64, Entry)> {
         let mut stmt = c.prepare("SELECT id, entry_name FROM entries WHERE id = ?1")?;
         let mut rows: Rows = stmt.query(params![*id])?;
-        rows.next()?.map(|row| {Self::map_row_to_eid_entry(c, row)}).transpose()
+        Self::map_row_to_eid_entry(c, rows.next()?.unwrap())
     }
 
     pub fn read_all(c: &Connection) -> Result<Vec<(i64, Entry)>> {

@@ -14,7 +14,7 @@ use crate::model::{Entry, GlyphRepository, Layout, LayoutOrientation, LocalEntry
 use crate::state::dialog::TextInputDialogState;
 use crate::state::page::{CreateGlyphPageState, GlyphEditContentState, GlyphEditState, GlyphLayoutState, GlyphMode, GlyphPageState};
 use color_eyre::eyre::Result;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use rusqlite::fallible_iterator::FallibleIterator;
 use std::any::Any;
 use std::cell::{Ref, RefMut};
@@ -504,109 +504,102 @@ impl Interactable for GlyphReadView {
 
 impl Interactable for GlyphEditOrderView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
-        if self.focused_child_ref().is_none() {
-            match key.kind {
-                KeyEventKind::Press => {
-                    if let KeyCode::Tab = key.code {
-                        self.cycle_section_hover(1);
-                        return Ok(Vec::new());
-                    }
-                    if let KeyCode::BackTab = key.code {
-                        self.cycle_section_hover(-1);
-                        return Ok(Vec::new());
-                    }
-                    if let KeyCode::Enter = key.code {
-                        if let Some(index) = self.state.hovered_index {
-                            let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
-                            let eid = state.active_entry_id.unwrap();
-                            let sections: &Vec<(i64, Section)> = state.get_sections_ref(&eid);
-                            *self.state.editing_sid.borrow_mut() = Some((*sections.get(index).unwrap()).0);
-                            return Ok(vec![GlyphCommand(RefreshEditSection)]);
-                        }
-                    }
-                    if let KeyCode::Esc = key.code {
-                        // Directly mutating parent state to lose focus
-                        let parent_state = parent_state.unwrap().downcast_mut::<GlyphEditState>().unwrap();
-                        *parent_state.shared_focus.borrow_mut() = false;
-                        return Ok(Vec::new());
-                    }
-                    if let KeyCode::Char(c) = key.code {
-                        match c {
-                            '+' => {
-                                if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
-                                    return Ok(Vec::new());
-                                }
-                                if self.state.editing_sid.borrow().is_none() {
-                                    return Ok(Vec::new());
-                                }
-                                let sid = self.state.editing_sid.borrow().unwrap().clone();
-                                let mut section: Section = self.get_editing_section_mut().clone();
-                                let eid: i64 = self.state.local_entry_state_ref().unwrap().active_entry_id.unwrap();
-                                section.position = section.position + 1;
-                                
-                                let mut state = self.state.local_entry_state_mut().unwrap();
-                                state.update_section_by_sid(&sid, section)?;
-                                state.sort_sections_by_position(&eid);
-                                drop(state);
-                                return Ok(Vec::new());
-
-                            }
-                            '-' => {
-                                if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
-                                    return Ok(Vec::new());
-                                }
-                                if self.state.editing_sid.borrow().is_none() {
-                                    return Ok(Vec::new());
-                                }
-                                let sid: i64 = self.state.editing_sid.borrow().unwrap().clone();
-                                let mut section: Section = self.get_editing_section_mut().clone();
-                                let eid: i64 = self.state.local_entry_state_ref().unwrap().active_entry_id.unwrap();
-                                section.position = section.position - 1;
-
-                                let mut state = self.state.local_entry_state_mut().unwrap();
-                                state.update_section_by_sid(&sid, section)?;
-                                state.sort_sections_by_position(&eid);
-                                drop(state);
-                                return Ok(Vec::new());
-                            }
-                            'j' => {
-                                self.cycle_section_hover(1);
-                                return Ok(Vec::new());
-                            }
-                            'k' => {
-                                self.cycle_section_hover(-1);
-                                return Ok(Vec::new());
-                            }
-                            'A' => {
-                                let state: &mut GlyphEditState = parent_state.unwrap().downcast_mut::<GlyphEditState>().unwrap();
-                                let mut entry_state: RefMut<LocalEntryState> = state.local_entry_state_mut().unwrap();
-                                entry_state.create_section_to_active_entry(
-                                    "Section",
-                                    "Blank"
-                                )?;
-                                return Ok(Vec::new());
-                            }
-                            'e' => {
-                                *self.state.focused_panel_index.borrow_mut() = 1;
-                                return Ok(Vec::new());
-                            }
-                            _ => {
-                                return Ok(Vec::new());
-
-                            }
-                        }
-                    }
+        match key.kind {
+            KeyEventKind::Press => {
+                if let KeyCode::Tab = key.code {
+                    self.cycle_section_hover(1);
                     return Ok(Vec::new());
                 }
-                _ => {
-                    Ok(Vec::new())
+                if let KeyCode::BackTab = key.code {
+                    self.cycle_section_hover(-1);
+                    return Ok(Vec::new());
                 }
+                if let KeyCode::Enter = key.code {
+                    if let Some(index) = self.state.hovered_index {
+                        let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
+                        let eid = state.active_entry_id.unwrap();
+                        let sections: &Vec<(i64, Section)> = state.get_sections_ref(&eid);
+                        *self.state.editing_sid.borrow_mut() = Some((*sections.get(index).unwrap()).0);
+                        return Ok(vec![GlyphCommand(RefreshEditSection)]);
+                    }
+                }
+                if let KeyCode::Esc = key.code {
+                    // Directly mutating parent state to lose focus
+                    let parent_state = parent_state.unwrap().downcast_mut::<GlyphEditState>().unwrap();
+                    *parent_state.shared_focus.borrow_mut() = false;
+                    return Ok(Vec::new());
+                }
+                if let KeyCode::Char(c) = key.code {
+                    match c {
+                        '+' => {
+                            if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
+                                return Ok(Vec::new());
+                            }
+                            if self.state.editing_sid.borrow().is_none() {
+                                return Ok(Vec::new());
+                            }
+                            let sid = self.state.editing_sid.borrow().unwrap().clone();
+                            let mut section: Section = self.get_editing_section_mut().clone();
+                            let eid: i64 = self.state.local_entry_state_ref().unwrap().active_entry_id.unwrap();
+                            section.position = section.position + 1;
+
+                            let mut state = self.state.local_entry_state_mut().unwrap();
+                            state.update_section_by_sid(&sid, section)?;
+                            state.sort_sections_by_position(&eid);
+                            drop(state);
+                            return Ok(Vec::new());
+
+                        }
+                        '-' => {
+                            if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
+                                return Ok(Vec::new());
+                            }
+                            if self.state.editing_sid.borrow().is_none() {
+                                return Ok(Vec::new());
+                            }
+                            let sid: i64 = self.state.editing_sid.borrow().unwrap().clone();
+                            let mut section: Section = self.get_editing_section_mut().clone();
+                            let eid: i64 = self.state.local_entry_state_ref().unwrap().active_entry_id.unwrap();
+                            section.position = section.position - 1;
+
+                            let mut state = self.state.local_entry_state_mut().unwrap();
+                            state.update_section_by_sid(&sid, section)?;
+                            state.sort_sections_by_position(&eid);
+                            drop(state);
+                            return Ok(Vec::new());
+                        }
+                        'j' => {
+                            self.cycle_section_hover(1);
+                            return Ok(Vec::new());
+                        }
+                        'k' => {
+                            self.cycle_section_hover(-1);
+                            return Ok(Vec::new());
+                        }
+                        'A' => {
+                            let state: &mut GlyphEditState = parent_state.unwrap().downcast_mut::<GlyphEditState>().unwrap();
+                            let mut entry_state: RefMut<LocalEntryState> = state.local_entry_state_mut().unwrap();
+                            entry_state.create_section_to_active_entry(
+                                "Section",
+                                "Blank"
+                            )?;
+                            return Ok(Vec::new());
+                        }
+                        'e' => {
+                            *self.state.focused_panel_index.borrow_mut() = 1;
+                            return Ok(Vec::new());
+                        }
+                        _ => {
+                            return Ok(Vec::new());
+
+                        }
+                    }
+                }
+                return Ok(Vec::new());
             }
-        } else {
-            let index: usize = self.focused_child_index().unwrap();
-            let mut result =
-                self.containers[index].handle(key, Some(&mut self.state));
-            result
+            _ => {
+                Ok(Vec::new())
+            }
         }
     }
 }
