@@ -1,4 +1,4 @@
-use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphEditContentView, GlyphEditOrderView, GlyphEditView, GlyphLayoutView, GlyphNavigationBar, GlyphPage, GlyphReadView, GlyphViewer, OpenGlyphPage};
+use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphEditContentView, GlyphEditOrderView, GlyphEditView, GlyphLayoutEditView, GlyphLayoutOverview, GlyphLayoutView, GlyphNavigationBar, GlyphPage, GlyphReadView, GlyphViewer, OpenGlyphPage};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use crate::model;
@@ -392,20 +392,6 @@ fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &model::Layout, d
 
 impl Drawable for GlyphEditView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
-
-        // /*
-        //     Dialog
-        //  */
-        // if !self.dialogs.is_empty() {
-        //     for (i, dialog) in self.dialogs.iter().enumerate() {
-        //         if i == self.dialogs.len() - 1 {
-        //             dialog.render(frame, area, DrawFlag::FOCUSED);
-        //         } else {
-        //             dialog.render(frame, area, DrawFlag::DEFAULT);
-        //         }
-        //     }
-        // }
-
         /*
            Container Frame
         */
@@ -443,15 +429,14 @@ impl Drawable for GlyphEditView {
 
 impl Drawable for GlyphEditOrderView{
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
-
         /*
            Container Frame
         */
         let mut widget_frame: Block = block!("", draw_flag).title(Line::from("(q)").right_aligned());
-
-
         let inner_area = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
+
+
 
         let state = self.state.entry_state.borrow();
         let eid = state.active_entry_id.unwrap();
@@ -550,40 +535,85 @@ impl Drawable for GlyphEditContentView {
 
 impl Drawable for GlyphLayoutView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
-        let entry_state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
-        let eid: i64 = entry_state.active_entry_id.unwrap();
-        let layout = entry_state.get_entry_layout_ref(&eid).unwrap();
-        evaluate_layout(self, area, frame.buffer_mut(), layout, 0, Vec::new());
         /*
-            Dialog
-         */
-        if !self.dialogs.is_empty() {
-            for (i, dialog) in self.dialogs.iter().enumerate() {
-                if i == self.dialogs.len() - 1 {
-                    dialog.render(frame, area, DrawFlag::FOCUSED, theme);
-                } else {
-                    dialog.render(frame, area, DrawFlag::DEFAULT, theme);
-                }
-            }
-        }
+           Container Frame
+        */
+        let focused_panel_index = *self.state.focused_panel_index.borrow();
+        let edit_areas = Layout::horizontal([Constraint::Percentage(100), Constraint::Length(32)]).split(area);
+        self.containers[0].render(frame, edit_areas[0],
+                                  if !self.is_focused() {
+                                      DrawFlag::DEFAULT
+                                  }
+                                  else if focused_panel_index == 0 {
+                                      DrawFlag::FOCUSED
+                                  } else {
+                                      DrawFlag::DEFAULT
+                                  },
+                                  theme
+        );
+        self.containers[1].render(frame, edit_areas[1],
+                                  if !self.is_focused() {
+                                      DrawFlag::DEFAULT
+                                  }
+                                  else if focused_panel_index == 1 {
+                                      DrawFlag::FOCUSED
+                                  } else {
+                                      DrawFlag::DEFAULT
+                                  },
+                                  theme
+                                  ,
+        );
+
     }
 
 }
 
-fn evaluate_layout(me: &GlyphLayoutView, area: Rect, buffer: &mut Buffer, layout: &model::Layout, depth: u16, at: Vec<usize>) -> Vec<(u16, Rect)>{
+impl Drawable for GlyphLayoutOverview {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
+        /*
+           Container Frame
+        */
+        let mut widget_frame: Block = block!("", draw_flag).title(Line::from("(q)").right_aligned());
+        let inner_area = widget_frame.inner(area);
+        widget_frame.render(area, frame.buffer_mut());
+
+
+
+
+        let entry_state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
+        let eid: i64 = entry_state.active_entry_id.unwrap();
+        let layout = entry_state.get_entry_layout_ref(&eid).unwrap();
+        evaluate_layout(self, inner_area, frame.buffer_mut(), layout, 0, Vec::new());
+    }
+}
+
+impl Drawable for GlyphLayoutEditView {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
+        /*
+           Container Frame
+        */
+        let mut widget_frame: Block = block!("", draw_flag).title(Line::from("(e)").left_aligned());
+
+
+
+        let inner_area = widget_frame.inner(area);
+        widget_frame.render(area, frame.buffer_mut());
+    }
+}
+fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, layout: &model::Layout, depth: u16, at: Vec<usize>) -> Vec<(u16, Rect)>{
     let mut target_section_text: String = "None".to_string();
     if let Some(position_target) = layout.section_index {
         target_section_text = position_target.to_string();
     }
 
-    let focused_coordinate = &me.state.selected_coordinate;
+    let focused_coordinate = &me.state.selected_coordinate.borrow().clone();
 
     let mut block: Block = Block::bordered().title(layout.label.as_str()).padding(Padding {left: 1, right: 1, top: 1, bottom: 1});
     if at == *focused_coordinate {
         block = block.border_type(BorderType::Thick).title_style(Style::new().bold());
 
     } else if let Some(hovered_index) = me.state.hovered_index {
-        let mut hover_coordinate = me.state.selected_coordinate.clone();
+        let mut hover_coordinate = me.state.selected_coordinate.borrow().clone();
         hover_coordinate.push(hovered_index);
         if hover_coordinate == at {
             block = block.border_type(BorderType::Double);
@@ -638,4 +668,3 @@ fn evaluate_layout(me: &GlyphLayoutView, area: Rect, buffer: &mut Buffer, layout
     }
     areas
 }
-

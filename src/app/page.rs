@@ -4,19 +4,7 @@ use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::{AppCommand, GlyphCommand};
 use crate::app::{Component, Container, Convertible};
 use crate::model::{Entry, GlyphRepository, LocalEntryState, Section};
-use crate::state::page::{
-    CreateGlyphPageState,
-    EntrancePageState,
-    GlyphEditContentState,
-    GlyphEditOrderState,
-    GlyphEditState,
-    GlyphLayoutState,
-    GlyphMode,
-    GlyphNavigationBarState,
-    GlyphPageState,
-    GlyphReadState,
-    GlyphViewerState,
-    OpenGlyphPageState};
+use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphEditContentState, GlyphEditOrderState, GlyphEditState, GlyphLayoutEditState, GlyphLayoutOverviewState, GlyphLayoutState, GlyphMode, GlyphNavigationBarState, GlyphPageState, GlyphReadState, GlyphViewerState, OpenGlyphPageState};
 use crate::state::widget::{DirectoryListState, TextEditorState, TextFieldState};
 use crate::state::AppState;
 use crate::utils::cycle_offset;
@@ -345,13 +333,7 @@ pub struct GlyphReadView {
 
 }
 
-pub struct GlyphLayoutView{
-    pub dialogs: Vec<Box<dyn Container>>,
-    pub containers: Vec<Box<dyn Container>>,
-    pub components: Vec<Box<dyn Component>>,
-    pub state: GlyphLayoutState,
 
-}
 
 pub struct GlyphEditView {
     pub containers: Vec<Box<dyn Container>>,
@@ -371,17 +353,38 @@ pub struct GlyphEditContentView {
     pub state: GlyphEditContentState,
 }
 
+pub struct GlyphLayoutView{
+    pub dialogs: Vec<Box<dyn Container>>,
+    pub containers: Vec<Box<dyn Container>>,
+    pub components: Vec<Box<dyn Component>>,
+    pub state: GlyphLayoutState,
+
+}
+
+pub struct GlyphLayoutOverview {
+    pub containers: Vec<Box<dyn Container>>,
+    pub components: Vec<Box<dyn Component>>,
+    pub state: GlyphLayoutOverviewState,
+}
+
+pub struct GlyphLayoutEditView {
+    pub containers: Vec<Box<dyn Container>>,
+    pub components: Vec<Box<dyn Component>>,
+    pub state: GlyphLayoutEditState,
+}
+
+
 impl GlyphViewer {
     pub fn new(entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
-        let focus_state = Rc::new(RefCell::new(false));
+        let shared_focus = Rc::new(RefCell::new(false));
         Self {
             containers: [
-                GlyphReadView::new(focus_state.clone(), entry_state.clone()).into(),
-                GlyphEditView::new(focus_state.clone(), entry_state.clone()).into(),
-                GlyphLayoutView::new(focus_state.clone(), entry_state.clone()).into(),
+                GlyphReadView::new(shared_focus.clone(), entry_state.clone()).into(),
+                GlyphEditView::new(shared_focus.clone(), entry_state.clone()).into(),
+                GlyphLayoutView::new(shared_focus.clone(), entry_state.clone()).into(),
             ],
             state: GlyphViewerState {
-                is_focused: focus_state,
+                is_focused: shared_focus,
                 mode: GlyphMode::Read,
                 entry_state: entry_state
             }
@@ -389,12 +392,12 @@ impl GlyphViewer {
     }
 }
 impl GlyphReadView {
-    pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+    pub fn new(shared_focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         Self {
             containers: vec![],
             components: vec![],
             state: GlyphReadState {
-                is_focused: focus,
+                is_focused: shared_focus,
 
                 entry_state
             }
@@ -402,7 +405,7 @@ impl GlyphReadView {
     }
 }
 impl GlyphEditView {
-    pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+    pub fn new(shared_focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         let editing_sid : Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(None));
         let focused_panel_index: Rc<RefCell<usize>> = Rc::new(RefCell::new(0));
         Self {
@@ -413,7 +416,7 @@ impl GlyphEditView {
             components: vec![
             ],
             state: GlyphEditState {
-                is_focused: focus,
+                shared_focus: shared_focus,
                 focused_panel_index,
                 hovered_index: None,
 
@@ -585,22 +588,49 @@ impl GlyphEditContentView {
 }
 
 impl GlyphLayoutView {
-    pub fn new(focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+    pub fn new(shared_focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+        let focused_panel_index = Rc::new(RefCell::new(0));
+        let selected_coordinate: Rc<RefCell<Vec<usize>>> = Rc::new(RefCell::new(vec![]));
         Self {
             dialogs: vec![],
-            containers: vec![],
+            containers: vec![
+                GlyphLayoutOverview::new(selected_coordinate.clone(), entry_state.clone(), focused_panel_index.clone()).into(),
+                GlyphLayoutEditView::new(selected_coordinate.clone(), entry_state.clone(), focused_panel_index.clone()).into()
+            ],
             components: vec![],
             state: GlyphLayoutState {
-                is_focused: focus,
-                hovered_index: None,
-                selected_coordinate: Vec::new(),
+                shared_focus: shared_focus,
+                focused_panel_index,
+                selected_coordinate,
+
 
                 entry_state
             }
         }
     }
+}
+
+impl GlyphLayoutOverview {
+    pub fn new(
+        selected_coordinate: Rc<RefCell<Vec<usize>>>,
+        entry_state: Rc<RefCell<LocalEntryState>>,
+        focused_panel_index: Rc<RefCell<usize>>,
+    ) -> Self {
+        Self {
+            containers: Vec::new(),
+            components: Vec::new(),
+
+            state: GlyphLayoutOverviewState {
+                focused_panel_index,
+                hovered_index: None,
+                selected_coordinate,
+
+                entry_state
+            },
+        }
+    }
     pub(crate) fn cycle_layout_hover(&mut self, offset: i16) -> () {
-        let select_coordinate: Vec<usize> = self.state.selected_coordinate.clone();
+        let select_coordinate: Vec<usize> = self.state.selected_coordinate.borrow().clone();
         let state = self.state.local_entry_state_ref().unwrap();
         let eid = state.active_entry_id.unwrap();
         let ref_layout = state.get_entry_layout_ref(&eid).unwrap();
@@ -615,6 +645,28 @@ impl GlyphLayoutView {
         }
     }
 }
+
+impl GlyphLayoutEditView {
+    pub fn new(
+        selected_coordinate: Rc<RefCell<Vec<usize>>>,
+        entry_state: Rc<RefCell<LocalEntryState>>,
+        focused_panel_index: Rc<RefCell<usize>>,
+    ) -> Self {
+        Self {
+            containers: Vec::new(),
+            components: Vec::new(),
+
+            state: GlyphLayoutEditState{
+                focused_panel_index,
+                hovered_index: None,
+                selected_coordinate,
+
+                entry_state
+            },
+        }
+    }
+}
+
 impl From<GlyphViewer> for Box<dyn Container> {
     fn from(container: GlyphViewer) -> Self {
         Box::new(container)
@@ -622,11 +674,6 @@ impl From<GlyphViewer> for Box<dyn Container> {
 }
 impl From<GlyphReadView> for Box<dyn Container> {
     fn from(container: GlyphReadView) -> Self {
-        Box::new(container)
-    }
-}
-impl From<GlyphLayoutView> for Box<dyn Container> {
-    fn from(container: GlyphLayoutView) -> Self {
         Box::new(container)
     }
 }
@@ -642,6 +689,21 @@ impl From<GlyphEditOrderView> for Box<dyn Container> {
 }
 impl From<GlyphEditContentView> for Box<dyn Container> {
     fn from(container: GlyphEditContentView) -> Self {
+        Box::new(container)
+    }
+}
+impl From<GlyphLayoutView> for Box<dyn Container> {
+    fn from(container: GlyphLayoutView) -> Self {
+        Box::new(container)
+    }
+}
+impl From<GlyphLayoutOverview> for Box<dyn Container> {
+    fn from(container: GlyphLayoutOverview) -> Self {
+        Box::new(container)
+    }
+}
+impl From<GlyphLayoutEditView> for Box<dyn Container> {
+    fn from(container: GlyphLayoutEditView) -> Self {
         Box::new(container)
     }
 }
