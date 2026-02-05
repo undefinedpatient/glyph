@@ -13,7 +13,6 @@ use ratatui::text::{Line, Text};
 use ratatui::widgets::{Block, BorderType, Padding, Paragraph, Widget, Wrap};
 use ratatui::Frame;
 use std::cell::Ref;
-use std::collections::HashMap;
 use std::rc::Rc;
 use tui_big_text::{BigText, PixelSize};
 

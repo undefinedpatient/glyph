@@ -363,7 +363,7 @@ impl Interactable for GlyphNavigationBar {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                                         let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
                                                         let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                        let id = local_entry_state.create_default_entry(_state.text_input.as_str())?;
+                                                        let id = local_entry_state.create_default_entry_db(_state.text_input.as_str())?;
 
                                                         // Reconstruct the list of entry display
                                                         Ok(vec![])
@@ -388,7 +388,7 @@ impl Interactable for GlyphNavigationBar {
                                                         let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
                                                         let new_entry_name: &str = _state.text_input.as_str();
                                                         let mut eid: i64 = local_entry_state.active_entry_id.unwrap();
-                                                        local_entry_state.update_entry_name_by_eid(&eid, new_entry_name)?;
+                                                        local_entry_state.update_entry_name_db(&eid, new_entry_name)?;
                                                         Ok(vec![])
                                                     })
                                                 ).into()
@@ -410,7 +410,7 @@ impl Interactable for GlyphNavigationBar {
                                                     Box::new(|parent_state, state| {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                                         let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
-                                                        local_entry_state.delete_active_entry()?;
+                                                        local_entry_state.delete_active_entry_db()?;
                                                         Ok(vec![])
                                                     })
                                                 ).into()
@@ -464,7 +464,7 @@ impl Interactable for GlyphViewer {
                                 if key.modifiers.contains(KeyModifiers::CONTROL) {
                                     let mut state = self.state.local_entry_state_mut().unwrap();
                                     let eid = state.active_entry_id.unwrap();
-                                    state.save_local_entry(&eid)?;
+                                    state.save_entry_db(&eid)?;
                                 }
                             }
                             _ => {}
@@ -597,6 +597,17 @@ impl Interactable for GlyphEditOrderView {
                             drop(state);
                             return Ok(Vec::new());
                         }
+                        'x' => {
+                            if self.state.editing_sid.borrow().is_none() {
+                                return Ok(Vec::new());
+                            }
+                            let sid: i64 = self.state.editing_sid.borrow().as_ref().unwrap().clone();
+                            self.state.editing_sid.replace(None);
+                            let mut state = self.state.local_entry_state_mut().unwrap();
+                            let eid: i64 = state.active_entry_id.unwrap();
+                            state.delete_section_db(&eid, &sid)?;
+                            return Ok(Vec::new());
+                        }
                         'j' => {
                             self.cycle_section_hover(1);
                             return Ok(Vec::new());
@@ -607,9 +618,9 @@ impl Interactable for GlyphEditOrderView {
                         }
                         'A' => {
                             let mut local_entry_state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
-                            local_entry_state.create_section_to_active_entry(
-                                "",
-                                ""
+                            local_entry_state.create_section_to_active_entry_db(
+                                "untitled",
+                                "Blank"
                             )?;
                             return Ok(Vec::new());
                         }
@@ -856,17 +867,6 @@ impl Interactable for GlyphLayoutOverview {
                             *self.state.focused_panel_index.borrow_mut() = 1;
                             return Ok(Vec::new());
                         }
-                        // 's' => {
-                        //     if key.modifiers.contains(KeyModifiers::CONTROL) {
-                        //         let mut state = self.state.local_entry_state_mut().unwrap();
-                        //         let entry = state.get_active_entry_ref().unwrap();
-                        //         let eid = state.active_entry_id.unwrap();
-                        //         let lid: i64 = entry.layout_id;
-                        //
-                        //         state.save_local_layout(&lid)?;
-                        //         return Ok(Vec::new());
-                        //     }
-                        // }
                         'j' => {
                             self.cycle_layout_hover(1);
                             return Ok(Vec::new());

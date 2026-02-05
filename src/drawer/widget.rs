@@ -1,7 +1,7 @@
-use color_eyre::owo_colors::OwoColorize;
 use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, OptionMenu, TextEditor, TextField};
 use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
+use crate::state::widget::EditMode;
 use crate::theme::Theme;
 use crate::utils::{get_dir_names, get_file_names};
 use ratatui::layout::{Constraint, Offset, Position, Rect, Rows};
@@ -9,7 +9,6 @@ use ratatui::prelude::Stylize;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget, Wrap};
 use ratatui::Frame;
-use crate::state::widget::EditMode;
 
 impl Drawable for Button {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {

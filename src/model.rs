@@ -1,11 +1,9 @@
-use std::cell::RefCell;
 use color_eyre::eyre::Result;
 use color_eyre::Report;
 use rusqlite::{params, Connection, Row, Rows, Statement};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::path::PathBuf;
-use std::rc::Rc;
 
 pub struct LocalEntryState {
     pub entries: Vec<(i64, Entry)>,
@@ -52,7 +50,7 @@ impl LocalEntryState {
         }
         None
     }
-    pub fn create_default_entry(&mut self, entry_name: &str) -> Result<i64> {
+    pub fn create_default_entry_db(&mut self, entry_name: &str) -> Result<i64> {
         let entry_id: i64 = EntryRepository::create_default_entry(&self.connection, entry_name)?;
         let entry_result = EntryRepository::read_by_id(&self.connection, &entry_id);
         match entry_result {
@@ -67,7 +65,7 @@ impl LocalEntryState {
     /*
         Update Entry by ID
      */
-    pub fn update_entry_name_by_eid(&mut self, eid: &i64, new_name: &str) -> Result<()> {
+    pub fn update_entry_name_db(&mut self, eid: &i64, new_name: &str) -> Result<()> {
 
         EntryRepository::update_name(&self.connection, &eid, new_name)?;
         let (eid, entry) = EntryRepository::read_by_id(&self.connection, &eid)?;
@@ -77,7 +75,7 @@ impl LocalEntryState {
         Ok(())
     }
 
-    pub fn save_local_entry(&mut self, eid: &i64) -> Result<()> {
+    pub fn save_entry_db(&mut self, eid: &i64) -> Result<()> {
         let entry: &Entry = self.get_entry_ref(eid).unwrap();
         EntryRepository::update_entry(&self.connection, eid, entry)?;
         Ok(())
@@ -85,7 +83,7 @@ impl LocalEntryState {
     /*
         Delete Entry by ID
      */
-    pub fn delete_active_entry(&mut self) -> Result<usize> {
+    pub fn delete_active_entry_db(&mut self) -> Result<usize> {
         if let Some(id) = self.active_entry_id {
             let result = EntryRepository::delete_by_id(&self.connection, &id);
             let mut remove_index: i8 = -1;
@@ -157,12 +155,30 @@ impl LocalEntryState {
                     return Some(section);
                 }
             }
-            return None;
+            None
         } else {
             None
         }
     }
-    pub fn create_section_to_active_entry(&mut self, title: &str, content: &str) -> Result<i64> {
+    pub fn delete_section_db(&mut self, eid: &i64, sid: &i64) -> Result<()> {
+        SectionRepository::delete_section(&self.connection, sid)?;
+        if let Some(entry) = self.get_entry_mut(eid) {
+            let mut index_of_section: usize = usize::MAX;
+            for (index, item) in &mut entry.sections.iter().enumerate() {
+                if (*item).0 == *sid {
+                    index_of_section = index;
+                }
+            }
+            if index_of_section == usize::MAX {
+                return Err(Report::msg("Section not found"));
+            }
+            entry.sections.remove(index_of_section);
+            Ok(())
+        } else {
+            Err(Report::msg("Entry not found"))
+        }
+    }
+    pub fn create_section_to_active_entry_db(&mut self, title: &str, content: &str) -> Result<i64> {
         if let Some(eid) = self.active_entry_id {
             let new_section: Section = Section::new(title, content, self.get_max_position_section(&eid)+1);
             let sid: i64 = SectionRepository::create_section(&self.connection, &eid, &new_section)?;
@@ -176,7 +192,7 @@ impl LocalEntryState {
     /*
         Update Section by sid
      */
-    pub fn update_section_by_sid(&mut self, sid: &i64, section: Section) -> Result<()> {
+    pub fn update_section_by_sid_db(&mut self, sid: &i64, section: Section) -> Result<()> {
         let _sid = SectionRepository::update_section(&self.connection, sid, &section)?;
         let (eid, sid, section) = SectionRepository::read_by_id(&self.connection, sid)?.unwrap();
         // Update all entry having the same layout
@@ -381,7 +397,7 @@ impl Layout {
         if coordinates.is_empty() {
             self.sub_layouts.push(layout);
         } else {
-            let mut coor = coordinates.clone();
+            let coor = coordinates.clone();
             if let Some(target) = self.get_layout_at_mut(&coor) {
                 target.sub_layouts.push(layout);
             }
@@ -422,7 +438,7 @@ impl LayoutDetails {
 
 pub struct GlyphRepository {}
 
-pub struct EntryRepository {}
+struct EntryRepository {}
 
 impl GlyphRepository {
     pub fn init_glyph_db(path_to_db: &PathBuf) -> Result<Connection> {
@@ -535,7 +551,7 @@ impl EntryRepository {
         )
     }
 }
-pub struct SectionRepository {}
+struct SectionRepository {}
 impl SectionRepository {
     pub fn read_by_entry_id(c: &Connection, entry_id: &i64) -> Result<Vec<(i64, Section)>> {
         let mut stmt = c.prepare("SELECT id, entry_id, position, title, content FROM sections WHERE entry_id = ?1")?;
@@ -571,7 +587,15 @@ impl SectionRepository {
         )?;
         let id = c.last_insert_rowid();
         return Ok(id);
+    }
 
+    pub fn delete_section(c: &Connection, sid: &i64) -> Result<usize> {
+        let num_of_row_deleted = c.execute( "DELETE FROM sections WHERE id = ?1",
+                                            params![sid],
+        )?;
+
+
+        Ok(num_of_row_deleted)
     }
 
     /*

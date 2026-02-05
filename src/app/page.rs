@@ -2,6 +2,7 @@ use crate::app::popup::ConfirmPopup;
 use crate::app::widget::{Button, DirectoryList, NumberField, OptionMenu, TextEditor, TextField};
 use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::{AppCommand, GlyphCommand};
+use crate::app::GlyphCommand::RefreshEditSection;
 use crate::app::{Component, Container, Convertible};
 use crate::model::{Entry, GlyphRepository, Layout, LocalEntryState, Section};
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphEditContentState, GlyphEditOrderState, GlyphEditState, GlyphLayoutEditState, GlyphLayoutOverviewState, GlyphLayoutState, GlyphMode, GlyphNavigationBarState, GlyphPageState, GlyphReadState, GlyphViewerState, OpenGlyphPageState};
@@ -11,9 +12,7 @@ use crate::utils::cycle_offset;
 use rusqlite::fallible_iterator::FallibleIterator;
 use rusqlite::Connection;
 use std::cell::{Ref, RefCell, RefMut};
-use color_eyre::eyre::Result;
 use std::rc::Rc;
-use crate::app::GlyphCommand::RefreshEditSection;
 
 pub struct EntrancePage {
     pub components: Vec<Box<dyn Component>>,
@@ -676,7 +675,7 @@ impl GlyphLayoutEditView {
                             let sid = _parent_state.editing_sid.borrow_mut().unwrap();
                             let section_buffer: Section = _parent_state.section_buffer.as_mut().unwrap().clone();
                             let mut state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
-                            state.update_section_by_sid(&sid, section_buffer)?;
+                            state.update_section_by_sid_db(&sid, section_buffer)?;
                             Ok(Vec::new())
                         }
                     ))

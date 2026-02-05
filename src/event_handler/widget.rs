@@ -1,11 +1,11 @@
 use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, OptionMenu, TextEditor, TextField};
 use crate::app::Command;
 use crate::event_handler::{Focusable, Interactable};
+use crate::state::widget::EditMode;
 use crate::utils::{get_dir_names, get_file_names};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::any::Any;
 use std::path::PathBuf;
-use crate::state::widget::EditMode;
 
 impl Interactable for Button {
     fn handle(
