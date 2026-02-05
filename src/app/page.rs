@@ -515,7 +515,7 @@ impl GlyphEditContentView {
                         }
                     ))
                     .into(),
-                Button::new("Update")
+                Button::new("Apply")
                     .on_interact(Box::new(
                         |parent_state| {
                             let _parent_state: &mut GlyphEditContentState = parent_state.unwrap().downcast_mut::<GlyphEditContentState>().unwrap();
@@ -523,10 +523,17 @@ impl GlyphEditContentView {
                             if _parent_state.editing_sid.borrow().is_none() {
                                 return Ok(Vec::new());
                             }
-                            let sid = _parent_state.editing_sid.borrow_mut().unwrap();
+                            let editing_sid = _parent_state.editing_sid.borrow_mut().unwrap();
                             let section_buffer: Section = _parent_state.section_buffer.as_mut().unwrap().clone();
                             let mut state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
-                            state.update_section_by_sid(&sid, section_buffer)?;
+                            let mut entry = state.get_active_entry_mut().unwrap();
+
+                            for (sid, section) in &mut entry.sections {
+                                if editing_sid == *sid {
+                                    *section = section_buffer;
+                                    break;
+                                }
+                            }
                             Ok(Vec::new())
                         }
                     ))
@@ -591,8 +598,8 @@ impl GlyphLayoutView {
 
                 entry_state
             }
-            
-            
+
+
         }
     }
 }
