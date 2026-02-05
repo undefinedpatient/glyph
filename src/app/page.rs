@@ -4,7 +4,7 @@ use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::{AppCommand, GlyphCommand};
 use crate::app::GlyphCommand::RefreshEditSection;
 use crate::app::{Component, Container, Convertible};
-use crate::model::{Entry, GlyphRepository, Layout, LocalEntryState, Section};
+use crate::model::{Entry, GlyphRepository, Layout, LocalEntryState, Section, SizeMode};
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphEditContentState, GlyphEditOrderState, GlyphEditState, GlyphLayoutEditState, GlyphLayoutOverviewState, GlyphLayoutState, GlyphMode, GlyphNavigationBarState, GlyphPageState, GlyphReadState, GlyphViewerState, OpenGlyphPageState};
 use crate::state::widget::{DirectoryListState, TextEditorState, TextFieldState};
 use crate::state::AppState;
@@ -645,13 +645,14 @@ impl GlyphLayoutEditView {
         Self {
             containers: vec![
                 TextField::new("Name", "").into(),
-                NumberField::new("Length", 0).into()
+                NumberField::new("Length", 0).into(),
+                NumberField::new("Flex", 0).into()
             ],
             components: vec![
                 OptionMenu::new(vec![
                     ("Flex".to_string(), 0),
                     ("Length".to_string(), 1)
-                ]).into(),
+                ], 0).into(),
                 Button::new("Revert")
                     .on_interact(Box::new(
                         |parent_state| {
@@ -705,10 +706,18 @@ impl GlyphLayoutEditView {
         let coor: Vec<usize> = self.state.selected_coordinate.borrow().clone();
         let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
         let eid = state.active_entry_id.unwrap();
-        let layout: &Layout = (&state.get_entry_ref(&eid).unwrap().layout).get_layout_at_ref(&coor).unwrap();
-        let label: String = layout.label.clone();
         // let length: u16 = layout.
-        (*self.containers[0]).as_any_mut().downcast_mut::<TextField>().unwrap().replace(label);
+        let entry: &Entry = state.get_active_entry_ref().unwrap();
+        let root_layout_label: String = entry.layout.label.clone();
+        let root_layout_length: u16  = entry.layout.details.length;
+        let root_layout_flex: u16  = entry.layout.details.flex;
+        let root_layout_size_mode: u8 = match entry.layout.details.size_mode {
+            SizeMode::Flex => 0,
+            SizeMode::Length => 1,
+        };
+        (*self.containers[0]).as_any_mut().downcast_mut::<TextField>().unwrap().replace(root_layout_label);
+        (*self.containers[1]).as_any_mut().downcast_mut::<NumberField>().unwrap().replace(root_layout_length as i16);
+        (*self.containers[2]).as_any_mut().downcast_mut::<NumberField>().unwrap().replace(root_layout_flex as i16);
     }
 }
 

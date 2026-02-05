@@ -488,10 +488,10 @@ pub struct OptionMenu {
 }
 
 impl OptionMenu {
-    pub fn new(options: Vec<(String, u8)>) -> Self {
+    pub fn new(options: Vec<(String, u8)>, default: u8) -> Self {
         Self {
             state: OptionMenuState {
-                current_index: 0,
+                current_index: default as usize,
                 options,
             },
             on_update: None

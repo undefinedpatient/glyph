@@ -594,27 +594,36 @@ impl Drawable for GlyphLayoutEditView {
         widget_frame.render(area, frame.buffer_mut());
 
         let chunks = Layout::vertical([Constraint::Percentage(100), Constraint::Length(1)]).split(inner_area);
-        let field_areas = Layout::vertical([Constraint::Length(3), Constraint::Length(3), Constraint::Length(5)]).split(chunks[0]);
+        let field_areas = Layout::vertical([
+            Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Length(3)
+        ]).split(chunks[0]);
         let button_areas = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(chunks[1]);
 
         self.containers[0].render(frame, field_areas[0],
                                   get_draw_flag(self.state.hovered_index, 0, Some(self.containers[0].is_focused())),
                                   theme
         );
-        self.containers[1].render(frame, field_areas[1],
-                                  get_draw_flag(self.state.hovered_index, 1, Some(self.containers[1].is_focused())),
+        self.components[0].render(frame,field_areas[1],
+                                  get_draw_flag(self.state.hovered_index, 1, None),
                                   theme
         );
-        self.components[0].render(frame,field_areas[2],
-                                  get_draw_flag(self.state.hovered_index, 2, None),
+        self.containers[1].render(frame, field_areas[2],
+                                  get_draw_flag(self.state.hovered_index, 2, Some(self.containers[1].is_focused())),
                                   theme
         );
+        self.containers[2].render(frame, field_areas[3],
+                                  get_draw_flag(self.state.hovered_index, 3, Some(self.containers[1].is_focused())),
+                                  theme
+        );
+
+
+
         self.components[1].render(frame, button_areas[0],
-                                  get_draw_flag(self.state.hovered_index, 3, None),
+                                  get_draw_flag(self.state.hovered_index, 4, None),
                                   theme
         );
         self.components[2].render(frame, button_areas[1],
-                                  get_draw_flag(self.state.hovered_index, 4, None),
+                                  get_draw_flag(self.state.hovered_index, 5, None),
                                   theme
         );
 

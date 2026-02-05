@@ -454,6 +454,11 @@ impl Interactable for GlyphViewer {
                                     }
                                     GlyphMode::Edit => {
                                         self.state.mode = GlyphMode::Layout;
+
+                                        // Dangerous Cheating here
+                                        (*(*self.containers[2])
+                                            .as_any_mut().downcast_mut::<GlyphLayoutView>().unwrap().containers[1])
+                                            .as_any_mut().downcast_mut::<GlyphLayoutEditView>().unwrap().refresh_layout();
                                     }
                                     GlyphMode::Layout => {
                                         self.state.mode = GlyphMode::Read;
@@ -480,7 +485,37 @@ impl Interactable for GlyphViewer {
                     self.containers[0].as_mut().handle(key, parent_state)
                 }
                 GlyphMode::Edit => {
-                    self.containers[1].as_mut().handle(key, parent_state)
+                    let result = self.containers[1].as_mut().handle(key, parent_state);
+                    if result.is_err() {
+                        return result;
+                    } else {
+                        let mut processed_commands: Vec<Command> = Vec::new();
+                        let mut commands = result?;
+                        while let Some(command) = commands.pop() {
+                            match command {
+                                GlyphCommand(page_command) => {
+                                    match page_command {
+                                        SetEntryUnsavedState(eid, is_changed)=> {
+                                            let mut state = self.state.local_entry_state_mut().unwrap();
+                                            if is_changed {
+                                                state.updated_entries.insert(eid);
+                                            } else {
+                                                state.updated_entries.remove(&eid);
+                                            }
+                                        }
+                                        _ => {
+                                            processed_commands.insert(0, GlyphCommand(page_command));
+                                        }
+                                    }
+                                }
+                                _ => {
+                                    processed_commands.insert(0, command);
+                                }
+                            }
+                        }
+                        Ok(processed_commands)
+
+                    }
                 }
                 GlyphMode::Layout => {
                     let result = self.containers[2].as_mut().handle(key, parent_state);

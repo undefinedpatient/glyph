@@ -340,9 +340,16 @@ pub enum LayoutOrientation {
     Vertical,
 }
 #[derive(Serialize, Deserialize, Clone)]
+pub enum SizeMode {
+    Length,
+    Flex,
+}
+#[derive(Serialize, Deserialize, Clone)]
 pub struct LayoutDetails {
+    pub size_mode: SizeMode,
     pub length: u16, // Describe Self
     pub flex: u16, // Describe Self
+
     pub orientation: LayoutOrientation, // Describing orientation main axis for the children
 }
 
@@ -421,8 +428,10 @@ impl Layout {
 impl LayoutDetails {
     pub fn new() -> Self {
         Self {
-            length: 0,
+            size_mode: SizeMode::Flex,
+            length: 42,
             flex: 1,
+
             orientation: LayoutOrientation::Vertical,
         }
     }
@@ -519,7 +528,7 @@ impl EntryRepository {
     }
 
     pub fn read_by_id(c: &Connection, id: &i64) -> Result<(i64, Entry)> {
-        let mut stmt = c.prepare("SELECT id, entry_name FROM entries WHERE id = ?1")?;
+        let mut stmt = c.prepare("SELECT id, entry_name, layout FROM entries WHERE id = ?1")?;
         let mut rows: Rows = stmt.query(params![*id])?;
         Self::map_row_to_eid_entry(c, rows.next()?.unwrap())
     }
