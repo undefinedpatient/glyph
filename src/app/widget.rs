@@ -1,6 +1,6 @@
 use crate::app::{Command, Component, Container};
 use crate::drawer::DrawFlag;
-use crate::state::widget::{DirectoryListState, EditMode, TextEditorState, TextFieldState};
+use crate::state::widget::{DirectoryListState, EditMode, OptionMenuState, TextEditorState, TextFieldState};
 use crate::utils::{cycle_offset, get_dir_names, get_file_names};
 use color_eyre::eyre::Result;
 use ratatui::style::Stylize;
@@ -161,7 +161,7 @@ pub struct TextField {
 }
 
 impl TextField {
-    pub fn new(label: &str, default: String) -> Self {
+    pub fn new(label: &str, default: &str) -> Self {
         Self {
             state: TextFieldState {
                 is_focused: false,
@@ -174,7 +174,7 @@ impl TextField {
     }
     pub fn replace(&mut self, content: String) -> () {
         self.state.chars = content.chars().collect();
-        self.state.cursor_index = 0;
+        self.state.cursor_index = self.state.chars.len();
     }
     pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
         self.on_exit = Some(on_exit);
@@ -228,6 +228,10 @@ impl NumberField {
             },
             on_exit: None,
         }
+    }
+    pub fn replace(&mut self, content: i16) -> () {
+        self.state.chars = content.to_string().chars().collect();
+        self.state.cursor_index = self.state.chars.len();
     }
     pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
         self.on_exit = Some(on_exit);
@@ -474,6 +478,36 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
 }
 impl From<TextEditor> for Box<dyn Container> {
     fn from(container: TextEditor) -> Self {
+        Box::new(container)
+    }
+}
+
+pub struct OptionMenu {
+    pub state: OptionMenuState,
+    pub on_update: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+}
+
+impl OptionMenu {
+    pub fn new(options: Vec<(String, u8)>) -> Self {
+        Self {
+            state: OptionMenuState {
+                current_index: 0,
+                options,
+            },
+            on_update: None
+        }
+    }
+    pub fn on_interact(
+        mut self,
+        f: Box<dyn FnMut(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>,
+    ) -> Self {
+        self.on_update = Some(f);
+        self
+    }
+}
+
+impl From<OptionMenu> for Box<dyn Component> {
+    fn from(container: OptionMenu) -> Self {
         Box::new(container)
     }
 }

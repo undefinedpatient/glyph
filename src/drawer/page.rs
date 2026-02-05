@@ -539,7 +539,7 @@ impl Drawable for GlyphLayoutView {
            Container Frame
         */
         let focused_panel_index = *self.state.focused_panel_index.borrow();
-        let edit_areas = Layout::horizontal([Constraint::Percentage(100), Constraint::Length(32)]).split(area);
+        let edit_areas = Layout::horizontal([Constraint::Percentage(100), Constraint::Length(24)]).split(area);
         self.containers[0].render(frame, edit_areas[0],
                                   if !self.is_focused() {
                                       DrawFlag::DEFAULT
@@ -574,7 +574,7 @@ impl Drawable for GlyphLayoutOverview {
            Container Frame
         */
         let mut widget_frame: Block = block!("", draw_flag).title(Line::from("(q)").right_aligned());
-        let inner_area = widget_frame.inner(area);
+        let inner_area = widget_frame.inner(area.centered_horizontally(Constraint::Percentage(90)));
         widget_frame.render(area, frame.buffer_mut());
 
 
@@ -593,11 +593,34 @@ impl Drawable for GlyphLayoutEditView {
            Container Frame
         */
         let mut widget_frame: Block = block!("", draw_flag).title(Line::from("(e)").left_aligned());
-
-
-
         let inner_area = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
+
+        let chunks = Layout::vertical([Constraint::Percentage(100), Constraint::Length(1)]).split(inner_area);
+        let field_areas = Layout::vertical([Constraint::Length(3), Constraint::Length(3), Constraint::Length(5)]).split(chunks[0]);
+        let button_areas = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(chunks[1]);
+
+        self.containers[0].render(frame, field_areas[0],
+                                  get_draw_flag(self.state.hovered_index, 0, Some(self.containers[0].is_focused())),
+                                  theme
+        );
+        self.containers[1].render(frame, field_areas[1],
+                                  get_draw_flag(self.state.hovered_index, 1, Some(self.containers[1].is_focused())),
+                                  theme
+        );
+        self.components[0].render(frame,field_areas[2],
+                                  get_draw_flag(self.state.hovered_index, 2, None),
+                                  theme
+        );
+        self.components[1].render(frame, button_areas[0],
+                                  get_draw_flag(self.state.hovered_index, 3, None),
+                                  theme
+        );
+        self.components[2].render(frame, button_areas[1],
+                                  get_draw_flag(self.state.hovered_index, 4, None),
+                                  theme
+        );
+
     }
 }
 fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, layout: &model::Layout, depth: u16, at: Vec<usize>) -> Vec<(u16, Rect)>{

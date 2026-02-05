@@ -27,7 +27,7 @@ impl TextInputDialog {
             containers: vec![
                 TextField::new(
                     field_title,
-                    String::from(default),
+                    default,
                 )
                     .on_exit(
                         Box::new(
@@ -133,7 +133,7 @@ impl NumberInputDialog {
             containers: vec![
                 TextField::new(
                     field_title,
-                    default.to_string(),
+                    default.to_string().as_str(),
                 )
                     .on_exit(
                         Box::new(

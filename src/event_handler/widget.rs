@@ -1,4 +1,4 @@
-use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, TextEditor, TextField};
+use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, OptionMenu, TextEditor, TextField};
 use crate::app::Command;
 use crate::event_handler::{Focusable, Interactable};
 use crate::utils::{get_dir_names, get_file_names};
@@ -472,4 +472,23 @@ fn handle_visual_line_mode(me: &mut TextEditor, key: &KeyEvent) -> color_eyre::e
         _ => Ok(Vec::new()),
     }
 
+}
+
+impl Interactable for OptionMenu {
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        parent_state: Option<&mut dyn Any>,
+    ) -> color_eyre::Result<Vec<Command>> {
+        let len = self.state.options.len();
+        self.state.current_index = (self.state.current_index + 1) % len;
+        
+        
+        let Some(mut f) = self.on_update.take() else {
+            return Ok(Vec::new());
+        };
+        let result = f(parent_state, Some(&mut self.state));
+        self.on_update = Some(f);
+        result
+    }
 }

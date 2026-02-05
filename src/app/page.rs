@@ -1,9 +1,9 @@
 use crate::app::popup::ConfirmPopup;
-use crate::app::widget::{Button, DirectoryList, TextEditor, TextField};
+use crate::app::widget::{Button, DirectoryList, NumberField, OptionMenu, TextEditor, TextField};
 use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::{AppCommand, GlyphCommand};
 use crate::app::{Component, Container, Convertible};
-use crate::model::{Entry, GlyphRepository, LocalEntryState, Section};
+use crate::model::{Entry, GlyphRepository, Layout, LocalEntryState, Section};
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphEditContentState, GlyphEditOrderState, GlyphEditState, GlyphLayoutEditState, GlyphLayoutOverviewState, GlyphLayoutState, GlyphMode, GlyphNavigationBarState, GlyphPageState, GlyphReadState, GlyphViewerState, OpenGlyphPageState};
 use crate::state::widget::{DirectoryListState, TextEditorState, TextFieldState};
 use crate::state::AppState;
@@ -462,7 +462,7 @@ impl GlyphEditContentView {
     ) -> Self {
         Self {
             containers: vec![
-                TextField::new("title", String::from(""))
+                TextField::new("title", "")
                     .on_exit(Box::new(
                         |parent_state, state| {
                             let _parent_state: &mut GlyphEditContentState = parent_state.unwrap().downcast_mut::<GlyphEditContentState>().unwrap();
@@ -633,8 +633,44 @@ impl GlyphLayoutEditView {
         focused_panel_index: Rc<RefCell<usize>>,
     ) -> Self {
         Self {
-            containers: Vec::new(),
-            components: Vec::new(),
+            containers: vec![
+                TextField::new("Name", "").into(),
+                NumberField::new("Length", 0).into()
+            ],
+            components: vec![
+                OptionMenu::new(vec![
+                    ("Flex".to_string(), 0),
+                    ("Length".to_string(), 1)
+                ]).into(),
+                Button::new("Revert")
+                    .on_interact(Box::new(
+                        |parent_state| {
+                            let _parent_state: &mut GlyphEditContentState = parent_state.unwrap().downcast_mut::<GlyphEditContentState>().unwrap();
+                            // When no editing section exist
+                            if _parent_state.editing_sid.borrow().is_none() {
+                                return Ok(Vec::new());
+                            }
+                            Ok(vec![GlyphCommand(RefreshEditSection)])
+                        }
+                    ))
+                    .into(),
+                Button::new("Update")
+                    .on_interact(Box::new(
+                        |parent_state| {
+                            let _parent_state: &mut GlyphEditContentState = parent_state.unwrap().downcast_mut::<GlyphEditContentState>().unwrap();
+                            // When no editing section exist
+                            if _parent_state.editing_sid.borrow().is_none() {
+                                return Ok(Vec::new());
+                            }
+                            let sid = _parent_state.editing_sid.borrow_mut().unwrap();
+                            let section_buffer: Section = _parent_state.section_buffer.as_mut().unwrap().clone();
+                            let mut state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
+                            state.update_section_by_sid(&sid, section_buffer)?;
+                            Ok(Vec::new())
+                        }
+                    ))
+                    .into(),
+            ],
 
             state: GlyphLayoutEditState{
                 focused_panel_index,
@@ -644,6 +680,25 @@ impl GlyphLayoutEditView {
                 entry_state
             },
         }
+    }
+
+    pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {
+        let max: u16 = (self.containers.len() + self.components.len()) as u16;
+        if let Some(hover_index) = self.state.hovered_index {
+            self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, max) as usize);
+        } else {
+            self.state.hovered_index = Some(0);
+        }
+    }
+
+    pub fn refresh_layout(&mut self) -> () {
+        let coor: Vec<usize> = self.state.selected_coordinate.borrow().clone();
+        let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
+        let eid = state.active_entry_id.unwrap();
+        let layout: &Layout = state.get_entry_layout_ref(&eid).unwrap().get_layout_at_ref(&coor).unwrap();
+        let label: String = layout.label.clone();
+        // let length: u16 = layout.
+        (*self.containers[0]).as_any_mut().downcast_mut::<TextField>().unwrap().replace(label);
     }
 }
 

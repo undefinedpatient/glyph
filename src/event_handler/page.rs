@@ -844,7 +844,7 @@ impl Interactable for GlyphLayoutOverview {
                             let lid: i64 = entry.layout_id;
                             let mut layout: Layout = state.get_entry_layout_ref(&eid).unwrap().clone();
                             layout.insert_sublayout_under(
-                                Layout::new(),
+                                Layout::new(""),
                                 &target_coor,
                             );
                             state.update_layout_by_lid(&lid, layout)?;
@@ -1002,6 +1002,14 @@ impl Interactable for GlyphLayoutEditView {
                 if let KeyCode::Esc = key.code {
                     let parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutState>().unwrap();
                     *parent_state.shared_focus.borrow_mut() = false;
+                    return Ok(Vec::new());
+                }
+                if let KeyCode::Tab = key.code {
+                    self.cycle_hover(1);
+                    return Ok(Vec::new());
+                }
+                if let KeyCode::BackTab = key.code {
+                    self.cycle_hover(-1);
                     return Ok(Vec::new());
                 }
                 if let KeyCode::Char(c) = key.code {

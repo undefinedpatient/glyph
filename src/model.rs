@@ -360,10 +360,22 @@ pub struct Layout {
     pub details: LayoutDetails
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub enum LayoutOrientation {
+    Horizontal,
+    Vertical,
+}
+#[derive(Serialize, Deserialize, Clone)]
+pub struct LayoutDetails {
+    pub length: u16, // Describe Self
+    pub flex: u16, // Describe Self
+    pub orientation: LayoutOrientation, // Describing orientation main axis for the children
+}
+
 impl Layout {
-    pub fn new() -> Self {
+    pub fn new(label: &str) -> Self {
         Self {
-            label: String::from("Root"),
+            label: String::from(label),
             section_index: None,
             sub_layouts: Vec::new(),
             details: LayoutDetails::new()
@@ -431,17 +443,6 @@ impl Layout {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub enum LayoutOrientation {
-    Horizontal,
-    Vertical,
-}
-#[derive(Serialize, Deserialize, Clone)]
-pub struct LayoutDetails {
-    pub length: u16, // Describe Self
-    pub flex: u16, // Describe Self
-    pub orientation: LayoutOrientation, // Describing orientation main axis for the children
-}
 
 impl LayoutDetails {
     pub fn new() -> Self {
@@ -511,7 +512,7 @@ impl EntryRepository {
         let eid: i64 = c.last_insert_rowid();
         c.execute(
             "INSERT INTO layouts (entry_id, content) VALUES (?1, ?2)",
-            params![eid,  serde_json::to_string(&Layout::new())?],
+            params![eid,  serde_json::to_string(&Layout::new("Root"))?],
         )?;
         return Ok(eid);
     }

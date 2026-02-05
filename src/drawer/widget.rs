@@ -1,5 +1,5 @@
 use color_eyre::owo_colors::OwoColorize;
-use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, TextEditor, TextField};
+use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, OptionMenu, TextEditor, TextField};
 use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use crate::theme::Theme;
@@ -242,6 +242,29 @@ impl Drawable for TextEditor {
                 y: self.state.cursor_line_index as i32,
             });
             frame.set_cursor_position(cursor_position);
+        }
+    }
+}
+
+/*
+    Option Menu
+ */
+impl Drawable for OptionMenu {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
+        let current_index: usize = self.state.current_index;
+        let current_text: String = self.state.options.get(current_index).unwrap().0.clone();
+        match draw_flag {
+            DrawFlag::HIGHLIGHTING => {
+                Line::from(["[< ", current_text.as_str(), " >]"].concat())
+                    .bold()
+                    .centered()
+                    .render(area, frame.buffer_mut());
+            }
+            _ => {
+                Line::from([" < ", current_text.as_str(), " > "].concat())
+                    .centered()
+                    .render(area, frame.buffer_mut());
+            }
         }
     }
 }

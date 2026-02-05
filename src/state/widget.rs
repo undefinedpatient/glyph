@@ -46,3 +46,8 @@ pub struct TextEditorState {
 
     pub copy_buffer: Vec<Vec<char>>, // First line insert char, the rest directly insert line.
 }
+
+pub struct OptionMenuState {
+    pub current_index: usize,
+    pub options: Vec<(String, u8)>
+}
