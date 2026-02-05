@@ -1,23 +1,25 @@
+use std::cell::RefCell;
 use color_eyre::eyre::Result;
 use color_eyre::Report;
 use rusqlite::{params, Connection, Row, Rows, Statement};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 pub struct LocalEntryState {
     pub entries: Vec<(i64, Entry)>,
-    pub layouts: HashMap<i64, Layout>,
     pub connection: Connection,
     pub active_entry_id: Option<i64>,
     pub updated_entry_ids:  Vec<i64>,
     pub ordered_entries: Vec<(i64, String)>,
+
+    pub updated_entries: Vec<i64>,
 }
 
 impl LocalEntryState {
     pub fn new(c: Connection) -> Self {
         let entries = EntryRepository::read_all(&c).unwrap();
-        let layouts: HashMap<i64, Layout> = LayoutRepository::read_all(&c).unwrap();
         let ordered_entries: Vec<(i64, String)> = entries.iter().map(
             |(id,entry)| {
                 (id.clone(), entry.entry_name.clone())
@@ -25,11 +27,12 @@ impl LocalEntryState {
         ).collect();
         Self {
             entries,
-            layouts,
             connection: c,
             active_entry_id: None,
             updated_entry_ids: Vec::new(),
             ordered_entries,
+
+            updated_entries: Vec::new()
         }
     }
 
@@ -55,14 +58,6 @@ impl LocalEntryState {
     pub fn create_default_entry(&mut self, entry_name: &str) -> Result<i64> {
         let entry_id: i64 = EntryRepository::create_default_entry(&self.connection, entry_name)?;
         let entry_result = EntryRepository::read_by_id(&self.connection, &entry_id);
-        let layout_result = LayoutRepository::read_by_eid(&self.connection, &entry_id);
-        match layout_result {
-            Ok((eid, lid, layout)) => {
-                self.layouts.insert(lid, layout);
-                self.reconstruct_entry_order();
-            }
-            Err(e) => return Err(e)
-        };
         match entry_result {
             Ok((eid, entry)) => {
                 self.entries.push((eid, entry));
@@ -232,39 +227,49 @@ impl LocalEntryState {
         Layout Section
 
      */
-    pub fn get_layout_ref(&self, lid: &i64) -> Option<&Layout> {
-        self.layouts.get(lid)
-    }
-    pub fn get_layout_mut(&mut self, lid: &i64) -> Option<&mut Layout> {
-        self.layouts.get_mut(lid)
-    }
-    pub fn get_entry_layout_ref(&self, eid: &i64) -> Option<&Layout> {
-        match self.get_entry_ref(eid) {
-            Some(e) => {
-                let target_lid: i64 = e.layout_id;
-                self.layouts.get(&target_lid)
-            },
-            None => None,
-        }
-    }
-    pub fn get_entry_layout_mut(&mut self, eid: &i64) -> Option<&mut Layout> {
-        match self.get_entry_mut(eid) {
-            Some(e) => {
-                let target_lid: i64 = e.layout_id;
-                self.layouts.get_mut(&target_lid)
-            },
-            None => None,
-        }
-    }
+    // pub fn get_layout_ref(&self, lid: &i64) -> Option<&Layout> {
+    //     self.layouts.get(lid)
+    // }
+    // pub fn get_layout_mut(&mut self, lid: &i64) -> Option<&mut Layout> {
+    //     self.layouts.get_mut(lid)
+    // }
+    // pub fn get_entry_layout_ref(&self, eid: &i64) -> Option<&Layout> {
+    //     match self.get_entry_ref(eid) {
+    //         Some(e) => {
+    //             let target_lid: i64 = e.layout_id;
+    //             self.layouts.get(&target_lid)
+    //         },
+    //         None => None,
+    //     }
+    // }
+    // pub fn get_entry_layout_mut(&mut self, eid: &i64) -> Option<&mut Layout> {
+    //     match self.get_entry_mut(eid) {
+    //         Some(e) => {
+    //             let target_lid: i64 = e.layout_id;
+    //             self.layouts.get_mut(&target_lid)
+    //         },
+    //         None => None,
+    //     }
+    // }
+
+    // /*
+    //    Directly Update a layout.
+    //  */
+    // pub fn update_layout_by_lid(&mut self, lid: &i64, layout: Layout) -> Result<()> {
+    //     LayoutRepository::update_layout_by_lid(&self.connection, &lid, &layout)?;
+    //     *self.layouts.get_mut(&lid).unwrap() = layout;
+    //     Ok(())
+    // }
 
     /*
-       Directly Update a layout.
+        Overwrite database layout with the current local state.
+        The target Layout specified by the lid parameter.
      */
-    pub fn update_layout_by_lid(&mut self, lid: &i64, layout: Layout) -> Result<()> {
-        LayoutRepository::update_layout_by_lid(&self.connection, &lid, &layout)?;
-        *self.layouts.get_mut(&lid).unwrap() = layout;
-        Ok(())
-    }
+    // pub fn save_local_layout(&mut self, lid: &i64) -> Result<()> {
+    //     let local_layout: &Layout = self.layouts.get(&lid).unwrap();
+    //     LayoutRepository::update_layout_by_lid(&self.connection, &lid, &local_layout)?;
+    //     Ok(())
+    // }
     /*
 
         Helpers
@@ -318,7 +323,7 @@ pub struct Glyph {
 pub struct Entry {
     pub entry_name: String,
     pub sections: Vec<(i64, Section)>,
-    pub layout_id: i64,
+    pub layout: Layout,
 }
 
 impl Entry {
@@ -473,7 +478,8 @@ impl GlyphRepository {
             "
         CREATE TABLE IF NOT EXISTS entries (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            entry_name  TEXT NOT NULL
+            entry_name  TEXT NOT NULL,
+            layout      TEXT NOT NULL DEFAULT ''
         )
         "
             , ())?;
@@ -490,15 +496,15 @@ impl GlyphRepository {
         "
             // UNIQUE (entry_id, position)
             , ())?;
-        c.execute(
-            "
-        CREATE TABLE IF NOT EXISTS layouts (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            entry_id    INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
-            content     TEXT NOT NULL DEFAULT ''
-        )
-        "
-            , ())?;
+        // c.execute(
+        //     "
+        // CREATE TABLE IF NOT EXISTS layouts (
+        //     id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        //     entry_id    INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
+        //     content     TEXT NOT NULL DEFAULT ''
+        // )
+        // "
+        //     , ())?;
         Ok(c)
     }
 }
@@ -506,14 +512,10 @@ impl GlyphRepository {
 impl EntryRepository {
     pub fn create_default_entry(c: &Connection, entry_name: &str) -> Result<i64> {
         c.execute(
-            "INSERT INTO entries (entry_name) VALUES (?1)",
-            params![entry_name],
+            "INSERT INTO entries (entry_name, layout) VALUES (?1, ?2)",
+            params![entry_name, serde_json::to_string(&Layout::new("Root"))?],
         )?;
         let eid: i64 = c.last_insert_rowid();
-        c.execute(
-            "INSERT INTO layouts (entry_id, content) VALUES (?1, ?2)",
-            params![eid,  serde_json::to_string(&Layout::new("Root"))?],
-        )?;
         return Ok(eid);
     }
     pub fn update_entry(c: &Connection, eid: &i64, entry: &Entry) -> Result<(i64)> {
@@ -522,9 +524,10 @@ impl EntryRepository {
                 UPDATE entries
                 SET
                     entry_name = ?2
+                    layout = ?3
                 WHERE id = ?1
             ",
-            params![eid, entry.entry_name],
+            params![eid, entry.entry_name, serde_json::to_string(&entry.layout)?],
         )?;
         let id: i64 = c.last_insert_rowid();
         for (sid, section) in &entry.sections {
@@ -562,7 +565,7 @@ impl EntryRepository {
     }
 
     pub fn read_all(c: &Connection) -> Result<Vec<(i64, Entry)>> {
-        let mut stmt: Statement = c.prepare("SELECT id, entry_name FROM entries")?;
+        let mut stmt: Statement = c.prepare("SELECT id, entry_name, layout FROM entries")?;
         let mut rows: Rows = stmt.query(params![])?;
         let mut entries: Vec<(i64, Entry)> = Vec::new();
         while let Some(row) = rows.next()? {
@@ -572,14 +575,17 @@ impl EntryRepository {
         Ok(entries)
     }
 
+
+    // Expecting row (id, entry_name, layout)
     fn map_row_to_eid_entry(c: &Connection, row: &Row) -> Result<(i64, Entry)> {
         let id: i64 = row.get(0)?;
+        let layout_string: String = row.get(2)?;
         Ok((
             id,
             Entry {
                 entry_name: row.get(1)?,
                 sections: SectionRepository::read_by_entry_id(c, &id)?,
-                layout_id: LayoutRepository::read_by_eid(c, &id)?.0
+                layout: serde_json::from_str(layout_string.as_str())?,
             }
         )
         )
@@ -649,108 +655,108 @@ impl SectionRepository {
     }
 }
 
-pub struct LayoutRepository {}
-impl LayoutRepository {
-    pub fn read_all(c: &Connection) -> Result<HashMap<i64, Layout>> {
-        let mut stmt: Statement = c.prepare("SELECT id, entry_id, content FROM layouts")?;
-        let mut rows: Rows = stmt.query(params![])?;
-        let mut layouts: HashMap<i64, Layout> = HashMap::new();
-        while let Some(row) = rows.next()? {
-            let layout = Self::map_row_to_id_layout(row)?;
-            layouts.insert(layout.0, layout.2);
-        }
-        Ok(layouts)
-    }
-    pub fn read_by_eid(c: &Connection, eid: &i64) -> Result<(i64, i64, Layout)> {
-        let mut stmt = c.prepare("SELECT id, entry_id, content FROM layouts WHERE entry_id = ?1")?;
-        let mut rows: Rows = stmt.query(params![*eid])?;
-
-        match rows.next() {
-            Ok(row) => {
-                if let Some(row) = row {
-                    Self::map_row_to_id_layout(row)
-                } else {
-                    Err(Report::msg("Layout does not exists!"))
-                }
-            }
-            Err(e) => {
-                Err(Report::msg("Failed to read layout"))
-            }
-        }
-    }
-    pub fn read_by_lid(c: &Connection, lid: &i64) -> Result<(i64, i64, Layout)> {
-        let mut stmt = c.prepare("SELECT id, entry_id, content FROM layouts WHERE id = ?1")?;
-        let mut rows: Rows = stmt.query(params![*lid])?;
-
-        match rows.next() {
-            Ok(row) => {
-                if let Some(row) = row {
-                    Self::map_row_to_id_layout(row)
-                } else {
-                    Err(Report::msg("Layout does not exists!"))
-                }
-            }
-            Err(e) => {
-                Err(Report::msg("Failed to read layout"))
-            }
-        }
-
-    }
-    pub fn update_layout_eid(c: &Connection, eid: &i64, lid: &i64) -> Result<i64> {
-        c.execute(
-            "
-                UPDATE layouts
-                SET
-                    entry_id = ?1,
-                WHERE id = ?2
-            ",
-            params![eid, lid],
-        )?;
-        return Ok(*lid);
-    }
-    /*
-        Create new layout, return the layout ID
-     */
-    pub fn create_layout(c: &Connection, eid: &i64, layout: &Layout) -> Result<i64> {
-        c.execute(
-            " INSERT INTO layouts (entry_id, content) VALUES (?1, ?2) ",
-            params![eid, serde_json::to_string(layout).unwrap()],
-        )?;
-        let lid = c.last_insert_rowid();
-        return Ok(lid);
-    }
-    pub fn update_layout_by_lid(c: &Connection, lid: &i64, layout: &Layout) -> Result<i64> {
-        c.execute(
-            "
-                UPDATE layouts
-                SET
-                    content = ?2
-                WHERE id = ?1
-            ",
-            params![lid, serde_json::to_string(layout).unwrap()],
-        )?;
-        return Ok(*lid);
-    }
-    pub fn update_layout_by_eid(c: &Connection, eid: &i64, layout: &Layout) -> Result<i64> {
-        c.execute(
-            "
-                UPDATE layouts
-                SET
-                    content = ?2,
-                WHERE entry_id = ?1
-            ",
-            params![eid, serde_json::to_string(layout).unwrap()],
-        )?;
-        return Ok(*eid);
-    }
-
-    /*
-        Read a whole row, return (lid, Layout)
-     */
-    pub fn map_row_to_id_layout(row: &Row) -> Result<(i64, i64, Layout)> {
-        let lid: i64 = row.get(0)?;
-        let eid: i64 = row.get(1)?;
-        let layout_data: String = row.get(2)?;
-        Ok((eid, lid, serde_json::from_str(layout_data.as_str())?))
-    }
-}
+// pub struct LayoutRepository {}
+// impl LayoutRepository {
+//     pub fn read_all(c: &Connection) -> Result<HashMap<i64, Layout>> {
+//         let mut stmt: Statement = c.prepare("SELECT id, layout FROM layouts")?;
+//         let mut rows: Rows = stmt.query(params![])?;
+//         let mut layouts: HashMap<i64, Layout> = HashMap::new();
+//         while let Some(row) = rows.next()? {
+//             let layout = Self::map_row_to_id_layout(row)?;
+//             layouts.insert(layout.0, layout.2);
+//         }
+//         Ok(layouts)
+//     }
+//     pub fn read_by_eid(c: &Connection, eid: &i64) -> Result<(i64, i64, Layout)> {
+//         let mut stmt = c.prepare("SELECT id, entry_id, content FROM layouts WHERE entry_id = ?1")?;
+//         let mut rows: Rows = stmt.query(params![*eid])?;
+//
+//         match rows.next() {
+//             Ok(row) => {
+//                 if let Some(row) = row {
+//                     Self::map_row_to_id_layout(row)
+//                 } else {
+//                     Err(Report::msg("Layout does not exists!"))
+//                 }
+//             }
+//             Err(e) => {
+//                 Err(Report::msg("Failed to read layout"))
+//             }
+//         }
+//     }
+//     pub fn read_by_lid(c: &Connection, lid: &i64) -> Result<(i64, i64, Layout)> {
+//         let mut stmt = c.prepare("SELECT id, entry_id, content FROM layouts WHERE id = ?1")?;
+//         let mut rows: Rows = stmt.query(params![*lid])?;
+//
+//         match rows.next() {
+//             Ok(row) => {
+//                 if let Some(row) = row {
+//                     Self::map_row_to_id_layout(row)
+//                 } else {
+//                     Err(Report::msg("Layout does not exists!"))
+//                 }
+//             }
+//             Err(e) => {
+//                 Err(Report::msg("Failed to read layout"))
+//             }
+//         }
+//
+//     }
+//     pub fn update_layout_eid(c: &Connection, eid: &i64, lid: &i64) -> Result<i64> {
+//         c.execute(
+//             "
+//                 UPDATE layouts
+//                 SET
+//                     entry_id = ?1,
+//                 WHERE id = ?2
+//             ",
+//             params![eid, lid],
+//         )?;
+//         return Ok(*lid);
+//     }
+//     /*
+//         Create new layout, return the layout ID
+//      */
+//     pub fn create_layout(c: &Connection, eid: &i64, layout: &Layout) -> Result<i64> {
+//         c.execute(
+//             " INSERT INTO layouts (entry_id, content) VALUES (?1, ?2) ",
+//             params![eid, serde_json::to_string(layout).unwrap()],
+//         )?;
+//         let lid = c.last_insert_rowid();
+//         return Ok(lid);
+//     }
+//     pub fn update_layout_by_lid(c: &Connection, lid: &i64, layout: &Layout) -> Result<i64> {
+//         c.execute(
+//             "
+//                 UPDATE layouts
+//                 SET
+//                     content = ?2
+//                 WHERE id = ?1
+//             ",
+//             params![lid, serde_json::to_string(layout).unwrap()],
+//         )?;
+//         return Ok(*lid);
+//     }
+//     pub fn update_layout_by_eid(c: &Connection, eid: &i64, layout: &Layout) -> Result<i64> {
+//         c.execute(
+//             "
+//                 UPDATE layouts
+//                 SET
+//                     content = ?2,
+//                 WHERE entry_id = ?1
+//             ",
+//             params![eid, serde_json::to_string(layout).unwrap()],
+//         )?;
+//         return Ok(*eid);
+//     }
+//
+//     /*
+//         Read a whole row, return (lid, Layout)
+//      */
+//     pub fn map_row_to_id_layout(row: &Row) -> Result<(i64, i64, Layout)> {
+//         let lid: i64 = row.get(0)?;
+//         let eid: i64 = row.get(1)?;
+//         let layout_data: String = row.get(2)?;
+//         Ok((eid, lid, serde_json::from_str(layout_data.as_str())?))
+//     }
+// }

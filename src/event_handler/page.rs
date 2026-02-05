@@ -12,7 +12,7 @@ use crate::app::Convertible;
 use crate::event_handler::{Focusable, Interactable};
 use crate::model::{Entry, GlyphRepository, Layout, LayoutOrientation, LocalEntryState, Section};
 use crate::state::dialog::TextInputDialogState;
-use crate::state::page::{CreateGlyphPageState, GlyphEditContentState, GlyphEditState, GlyphLayoutState, GlyphMode, GlyphPageState};
+use crate::state::page::{CreateGlyphPageState, GlyphEditState, GlyphLayoutState, GlyphMode, GlyphPageState};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use rusqlite::fallible_iterator::FallibleIterator;
@@ -828,6 +828,17 @@ impl Interactable for GlyphLayoutOverview {
                             *self.state.focused_panel_index.borrow_mut() = 1;
                             return Ok(Vec::new());
                         }
+                        // 's' => {
+                        //     if key.modifiers.contains(KeyModifiers::CONTROL) {
+                        //         let mut state = self.state.local_entry_state_mut().unwrap();
+                        //         let entry = state.get_active_entry_ref().unwrap();
+                        //         let eid = state.active_entry_id.unwrap();
+                        //         let lid: i64 = entry.layout_id;
+                        // 
+                        //         state.save_local_layout(&lid)?;
+                        //         return Ok(Vec::new());
+                        //     }
+                        // }
                         'j' => {
                             self.cycle_layout_hover(1);
                             return Ok(Vec::new());
@@ -841,13 +852,11 @@ impl Interactable for GlyphLayoutOverview {
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             let entry = state.get_active_entry_ref().unwrap();
                             let eid = state.active_entry_id.unwrap();
-                            let lid: i64 = entry.layout_id;
-                            let mut layout: Layout = state.get_entry_layout_ref(&eid).unwrap().clone();
+                            let layout: &mut Layout = &mut state.get_entry_mut(&eid).unwrap().layout;
                             layout.insert_sublayout_under(
                                 Layout::new(""),
                                 &target_coor,
                             );
-                            state.update_layout_by_lid(&lid, layout)?;
                             return Ok(Vec::new());
                         }
                         'x' => {
@@ -859,17 +868,14 @@ impl Interactable for GlyphLayoutOverview {
                             }
                             // Get the target coord copy
                             let target_coor = self.state.selected_coordinate.borrow_mut().clone();
-                            let parent_index = self.state.selected_coordinate.borrow_mut().pop();
                             self.state.hovered_index = None;
+                            self.state.selected_coordinate.borrow_mut().pop();
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             // Get Active eid
-                            let entry: &Entry = state.get_active_entry_ref().unwrap();
                             let eid = state.active_entry_id.unwrap();
-                            let lid = entry.layout_id;
                             // Update
-                            let mut layout = state.get_layout_ref(&lid).unwrap().clone();
+                            let layout: &mut Layout = &mut state.get_entry_mut(&eid).unwrap().layout;
                             layout.remove_sublayout(&target_coor)?;
-                            state.update_layout_by_lid(&lid, layout)?;
                             return Ok(Vec::new());
                         }
                         '+' => {
@@ -880,18 +886,15 @@ impl Interactable for GlyphLayoutOverview {
                             let target_coor = self.state.selected_coordinate.borrow_mut().clone();
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             // Get Active eid
-                            let entry: &Entry = state.get_active_entry_ref().unwrap();
-                            let eid = state.active_entry_id.unwrap();
-                            let lid = entry.layout_id;
+                            let entry: &mut Entry = state.get_active_entry_mut().unwrap();
                             // Update
-                            let mut layout = state.get_layout_ref(&lid).unwrap().clone();
-                            let mut sublayout = layout.get_layout_at_mut(&target_coor).unwrap();
+                            let layout: &mut Layout = &mut entry.layout;
+                            let sublayout: &mut Layout = layout.get_layout_at_mut(&target_coor).unwrap();
                             if sublayout.section_index.is_none() {
                                 sublayout.section_index = Some(0);
                             } else {
                                 sublayout.section_index = Some(sublayout.section_index.unwrap() + 1);
                             }
-                            state.update_layout_by_lid(&lid, layout)?;
                             return Ok(Vec::new());
 
                         }
@@ -903,12 +906,10 @@ impl Interactable for GlyphLayoutOverview {
                             let target_coor = self.state.selected_coordinate.borrow_mut().clone();
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             // Get Active eid
-                            let entry: &Entry = state.get_active_entry_ref().unwrap();
-                            let eid = state.active_entry_id.unwrap();
-                            let lid = entry.layout_id;
+                            let entry: &mut Entry = state.get_active_entry_mut().unwrap();
                             // Update
-                            let mut layout = state.get_layout_ref(&lid).unwrap().clone();
-                            let mut sublayout = layout.get_layout_at_mut(&target_coor).unwrap();
+                            let layout: &mut Layout = &mut entry.layout;
+                            let sublayout: &mut Layout = layout.get_layout_at_mut(&target_coor).unwrap();
                             if let Some(index) = sublayout.section_index {
                                 if index == 0 {
                                     sublayout.section_index = None;
@@ -916,7 +917,6 @@ impl Interactable for GlyphLayoutOverview {
                                     sublayout.section_index = Some(index - 1);
                                 }
                             }
-                            state.update_layout_by_lid(&lid, layout)?;
                             return Ok(Vec::new());
                         }
                         // Transpose the alignment
@@ -929,11 +929,10 @@ impl Interactable for GlyphLayoutOverview {
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             // Get Active eid
                             let eid: i64 = state.active_entry_id.unwrap();
-                            let entry: &Entry = state.get_active_entry_ref().unwrap();
-                            let lid: i64 = entry.layout_id;
+                            let entry: &mut Entry = state.get_active_entry_mut().unwrap();
                             // Update
-                            let mut layout = state.get_layout_ref(&lid).unwrap().clone();
-                            let mut sublayout = layout.get_layout_at_mut(&target_coor).unwrap();
+                            let layout: &mut Layout = &mut entry.layout;
+                            let mut sublayout: &mut Layout = layout.get_layout_at_mut(&target_coor).unwrap();
                             match sublayout.details.orientation {
                                 LayoutOrientation::Horizontal => {
                                     sublayout.details.orientation = LayoutOrientation::Vertical;
@@ -943,46 +942,9 @@ impl Interactable for GlyphLayoutOverview {
 
                                 }
                             }
-                            state.update_layout_by_lid(&lid, layout)?;
                             return Ok(Vec::new());
 
                         }
-                        // 'R' => {
-                        //     if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
-                        //         return Ok(Vec::new());
-                        //     }
-                        //
-                        //     // This code retrieve the Original Layout Label
-                        //     let state = self.state.local_entry_state_ref().unwrap();
-                        //     let target_co: &Vec<usize> = &self.state.selected_coordinate;
-                        //     let eid: &i64 = &state.active_entry_id.unwrap();
-                        //     let layout: Layout = state.get_entry_layout_ref(eid).unwrap().clone();
-                        //     let original_name: String = layout.get_layout_at_ref(target_co).unwrap().label.clone();
-                        //     self.dialogs.push(
-                        //         TextInputDialog::new( "Rename Layout", original_name.as_str()).on_submit(
-                        //             // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
-                        //             Box::new(|parent_state, state| {
-                        //                 let _parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutState>().unwrap();
-                        //                 let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                        //
-                        //
-                        //                 let target_coord = _parent_state.selected_coordinate.clone();
-                        //                 let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
-                        //
-                        //                 let eid: i64 = local_entry_state.active_entry_id.unwrap();
-                        //                 let entry: &Entry = local_entry_state.get_active_entry_ref().unwrap();
-                        //                 let lid: i64 = entry.layout_id;
-                        //                 let mut new_layout = local_entry_state.get_entry_layout_ref(&eid).unwrap().clone();
-                        //                 new_layout.get_layout_at_mut(&target_coord).unwrap().label = _state.text_input.clone();
-                        //
-                        //
-                        //                 local_entry_state.update_layout_by_lid(&lid, new_layout)?;
-                        //
-                        //                 Ok(vec![])
-                        //             })
-                        //         ).into()
-                        //     );
-                        // }
                         _ => {}
                     }
                 }

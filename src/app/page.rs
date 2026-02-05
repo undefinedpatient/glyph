@@ -349,9 +349,10 @@ pub struct GlyphEditContentView {
 }
 
 pub struct GlyphLayoutView{
+    pub dialogs: Vec<Box<dyn Container>>,
     pub containers: Vec<Box<dyn Container>>,
-    pub state: GlyphLayoutState,
 
+    pub state: GlyphLayoutState,
 }
 
 pub struct GlyphLayoutOverview {
@@ -367,7 +368,7 @@ pub struct GlyphLayoutEditView {
 
 impl GlyphViewer {
     pub fn new(entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
-        let shared_focus = Rc::new(RefCell::new(false));
+        let shared_focus: Rc<RefCell<bool>> = Rc::new(RefCell::new(false));
         Self {
             containers: [
                 GlyphReadView::new(shared_focus.clone(), entry_state.clone()).into(),
@@ -377,7 +378,7 @@ impl GlyphViewer {
             state: GlyphViewerState {
                 is_focused: shared_focus,
                 mode: GlyphMode::Read,
-                entry_state: entry_state
+                entry_state
             }
         }
     }
@@ -577,6 +578,7 @@ impl GlyphLayoutView {
         let focused_panel_index = Rc::new(RefCell::new(0));
         let selected_coordinate: Rc<RefCell<Vec<usize>>> = Rc::new(RefCell::new(vec![]));
         Self {
+            dialogs: vec![],
             containers: vec![
                 GlyphLayoutOverview::new(selected_coordinate.clone(), entry_state.clone(), focused_panel_index.clone()).into(),
                 GlyphLayoutEditView::new(selected_coordinate.clone(), entry_state.clone(), focused_panel_index.clone()).into()
@@ -589,6 +591,8 @@ impl GlyphLayoutView {
 
                 entry_state
             }
+            
+            
         }
     }
 }
@@ -612,9 +616,9 @@ impl GlyphLayoutOverview {
     pub(crate) fn cycle_layout_hover(&mut self, offset: i16) -> () {
         let select_coordinate: Vec<usize> = self.state.selected_coordinate.borrow().clone();
         let state = self.state.local_entry_state_ref().unwrap();
-        let eid = state.active_entry_id.unwrap();
-        let ref_layout = state.get_entry_layout_ref(&eid).unwrap();
-        let len = ref_layout.get_layout_at_ref(&select_coordinate).unwrap().sub_layouts.len();
+        let eid: i64 = state.active_entry_id.unwrap();
+        let ref_layout: &Layout = &state.get_entry_ref(&eid).unwrap().layout;
+        let len: usize = ref_layout.get_layout_at_ref(&select_coordinate).unwrap().sub_layouts.len();
         drop(state);
         if let Some(hover_index) = self.state.hovered_index{
             self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, len as u16) as usize);
@@ -695,7 +699,7 @@ impl GlyphLayoutEditView {
         let coor: Vec<usize> = self.state.selected_coordinate.borrow().clone();
         let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
         let eid = state.active_entry_id.unwrap();
-        let layout: &Layout = state.get_entry_layout_ref(&eid).unwrap().get_layout_at_ref(&coor).unwrap();
+        let layout: &Layout = (&state.get_entry_ref(&eid).unwrap().layout).get_layout_at_ref(&coor).unwrap();
         let label: String = layout.label.clone();
         // let length: u16 = layout.
         (*self.containers[0]).as_any_mut().downcast_mut::<TextField>().unwrap().replace(label);

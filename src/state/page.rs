@@ -1,4 +1,4 @@
-use crate::model::{LocalEntryState, Section};
+use crate::model::{Layout, LocalEntryState, Section};
 use std::cell::{Ref, RefCell, RefMut};
 use std::path::PathBuf;
 use std::rc::Rc;

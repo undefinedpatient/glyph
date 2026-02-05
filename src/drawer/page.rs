@@ -328,7 +328,7 @@ impl Drawable for GlyphReadView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let entry_state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
         let eid: i64 = entry_state.active_entry_id.unwrap();
-        let layout = entry_state.get_entry_layout_ref(&eid).unwrap();
+        let layout = &entry_state.get_entry_ref(&eid).unwrap().layout;
         let areas: Vec<(u16, Rect)> = evaluate_read_areas(self, area, layout, 0,0);
         let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
         for (sid, section) in ref_sections {
@@ -582,7 +582,7 @@ impl Drawable for GlyphLayoutOverview {
 
         let entry_state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
         let eid: i64 = entry_state.active_entry_id.unwrap();
-        let layout = entry_state.get_entry_layout_ref(&eid).unwrap();
+        let layout = &entry_state.get_entry_ref(&eid).unwrap().layout;
         evaluate_layout(self, inner_area, frame.buffer_mut(), layout, 0, Vec::new());
     }
 }

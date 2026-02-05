@@ -30,6 +30,7 @@ pub enum GlyphCommand {
     OpenGlyph(PathBuf), // Path to Glyph DB
     CreateGlyph(PathBuf, String), // Path to directory, name of DB
     CreateEntry(String),
+    SetEntryUnsavedState(i64, bool),
     RefreshEditSection
 }
 pub enum PageCommand {
