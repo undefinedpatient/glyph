@@ -462,8 +462,10 @@ impl Interactable for GlyphViewer {
                             }
                             's' => {
                                 if key.modifiers.contains(KeyModifiers::CONTROL) {
-                                    let mut state = self.state.local_entry_state_mut().unwrap();
+                                    let mut state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
                                     let eid = state.active_entry_id.unwrap();
+                                    state.updated_entries.remove(&eid);
+
                                     state.save_entry_db(&eid)?;
                                 }
                             }
@@ -564,6 +566,10 @@ impl Interactable for GlyphEditOrderView {
                 }
                 if let KeyCode::Char(c) = key.code {
                     match c {
+                        'e' => {
+                            *self.state.focused_panel_index.borrow_mut() = 1;
+                            return Ok(Vec::new());
+                        }
                         '+' => {
                             if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
                                 return Ok(Vec::new());
@@ -578,7 +584,8 @@ impl Interactable for GlyphEditOrderView {
                             let eid: i64 = state.active_entry_id.unwrap();
                             state.sort_sections_by_position(&eid);
                             drop(state);
-                            return Ok(Vec::new());
+
+                            return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
 
                         }
                         '-' => {
@@ -595,7 +602,7 @@ impl Interactable for GlyphEditOrderView {
                             let eid: i64 = state.active_entry_id.unwrap();
                             state.sort_sections_by_position(&eid);
                             drop(state);
-                            return Ok(Vec::new());
+                            return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
                         }
                         'x' => {
                             if self.state.editing_sid.borrow().is_none() {
@@ -622,10 +629,6 @@ impl Interactable for GlyphEditOrderView {
                                 "untitled",
                                 "Blank"
                             )?;
-                            return Ok(Vec::new());
-                        }
-                        'e' => {
-                            *self.state.focused_panel_index.borrow_mut() = 1;
                             return Ok(Vec::new());
                         }
                         _ => {
@@ -885,7 +888,7 @@ impl Interactable for GlyphLayoutOverview {
                                 Layout::new(""),
                                 &target_coor,
                             );
-                            return Ok(Vec::new());
+                            return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
                         }
                         'x' => {
                             if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
@@ -904,7 +907,7 @@ impl Interactable for GlyphLayoutOverview {
                             // Update
                             let layout: &mut Layout = &mut state.get_entry_mut(&eid).unwrap().layout;
                             layout.remove_sublayout(&target_coor)?;
-                            return Ok(Vec::new());
+                            return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
                         }
                         '+' => {
                             if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
@@ -913,6 +916,7 @@ impl Interactable for GlyphLayoutOverview {
                             // Get the target coord copy
                             let target_coor = self.state.selected_coordinate.borrow_mut().clone();
                             let mut state = self.state.local_entry_state_mut().unwrap();
+                            let eid: i64 = state.active_entry_id.unwrap();
                             // Get Active eid
                             let entry: &mut Entry = state.get_active_entry_mut().unwrap();
                             // Update
@@ -923,8 +927,7 @@ impl Interactable for GlyphLayoutOverview {
                             } else {
                                 sublayout.section_index = Some(sublayout.section_index.unwrap() + 1);
                             }
-                            return Ok(Vec::new());
-
+                            return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
                         }
                         '-' => {
                             if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
@@ -933,6 +936,7 @@ impl Interactable for GlyphLayoutOverview {
                             // Get the target coord copy
                             let target_coor = self.state.selected_coordinate.borrow_mut().clone();
                             let mut state = self.state.local_entry_state_mut().unwrap();
+                            let eid: i64 = state.active_entry_id.unwrap();
                             // Get Active eid
                             let entry: &mut Entry = state.get_active_entry_mut().unwrap();
                             // Update
@@ -945,7 +949,7 @@ impl Interactable for GlyphLayoutOverview {
                                     sublayout.section_index = Some(index - 1);
                                 }
                             }
-                            return Ok(Vec::new());
+                            return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
                         }
                         // Transpose the alignment
                         't' => {
@@ -970,7 +974,7 @@ impl Interactable for GlyphLayoutOverview {
 
                                 }
                             }
-                            return Ok(Vec::new());
+                            return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
 
                         }
                         _ => {}

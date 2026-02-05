@@ -9,7 +9,7 @@ use color_eyre::owo_colors::OwoColorize;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect};
 use ratatui::style::{Style, Stylize};
-use ratatui::text::{Line, Text};
+use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, BorderType, Padding, Paragraph, Widget, Wrap};
 use ratatui::Frame;
 use std::cell::Ref;
@@ -257,6 +257,10 @@ impl Drawable for GlyphNavigationBar {
                         line = line.bold()
                     }
                 }
+
+                if self.state.local_entry_state_ref().unwrap().updated_entries.contains(&id) {
+                    line.push_span(Span::from(String::from(" (Unsaved) ")).italic().not_bold());
+                }
                 line
             }).collect();
 
@@ -277,10 +281,6 @@ impl Drawable for GlyphNavigationBar {
         }
     }
 }
-
-
-
-
 
 impl Drawable for GlyphViewer {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
@@ -422,8 +422,6 @@ impl Drawable for GlyphEditView {
 
     }
 }
-
-
 
 
 impl Drawable for GlyphEditOrderView{
