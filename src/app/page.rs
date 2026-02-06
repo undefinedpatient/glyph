@@ -2,7 +2,7 @@ use crate::app::popup::ConfirmPopup;
 use crate::app::widget::{Button, DirectoryList, NumberField, OptionMenu, TextEditor, TextField};
 use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::{AppCommand, GlyphCommand};
-use crate::app::GlyphCommand::RefreshEditSection;
+use crate::app::GlyphCommand::{RefreshEditSection, SetEntryUnsavedState};
 use crate::app::{Component, Container, Convertible};
 use crate::model::{Entry, GlyphRepository, Layout, LocalEntryState, Section, SizeMode};
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphEditContentState, GlyphEditOrderState, GlyphEditState, GlyphLayoutEditState, GlyphLayoutOverviewState, GlyphLayoutState, GlyphMode, GlyphNavigationBarState, GlyphPageState, GlyphReadState, GlyphViewerState, OpenGlyphPageState};
@@ -471,7 +471,6 @@ impl GlyphEditContentView {
                                 return Ok(Vec::new());
                             }
                             let _state: &mut TextFieldState = state.unwrap().downcast_mut::<TextFieldState>().unwrap();
-
                             let section: &mut Section = _parent_state.section_buffer.as_mut().unwrap();
                             section.title = _state.chars.iter().collect::<String>();
 
@@ -522,6 +521,7 @@ impl GlyphEditContentView {
                             if _parent_state.editing_sid.borrow().is_none() {
                                 return Ok(Vec::new());
                             }
+                            let eid = _parent_state.local_entry_state_ref().unwrap().active_entry_id.unwrap();
                             let editing_sid = _parent_state.editing_sid.borrow_mut().unwrap();
                             let section_buffer: Section = _parent_state.section_buffer.as_mut().unwrap().clone();
                             let mut state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
@@ -533,7 +533,7 @@ impl GlyphEditContentView {
                                     break;
                                 }
                             }
-                            Ok(Vec::new())
+                            Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))])
                         }
                     ))
                     .into(),
@@ -702,15 +702,16 @@ impl GlyphLayoutEditView {
         }
     }
 
-    pub fn refresh_layout(&mut self) -> () {
+    pub fn refresh_layout_edit_panel(&mut self) -> () {
         let coor: Vec<usize> = self.state.selected_coordinate.borrow().clone();
         let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
         let eid = state.active_entry_id.unwrap();
         // let length: u16 = layout.
         let entry: &Entry = state.get_active_entry_ref().unwrap();
-        let root_layout_label: String = entry.layout.label.clone();
-        let root_layout_length: u16  = entry.layout.details.length;
-        let root_layout_flex: u16  = entry.layout.details.flex;
+        let sub_layout: &Layout = entry.layout.get_layout_at_ref(&coor).unwrap();
+        let root_layout_label: String = sub_layout.label.clone();
+        let root_layout_length: u16  = sub_layout.details.length;
+        let root_layout_flex: u16  = sub_layout.details.flex;
         let root_layout_size_mode: u8 = match entry.layout.details.size_mode {
             SizeMode::Flex => 0,
             SizeMode::Length => 1,

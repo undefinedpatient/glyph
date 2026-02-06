@@ -31,7 +31,8 @@ pub enum GlyphCommand {
     CreateGlyph(PathBuf, String), // Path to directory, name of DB
     CreateEntry(String),
     SetEntryUnsavedState(i64, bool),
-    RefreshEditSection
+    RefreshEditSection,
+    RefreshLayoutEditPanel
 }
 pub enum PageCommand {
     PushDialog(Box<dyn Container>),

@@ -458,7 +458,7 @@ impl Interactable for GlyphViewer {
                                         // Dangerous Cheating here
                                         (*(*self.containers[2])
                                             .as_any_mut().downcast_mut::<GlyphLayoutView>().unwrap().containers[1])
-                                            .as_any_mut().downcast_mut::<GlyphLayoutEditView>().unwrap().refresh_layout();
+                                            .as_any_mut().downcast_mut::<GlyphLayoutEditView>().unwrap().refresh_layout_edit_panel();
                                     }
                                     GlyphMode::Layout => {
                                         self.state.mode = GlyphMode::Read;
@@ -826,8 +826,8 @@ impl Interactable for GlyphLayoutView {
                     match command {
                         GlyphCommand(com) => {
                             match com {
-                                RefreshEditSection => {
-                                    (*self.containers[1]).as_any_mut().downcast_mut::<GlyphEditContentView>().unwrap().refresh_section();
+                                RefreshLayoutEditPanel => {
+                                    (*self.containers[1]).as_any_mut().downcast_mut::<GlyphLayoutEditView>().unwrap().refresh_layout_edit_panel();
                                 }
                                 _ => {
                                     processed_commands.insert(0, GlyphCommand(com));
@@ -852,8 +852,8 @@ impl Interactable for GlyphLayoutView {
                     match command {
                         GlyphCommand(com) => {
                             match com {
-                                RefreshEditSection => {
-                                    (*self.containers[1]).as_any_mut().downcast_mut::<GlyphEditContentView>().unwrap().refresh_section();
+                                RefreshLayoutEditPanel => {
+                                    (*self.containers[1]).as_any_mut().downcast_mut::<GlyphLayoutEditView>().unwrap().refresh_layout_edit_panel();
                                 }
                                 _ => {
                                     processed_commands.insert(0, GlyphCommand(com));
@@ -876,14 +876,15 @@ impl Interactable for GlyphLayoutOverview {
         match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Esc = key.code {
-                    if !self.state.selected_coordinate.borrow_mut().is_empty() {
+                    return if !self.state.selected_coordinate.borrow_mut().is_empty() {
                         let index = self.state.selected_coordinate.borrow_mut().pop();
                         self.state.hovered_index = index;
+                        Ok(vec![GlyphCommand(RefreshLayoutEditPanel)])
                     } else {
                         let parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutState>().unwrap();
                         *parent_state.shared_focus.borrow_mut() = false;
+                        Ok(Vec::new())
                     }
-                    return Ok(Vec::new());
                 }
                 if let KeyCode::Tab = key.code {
                     self.cycle_layout_hover(1);
@@ -897,7 +898,9 @@ impl Interactable for GlyphLayoutOverview {
                     if let Some(hovered_index) = self.state.hovered_index{
                         self.state.selected_coordinate.borrow_mut().push(hovered_index);
                         self.state.hovered_index = None;
+                        return Ok(vec![GlyphCommand(RefreshLayoutEditPanel)]);
                     }
+
                 }
                 if let KeyCode::Char(c) = key.code {
                     match c {
