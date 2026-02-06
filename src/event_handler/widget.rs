@@ -197,7 +197,9 @@ impl Interactable for NumberField {
                     if let KeyCode::Esc = key.code {
                         self.set_focus(false);
                         if let Some(mut on_exit) = self.on_exit.take() {
-                            return (*on_exit)(parent_state, Some(&mut self.state));
+                            let result = (*on_exit)(parent_state, Some(&mut self.state));
+                            self.on_exit = Some(on_exit);
+                            return result;
                         };
                         return Ok(Vec::new());
                     }
@@ -480,7 +482,7 @@ impl Interactable for OptionMenu {
         key: &KeyEvent,
         parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>> {
-        let len = self.state.options.len();
+        let len: u8 = self.state.options.len() as u8;
         self.state.current_index = (self.state.current_index + 1) % len;
         
         

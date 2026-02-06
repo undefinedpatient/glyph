@@ -48,6 +48,6 @@ pub struct TextEditorState {
 }
 
 pub struct OptionMenuState {
-    pub current_index: usize,
+    pub current_index: u8,
     pub options: Vec<(String, u8)>
 }

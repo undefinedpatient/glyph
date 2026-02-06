@@ -2,17 +2,19 @@ use crate::app::popup::ConfirmPopup;
 use crate::app::widget::{Button, DirectoryList, NumberField, OptionMenu, TextEditor, TextField};
 use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::{AppCommand, GlyphCommand};
-use crate::app::GlyphCommand::{RefreshEditSection, SetEntryUnsavedState};
+use crate::app::GlyphCommand::{RefreshEditSection, RefreshLayoutEditPanel, SetEntryUnsavedState};
 use crate::app::{Component, Container, Convertible};
 use crate::model::{Entry, GlyphRepository, Layout, LocalEntryState, Section, SizeMode};
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphEditContentState, GlyphEditOrderState, GlyphEditState, GlyphLayoutEditState, GlyphLayoutOverviewState, GlyphLayoutState, GlyphMode, GlyphNavigationBarState, GlyphPageState, GlyphReadState, GlyphViewerState, OpenGlyphPageState};
-use crate::state::widget::{DirectoryListState, TextEditorState, TextFieldState};
+use crate::state::widget::{DirectoryListState, NumberFieldState, OptionMenuState, TextEditorState, TextFieldState};
 use crate::state::AppState;
 use crate::utils::cycle_offset;
 use rusqlite::fallible_iterator::FallibleIterator;
 use rusqlite::Connection;
 use std::cell::{Ref, RefCell, RefMut};
+use std::cmp::PartialEq;
 use std::rc::Rc;
+use color_eyre::Report;
 
 pub struct EntrancePage {
     pub components: Vec<Box<dyn Component>>,
@@ -644,40 +646,108 @@ impl GlyphLayoutEditView {
     ) -> Self {
         Self {
             containers: vec![
-                TextField::new("Name", "").into(),
-                NumberField::new("Length", 0).into(),
-                NumberField::new("Flex", 0).into()
+                TextField::new("Label", "").on_exit(
+                    Box::new(
+                        |parent_state, state| {
+                            let _parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();
+                            let _state = state.unwrap().downcast_mut::<TextFieldState>().unwrap();
+
+                            let coor: Vec<usize> = _parent_state.selected_coordinate.borrow().clone();
+                            let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
+                            let eid: i64 = local_entry_state.active_entry_id.unwrap();
+                            let entry: &mut Entry = local_entry_state.get_entry_mut(&eid).unwrap();
+                            let sublayout_to_update = entry.layout.get_layout_at_mut(&coor).unwrap();
+                            let new_label: String = _state.chars.iter().collect();
+                            if sublayout_to_update.label != new_label {
+                                sublayout_to_update.label = new_label;
+                                return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
+                            }
+                            Ok(Vec::new())
+                        }
+                    )
+                ).into(),
+                NumberField::new("Length", 0).on_exit(
+                    Box::new(
+                        |parent_state, state| {
+                            let _parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();
+                            let _state = state.unwrap().downcast_mut::<NumberFieldState>().unwrap();
+
+                            let coor: Vec<usize> = _parent_state.selected_coordinate.borrow().clone();
+                            let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
+                            let eid: i64 = local_entry_state.active_entry_id.unwrap();
+                            let entry: &mut Entry = local_entry_state.get_entry_mut(&eid).unwrap();
+                            let sublayout_to_update = entry.layout.get_layout_at_mut(&coor).unwrap();
+                            let new_value: u16 = _state.chars.iter().collect::<String>().parse().unwrap();
+                            if sublayout_to_update.details.length != new_value{
+                                sublayout_to_update.details.length = new_value;
+                                return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
+                            }
+                            Ok(Vec::new())
+                        }
+                    )
+                ).into(),
+                NumberField::new("Flex", 0).on_exit(
+                    Box::new(
+                        |parent_state, state| {
+                            let _parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();
+                            let _state = state.unwrap().downcast_mut::<NumberFieldState>().unwrap();
+
+                            let coor: Vec<usize> = _parent_state.selected_coordinate.borrow().clone();
+                            let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
+                            let eid: i64 = local_entry_state.active_entry_id.unwrap();
+                            let entry: &mut Entry = local_entry_state.get_entry_mut(&eid).unwrap();
+                            let sublayout_to_update = entry.layout.get_layout_at_mut(&coor).unwrap();
+                            let new_value: u16 = _state.chars.iter().collect::<String>().parse().unwrap();
+                            if sublayout_to_update.details.flex != new_value{
+                                sublayout_to_update.details.flex = new_value;
+                                return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
+                            }
+                            Ok(Vec::new())
+                        }
+                    )
+                ).into()
             ],
             components: vec![
                 OptionMenu::new(vec![
                     ("Flex".to_string(), 0),
                     ("Length".to_string(), 1)
-                ], 0).into(),
+                ], 0).on_interact(
+                    Box::new(
+                        |parent_state, state| {
+                            let _parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();
+                            let _state = state.unwrap().downcast_mut::<OptionMenuState>().unwrap();
+
+                            let coor: Vec<usize> = _parent_state.selected_coordinate.borrow().clone();
+                            let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
+                            let eid: i64 = local_entry_state.active_entry_id.unwrap();
+                            let entry: &mut Entry = local_entry_state.get_entry_mut(&eid).unwrap();
+                            let sublayout_to_update = entry.layout.get_layout_at_mut(&coor).unwrap();
+                            let selected_item_index: u8 = _state.current_index;
+                            let selected_item_value: u8 = _state.options[selected_item_index as usize].1;
+                            let parsed_selected_item = match selected_item_value {
+                                0 => {
+                                    SizeMode::Flex
+                                }
+                                1 => {
+                                    SizeMode::Length
+                                }
+                                _ => {
+                                    return Err(Report::msg("Impossible to have another value for size mode."))
+                                }
+                            };
+                            if sublayout_to_update.details.size_mode != parsed_selected_item {
+                                sublayout_to_update.details.size_mode = parsed_selected_item;
+                                return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
+                            }
+                            Ok(Vec::new())
+                        }
+                    )
+                ).into(),
                 Button::new("Revert")
                     .on_interact(Box::new(
                         |parent_state| {
-                            let _parent_state: &mut GlyphEditContentState = parent_state.unwrap().downcast_mut::<GlyphEditContentState>().unwrap();
-                            // When no editing section exist
-                            if _parent_state.editing_sid.borrow().is_none() {
-                                return Ok(Vec::new());
-                            }
-                            Ok(vec![GlyphCommand(RefreshEditSection)])
-                        }
-                    ))
-                    .into(),
-                Button::new("Update")
-                    .on_interact(Box::new(
-                        |parent_state| {
-                            let _parent_state: &mut GlyphEditContentState = parent_state.unwrap().downcast_mut::<GlyphEditContentState>().unwrap();
-                            // When no editing section exist
-                            if _parent_state.editing_sid.borrow().is_none() {
-                                return Ok(Vec::new());
-                            }
-                            let sid = _parent_state.editing_sid.borrow_mut().unwrap();
-                            let section_buffer: Section = _parent_state.section_buffer.as_mut().unwrap().clone();
-                            let mut state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
-                            state.update_section_by_sid_db(&sid, section_buffer)?;
-                            Ok(Vec::new())
+                            let _parent_state: &mut GlyphLayoutEditState= parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();
+                            Ok(vec![GlyphCommand(RefreshLayoutEditPanel)])
                         }
                     ))
                     .into(),
@@ -717,6 +787,7 @@ impl GlyphLayoutEditView {
             SizeMode::Length => 1,
         };
         (*self.containers[0]).as_any_mut().downcast_mut::<TextField>().unwrap().replace(root_layout_label);
+        (*self.components[0]).as_any_mut().downcast_mut::<OptionMenu>().unwrap().replace(root_layout_size_mode);
         (*self.containers[1]).as_any_mut().downcast_mut::<NumberField>().unwrap().replace(root_layout_length as i16);
         (*self.containers[2]).as_any_mut().downcast_mut::<NumberField>().unwrap().replace(root_layout_flex as i16);
     }

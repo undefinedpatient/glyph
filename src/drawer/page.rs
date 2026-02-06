@@ -2,12 +2,12 @@ use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphEditContentView, Glyp
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use crate::model;
-use crate::model::{LayoutOrientation, LocalEntryState, Section};
+use crate::model::{LayoutOrientation, LocalEntryState, Section, SizeMode};
 use crate::state::page::GlyphMode;
 use crate::theme::Theme;
 use color_eyre::owo_colors::OwoColorize;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Alignment, Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect};
+use ratatui::layout::{Alignment, Constraint, Flex, HorizontalAlignment, Layout, Offset, Position, Rect, Size};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, BorderType, Padding, Paragraph, Widget, Wrap};
@@ -597,33 +597,32 @@ impl Drawable for GlyphLayoutEditView {
         let field_areas = Layout::vertical([
             Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Length(3)
         ]).split(chunks[0]);
-        let button_areas = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(chunks[1]);
 
+        // Label Field
         self.containers[0].render(frame, field_areas[0],
                                   get_draw_flag(self.state.hovered_index, 0, Some(self.containers[0].is_focused())),
                                   theme
         );
+        // Size Mode Field
         self.components[0].render(frame,field_areas[1],
                                   get_draw_flag(self.state.hovered_index, 1, None),
                                   theme
         );
+        // Length Field
         self.containers[1].render(frame, field_areas[2],
                                   get_draw_flag(self.state.hovered_index, 2, Some(self.containers[1].is_focused())),
                                   theme
         );
+        // Flex Field
         self.containers[2].render(frame, field_areas[3],
-                                  get_draw_flag(self.state.hovered_index, 3, Some(self.containers[1].is_focused())),
+                                  get_draw_flag(self.state.hovered_index, 3, Some(self.containers[2].is_focused())),
                                   theme
         );
 
 
-
-        self.components[1].render(frame, button_areas[0],
+        // Revert Button
+        self.components[1].render(frame, chunks[1],
                                   get_draw_flag(self.state.hovered_index, 4, None),
-                                  theme
-        );
-        self.components[2].render(frame, button_areas[1],
-                                  get_draw_flag(self.state.hovered_index, 5, None),
                                   theme
         );
 
@@ -637,6 +636,8 @@ fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, la
 
     let focused_coordinate = &me.state.selected_coordinate.borrow().clone();
 
+
+    // Generate Border to render visualization.
     let mut block: Block = Block::bordered().title(layout.label.as_str()).padding(Padding {left: 1, right: 1, top: 1, bottom: 1});
     if at == *focused_coordinate {
         block = block.border_type(BorderType::Thick).title_style(Style::new().bold());
@@ -648,6 +649,8 @@ fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, la
             block = block.border_type(BorderType::Double);
         }
     }
+
+    // Determine the section index render.
     if !layout.sub_layouts.is_empty() {
         block = block.title_bottom(Line::from("(Disabled)").dim());
     } else {
@@ -655,20 +658,26 @@ fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, la
 
     }
 
-    let recursive_area: Rect = block.inner(area);
-    block.render(area, buffer);
 
 
     // Process the child
     let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
         |(index, sub)| {
-            if (sub.details.flex != 0) {
-                Constraint::Fill(sub.details.flex)
-            } else {
-                Constraint::Length(sub.details.length)
+            match sub.details.size_mode {
+                SizeMode::Flex => {
+                    Constraint::Fill(sub.details.flex)
+                }
+                SizeMode::Length => {
+                    Constraint::Length(sub.details.length)
+                }
             }
         }
     ).collect();
+    
+    let recursive_area: Rect = block.inner(area);
+    block.render(area, buffer);
+
+
     let sub_areas =
         match layout.details.orientation {
             LayoutOrientation::Vertical => {

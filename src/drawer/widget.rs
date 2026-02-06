@@ -250,7 +250,7 @@ impl Drawable for TextEditor {
  */
 impl Drawable for OptionMenu {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
-        let current_index: usize = self.state.current_index;
+        let current_index: usize = self.state.current_index as usize;
         let current_text: String = self.state.options.get(current_index).unwrap().0.clone();
         match draw_flag {
             DrawFlag::HIGHLIGHTING => {

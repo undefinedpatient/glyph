@@ -339,7 +339,7 @@ pub enum LayoutOrientation {
     Horizontal,
     Vertical,
 }
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub enum SizeMode {
     Length,
     Flex,

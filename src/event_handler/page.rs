@@ -1029,39 +1029,70 @@ impl Interactable for GlyphLayoutOverview {
 
 impl Interactable for GlyphLayoutEditView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
-        match key.kind {
-            KeyEventKind::Press => {
-                if let KeyCode::Esc = key.code {
-                    let parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutState>().unwrap();
-                    *parent_state.shared_focus.borrow_mut() = false;
-                    return Ok(Vec::new());
-                }
-                if let KeyCode::Tab = key.code {
-                    self.cycle_hover(1);
-                    return Ok(Vec::new());
-                }
-                if let KeyCode::BackTab = key.code {
-                    self.cycle_hover(-1);
-                    return Ok(Vec::new());
-                }
-                if let KeyCode::Char(c) = key.code {
-                    match c {
-                        'q' => {
-                            *self.state.focused_panel_index.borrow_mut() = 0;
-                            return Ok(Vec::new());
-                        }
-                        _ => {
-                            return Ok(Vec::new());
+        if self.focused_child_ref().is_none() {
+            match key.kind {
+                KeyEventKind::Press => {
+                    if let KeyCode::Esc = key.code {
+                        let parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutState>().unwrap();
+                        *parent_state.shared_focus.borrow_mut() = false;
+                        return Ok(Vec::new());
+                    }
+                    if let KeyCode::Tab = key.code {
+                        self.cycle_hover(1);
+                        return Ok(Vec::new());
+                    }
+                    if let KeyCode::BackTab = key.code {
+                        self.cycle_hover(-1);
+                        return Ok(Vec::new());
+                    }
+                    if let KeyCode::Char(c) = key.code {
+                        match c {
+                            'q' => {
+                                *self.state.focused_panel_index.borrow_mut() = 0;
+                                return Ok(Vec::new());
+                            }
+                            _ => {
+                                return Ok(Vec::new());
 
+                            }
                         }
                     }
-                }
-                return Ok(Vec::new());
-            }
-            _ => {
-                return Ok(Vec::new());
+                    if let KeyCode::Enter = key.code {
+                        if let Some(index) = self.state.hovered_index {
+                            match index {
 
+                                0 => { // Label Field
+                                    self.containers[0].set_focus(true);
+                                }
+                                1 => { // Size Field
+                                    return self.components[0].handle(key, Some(&mut self.state));
+                                }
+                                2 => { // Length Field
+                                    self.containers[1].set_focus(true);
+                                }
+                                3 => { // Flex Field
+                                    self.containers[2].set_focus(true);
+                                }
+                                4 => {
+                                    return self.components[1].handle(key, Some(&mut self.state));
+                                }
+                                _ => {
+                                }
+                            }
+                        }
+                    }
+                    return Ok(Vec::new());
+                }
+                _ => {
+
+                    return Ok(Vec::new());
+                }
             }
+        } else {
+            let index: usize = self.focused_child_index().unwrap();
+            let mut result =
+                self.containers[index].handle(key, Some(&mut self.state));
+            result
         }
     }
 }

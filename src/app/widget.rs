@@ -1,6 +1,6 @@
 use crate::app::{Command, Component, Container};
 use crate::drawer::DrawFlag;
-use crate::state::widget::{DirectoryListState, EditMode, OptionMenuState, TextEditorState, TextFieldState};
+use crate::state::widget::{DirectoryListState, EditMode, NumberFieldState, OptionMenuState, TextEditorState, TextFieldState};
 use crate::utils::{cycle_offset, get_dir_names, get_file_names};
 use color_eyre::eyre::Result;
 use ratatui::style::Stylize;
@@ -213,14 +213,14 @@ impl From<TextField> for Box<dyn Container> {
 
  */
 pub struct NumberField {
-    pub state: TextFieldState,
+    pub state: NumberFieldState,
     pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 
 impl NumberField {
     pub fn new(label: &str, default: i16) -> Self {
         Self {
-            state: TextFieldState {
+            state: NumberFieldState {
                 is_focused: false,
                 label: label.to_string(),
                 chars: default.to_string().chars().collect(),
@@ -491,7 +491,7 @@ impl OptionMenu {
     pub fn new(options: Vec<(String, u8)>, default: u8) -> Self {
         Self {
             state: OptionMenuState {
-                current_index: default as usize,
+                current_index: default,
                 options,
             },
             on_update: None
@@ -503,6 +503,10 @@ impl OptionMenu {
     ) -> Self {
         self.on_update = Some(f);
         self
+    }
+
+    pub fn replace(&mut self, new_selection: u8) -> () {
+        self.state.current_index = new_selection;
     }
 }
 
