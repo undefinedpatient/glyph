@@ -15,6 +15,7 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::cmp::PartialEq;
 use std::rc::Rc;
 use color_eyre::Report;
+use tui_scrollview::ScrollViewState;
 
 pub struct EntrancePage {
     pub components: Vec<Box<dyn Component>>,
@@ -611,11 +612,13 @@ impl GlyphLayoutOverview {
         entry_state: Rc<RefCell<LocalEntryState>>,
         focused_panel_index: Rc<RefCell<usize>>,
     ) -> Self {
+        let scroll_state = RefCell::new(ScrollViewState::default());
         Self {
             state: GlyphLayoutOverviewState {
                 focused_panel_index,
                 hovered_index: None,
                 selected_coordinate,
+                scroll_state,
 
                 entry_state
             },

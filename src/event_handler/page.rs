@@ -894,6 +894,14 @@ impl Interactable for GlyphLayoutOverview {
                     self.cycle_layout_hover(-1);
                     return Ok(Vec::new());
                 }
+                if let KeyCode::Up = key.code {
+                    self.state.scroll_state.borrow_mut().scroll_up();
+                    return Ok(Vec::new());
+                }
+                if let KeyCode::Down = key.code {
+                    self.state.scroll_state.borrow_mut().scroll_down();
+                    return Ok(Vec::new());
+                }
                 if let KeyCode::Enter = key.code {
                     if let Some(hovered_index) = self.state.hovered_index{
                         self.state.selected_coordinate.borrow_mut().push(hovered_index);

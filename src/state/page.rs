@@ -2,6 +2,7 @@ use crate::model::{LocalEntryState, Section};
 use std::cell::{Ref, RefCell, RefMut};
 use std::path::PathBuf;
 use std::rc::Rc;
+use tui_scrollview::ScrollViewState;
 
 pub struct EntrancePageState {
     pub is_focused: bool,
@@ -116,10 +117,14 @@ pub struct GlyphLayoutState {
 pub struct GlyphLayoutOverviewState {
     pub focused_panel_index: Rc<RefCell<usize>>, // It is either Viewing or Editing
     pub hovered_index: Option<usize>, // Note this is the hovered index for sub-layouts, not widgets.
-    
+    pub scroll_state: RefCell<ScrollViewState>,
+
+
+
     // Shared Data
     pub selected_coordinate: Rc<RefCell<Vec<usize>>>,
     pub entry_state: Rc<RefCell<LocalEntryState>>,
+
 }
 
 pub struct GlyphLayoutEditState {

@@ -10,11 +10,12 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Flex, HorizontalAlignment, Layout, Offset, Position, Rect, Size};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{Block, BorderType, Padding, Paragraph, Widget, Wrap};
+use ratatui::widgets::{Block, BorderType, Padding, Paragraph, StatefulWidget, Widget, Wrap};
 use ratatui::Frame;
 use std::cell::Ref;
 use std::rc::Rc;
 use tui_big_text::{BigText, PixelSize};
+use tui_scrollview::{ScrollView, ScrollbarVisibility};
 
 macro_rules! block {
     ($title: expr, $flag: expr) => {
@@ -574,13 +575,29 @@ impl Drawable for GlyphLayoutOverview {
         let inner_area = widget_frame.inner(area.centered_horizontally(Constraint::Percentage(90)));
         widget_frame.render(area, frame.buffer_mut());
 
-
-
+        /*
+            Evaluate Page Layout via the root layout
+         */
 
         let entry_state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
         let eid: i64 = entry_state.active_entry_id.unwrap();
         let layout = &entry_state.get_entry_ref(&eid).unwrap().layout;
-        evaluate_layout(self, inner_area, frame.buffer_mut(), layout, 0, Vec::new());
+        match layout.details.size_mode {
+            SizeMode::Flex => {
+                evaluate_layout(self, inner_area, frame.buffer_mut(), layout, 0, Vec::new());
+                return;
+            }
+            SizeMode::Length => {
+                let height = layout.details.length;
+                let mut scroll_view = ScrollView::new(Size{
+                    width: inner_area.width,
+                    height: height
+                }).scrollbars_visibility(ScrollbarVisibility::Never);
+                evaluate_layout(self,scroll_view.area(), scroll_view.buf_mut(), layout, 0, Vec::new());
+                scroll_view.render(inner_area, frame.buffer_mut(), &mut *self.state.scroll_state.borrow_mut());
+            }
+        }
+
     }
 }
 
@@ -673,7 +690,7 @@ fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, la
             }
         }
     ).collect();
-    
+
     let recursive_area: Rect = block.inner(area);
     block.render(area, buffer);
 
