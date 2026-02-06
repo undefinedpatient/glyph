@@ -562,6 +562,22 @@ impl Interactable for GlyphReadView {
                     self.set_focus(false);
                     return Ok(Vec::new());
                 }
+                if let KeyCode::PageUp = key.code {
+                    self.state.scroll_state.borrow_mut().scroll_page_up();
+                    return Ok(Vec::new());
+                }
+                if let KeyCode::PageDown = key.code {
+                    self.state.scroll_state.borrow_mut().scroll_page_down();
+                    return Ok(Vec::new());
+                }
+                if let KeyCode::Up = key.code {
+                    self.state.scroll_state.borrow_mut().scroll_up();
+                    return Ok(Vec::new());
+                }
+                if let KeyCode::Down = key.code {
+                    self.state.scroll_state.borrow_mut().scroll_down();
+                    return Ok(Vec::new());
+                }
                 Ok(Vec::new())
             }
             _ => {
@@ -892,6 +908,14 @@ impl Interactable for GlyphLayoutOverview {
                 }
                 if let KeyCode::BackTab = key.code {
                     self.cycle_layout_hover(-1);
+                    return Ok(Vec::new());
+                }
+                if let KeyCode::PageUp = key.code {
+                    self.state.scroll_state.borrow_mut().scroll_page_up();
+                    return Ok(Vec::new());
+                }
+                if let KeyCode::PageDown = key.code {
+                    self.state.scroll_state.borrow_mut().scroll_page_down();
                     return Ok(Vec::new());
                 }
                 if let KeyCode::Up = key.code {

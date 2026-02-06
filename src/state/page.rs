@@ -63,6 +63,7 @@ pub struct GlyphViewerState {
 
 pub struct GlyphReadState {
     pub is_focused: Rc<RefCell<bool>>, // Shared state across all view
+    pub scroll_state: RefCell<ScrollViewState>,
 
     // Shared Data
     pub entry_state: Rc<RefCell<LocalEntryState>>,

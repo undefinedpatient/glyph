@@ -326,18 +326,45 @@ impl Drawable for GlyphViewer {
 }
 impl Drawable for GlyphReadView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
+        /*
+            Evaluate Page Layout via the root layout
+         */
+
         let entry_state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
         let eid: i64 = entry_state.active_entry_id.unwrap();
         let layout = &entry_state.get_entry_ref(&eid).unwrap().layout;
-        let areas: Vec<(u16, Rect)> = evaluate_read_areas(self, area, layout, 0,0);
-        let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
-        for (sid, section) in ref_sections {
-            if let Some((position, area)) = areas.iter().find(
-                |(position, area)|{
-                    *position as i64 == section.position
+        match layout.details.size_mode {
+            SizeMode::Flex => {
+                let areas: Vec<(u16, Rect)> = evaluate_read_areas(self, area, layout, 0,0);
+                let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
+                for (sid, section) in ref_sections {
+                    if let Some((position, area)) = areas.iter().find(
+                        |(position, area)|{
+                            *position as i64 == section.position
+                        }
+                    ) {
+                        Paragraph::new(section.content.clone()).wrap(Wrap { trim: true }).render(*area, frame.buffer_mut());
+                    }
                 }
-            ) {
-                Paragraph::new(section.content.clone()).wrap(Wrap { trim: true }).render(*area, frame.buffer_mut());
+            }
+            SizeMode::Length => {
+                let height = layout.details.length;
+                let mut scroll_view: ScrollView = ScrollView::new(Size{
+                    width: area.width,
+                    height: height
+                }).scrollbars_visibility(ScrollbarVisibility::Never);
+                let areas: Vec<(u16, Rect)> = evaluate_read_areas(self, scroll_view.area(), layout, 0,0);
+                let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
+                for (sid, section) in ref_sections {
+                    if let Some((position, area)) = areas.iter().find(
+                        |(position, area)|{
+                            *position as i64 == section.position
+                        }
+                    ) {
+                        Paragraph::new(section.content.clone()).wrap(Wrap { trim: true }).render(*area, scroll_view.buf_mut());
+                    }
+                }
+                scroll_view.render(area, frame.buffer_mut(), &mut *self.state.scroll_state.borrow_mut());
             }
         }
 
@@ -585,7 +612,6 @@ impl Drawable for GlyphLayoutOverview {
         match layout.details.size_mode {
             SizeMode::Flex => {
                 evaluate_layout(self, inner_area, frame.buffer_mut(), layout, 0, Vec::new());
-                return;
             }
             SizeMode::Length => {
                 let height = layout.details.length;

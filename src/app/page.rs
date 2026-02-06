@@ -387,12 +387,13 @@ impl GlyphViewer {
 }
 impl GlyphReadView {
     pub fn new(shared_focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
+        let scroll_state = RefCell::new(ScrollViewState::default());
         Self {
             containers: vec![],
             components: vec![],
             state: GlyphReadState {
                 is_focused: shared_focus,
-
+                scroll_state,
                 entry_state
             }
         }
