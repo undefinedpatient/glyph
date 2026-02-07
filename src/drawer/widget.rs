@@ -1,3 +1,4 @@
+use color_eyre::owo_colors::OwoColorize;
 use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, OptionMenu, TextEditor, TextField};
 use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
@@ -77,26 +78,23 @@ impl Drawable for DirectoryList {
             .iter()
             .enumerate()
             .map(|(i, item)| {
-                let mut line: Line;
-                // If Selected => " >"
-                if let Some(selected_index) = self.state.selected_index {
-                    if selected_index == i {
-                        line = Line::from(String::from(" > ") + &*item.clone());
-                    } else {
-                        line = Line::from(String::from("   ") + &*item.clone());
-                    }
-                } else {
-                    line = Line::from(String::from("   ") + &*item.clone());
-                }
+                let is_selected = self.state.selected_index == Some(i);
+                let is_hovered   = self.state.hovered_index == Some(i);
 
-                // If Hovered => Bold
-                if let Some(hovered_index) = self.state.hovered_index {
-                    if hovered_index == i {
-                        line = line.bold();
-                    }
-                }
-                if i != 0 && i < num_dir {
-                    line.push_span(Span::raw("/"));
+                let prefix = match (is_selected, is_hovered) {
+                    (true, true)   => ">[",
+                    (true, false)  => " [",
+                    (false, true)  => "> ",
+                    (false, false) => "  ",
+                };
+
+                let suffix = if is_selected { "] " } else { "  " };
+
+                let content = format!("{prefix}{}{suffix}", item);
+
+                let mut line = Line::from(content);
+                if is_selected {
+                    line = line.bold();
                 }
                 line
             })

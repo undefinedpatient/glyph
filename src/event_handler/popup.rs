@@ -5,7 +5,7 @@ use crate::app::Command::AppCommand;
 use crate::event_handler::Interactable;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
-
+use color_eyre::eyre::Result;
 impl Interactable for MessagePopup {
     fn handle(
         &mut self,
@@ -31,7 +31,7 @@ impl Interactable for ConfirmPopup {
         &mut self,
         key: &KeyEvent,
         parent_state: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>> {
+    ) -> Result<Vec<Command>> {
         return match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Tab = key.code {
@@ -45,11 +45,15 @@ impl Interactable for ConfirmPopup {
                     }
                 }
                 if let KeyCode::Enter = key.code {
-                    return if self.focus_index == 1 {
-                        Ok(vec![AppCommand(Quit)])
-                    } else {
-                        Ok(vec![AppCommand(PopPopup)])
-                    };
+                    if self.focus_index == 0 {
+                        return Ok(vec![AppCommand(PopPopup)]);
+                    }
+                    if self.focus_index == 1 {
+                        if let Some(mut function) = self.on_confirm.take() {
+                            return (*function)(parent_state);
+                        }
+                        return Ok(Vec::new());
+                    }
                 }
                 if let KeyCode::Esc = key.code {
                     return Ok(vec![AppCommand(PopPopup)]);

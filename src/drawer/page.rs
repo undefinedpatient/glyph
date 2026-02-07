@@ -240,27 +240,25 @@ impl Drawable for GlyphNavigationBar {
             .iter()
             .enumerate()
             .map(|(i, (id, name)): (usize, &(i64, String))| {
+                let is_selected = ref_entry_state.active_entry_id == Some(*id);
+                let is_hovered   = self.state.hovered_index == Some(i);
                 let mut line: Line;
-                // // If Selected => " >"
-                if let Some(selected_id) = ref_entry_state.active_entry_id {
-                    if selected_id == *id {
-                        line = Line::from(String::from(" > ") + &*name.clone());
-                    } else {
-                        line = Line::from(String::from("   ") + &*name.clone());
-                    }
-                } else {
-                    line = Line::from(String::from("   ") + &*name.clone());
-                }
+                let prefix = match (is_selected, is_hovered) {
+                    (true, true)   => " >[",
+                    (true, false)  => "  [",
+                    (false, true)  => " > ",
+                    (false, false) => "   ",
+                };
+                let suffix = if is_selected { "] " } else { "  " };
 
-                // If Hovered => Bold
-                if let Some(hovered_index) = self.state.hovered_index {
-                    if hovered_index == i {
-                        line = line.bold()
-                    }
-                }
+                let content = format!("{prefix}{}{suffix}", name);
 
+                let mut line = Line::from(content);
+                if is_selected {
+                    line = line.bold();
+                }
                 if self.state.local_entry_state_ref().unwrap().updated_entries.contains(&id) {
-                    line.push_span(Span::from(String::from(" (Unsaved) ")).italic().not_bold());
+                    line.push_span(Span::from(String::from(" (Unsaved)")).italic().not_bold());
                 }
                 line
             }).collect();
@@ -302,6 +300,8 @@ impl Drawable for GlyphViewer {
         }
         let inner_area = widget_frame.inner(area.centered_horizontally(Constraint::Percentage(90)));
         widget_frame.render(area, frame.buffer_mut());
+
+
         /*
             Body
          */

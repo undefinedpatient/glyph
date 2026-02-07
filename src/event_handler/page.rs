@@ -18,6 +18,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use rusqlite::fallible_iterator::FallibleIterator;
 use std::any::Any;
 use std::cell::{Ref, RefMut};
+use crate::state::AppState;
 
 impl Interactable for EntrancePage {
     fn handle(
@@ -33,10 +34,37 @@ impl Interactable for EntrancePage {
                 if let KeyCode::BackTab = key.code {
                     self.cycle_hover(-1);
                 }
+                if let KeyCode::Down = key.code {
+                    self.cycle_hover(1);
+                }
+                if let KeyCode::Up = key.code {
+                    self.cycle_hover(-1);
+                }
+                if let KeyCode::Char(c) = key.code {
+                    match c {
+                        'j' => {
+                            self.cycle_hover(1);
+                        }
+                        'k' => {
+                            self.cycle_hover(-1);
+                        }
+                        _ => {
+
+                        }
+                    }
+                }
                 if let KeyCode::Esc = key.code {
                     return Ok(vec![
                         AppCommand(PushPopup(
-                            ConfirmPopup::new("").into()
+                            ConfirmPopup::new("Exit Glyph?").on_confirm(
+                                Box::new(
+                                    |app_state| {
+                                        let _app_state = app_state.unwrap().downcast_mut::<AppState>().unwrap();
+                                        _app_state.should_quit = true;
+                                        Ok(Vec::new())
+                                    }
+                                )
+                            ).into()
                         ))
                     ]);
                 }
@@ -329,6 +357,18 @@ impl Interactable for GlyphNavigationBar {
                         self.set_focus(false);
                         return Ok(Vec::new());
                     }
+                    if let KeyCode::Enter = key.code {
+                        if self.state.hovered_index.is_none() {
+
+                        } else {
+                            let index: usize = self.state.hovered_index.unwrap();
+                            let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                            let selected_id: i64 = self.state.local_entry_state_ref().unwrap().ordered_entries[index].0;
+                            let mut local_entry_state = self.state.local_entry_state_mut().unwrap();
+                            local_entry_state.toggle_active_entry_id(selected_id)
+                        }
+                        return Ok(Vec::new());
+                    }
                     if let KeyCode::Char(c) = key.code {
                         match c {
                             'j' => {
@@ -338,19 +378,6 @@ impl Interactable for GlyphNavigationBar {
                             'k' => {
                                 self.previous_entry();
                                 return Ok(Vec::new());
-                            }
-                            ' ' => {
-                                if self.state.hovered_index.is_none() {
-
-                                } else {
-                                    let index: usize = self.state.hovered_index.unwrap();
-                                    let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                    let selected_id: i64 = self.state.local_entry_state_ref().unwrap().ordered_entries[index].0;
-                                    let mut local_entry_state = self.state.local_entry_state_mut().unwrap();
-                                    local_entry_state.toggle_active_entry_id(selected_id)
-                                }
-                                return Ok(Vec::new());
-
                             }
                             'A' => {
                                 return Ok(

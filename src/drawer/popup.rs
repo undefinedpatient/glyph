@@ -39,7 +39,7 @@ impl Drawable for MessagePopup {
 impl Drawable for ConfirmPopup {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
-        let paragraph_message: Paragraph = Paragraph::new("Confirm Exit?")
+        let paragraph_message: Paragraph = Paragraph::new(self.message.clone())
             .wrap(Wrap { trim: true })
             .alignment(Alignment::Center)
             .block(if self.is_focused() {

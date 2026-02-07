@@ -44,7 +44,6 @@ impl EntrancePage {
                                 PushPage(
                                     OpenGlyphPage::new().into()
                                 )
-
                             )
                         ]
                     )
