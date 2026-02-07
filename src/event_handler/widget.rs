@@ -1,6 +1,6 @@
 use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, OptionMenu, TextEditor, TextField};
 use crate::app::Command;
-use crate::event_handler::{Focusable, Interactable};
+use crate::event_handler::{is_cycle_backward_hover_key, is_cycle_forward_hover_key, Focusable, Interactable};
 use crate::state::widget::EditMode;
 use crate::utils::{get_dir_names, get_file_names};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -45,18 +45,16 @@ impl Interactable for DirectoryList {
             self.set_focus(true);
             Ok(Vec::new())
         } else {
+            if is_cycle_forward_hover_key(key) {
+                self.next_entry();
+            }
+            if is_cycle_backward_hover_key(key) {
+                self.previous_entry();
+            }
             match key.kind {
                 KeyEventKind::Press => {
                     if let KeyCode::Char(char) = key.code {
                         return match char {
-                            'j' => {
-                                self.next_entry();
-                                Ok(Vec::new())
-                            }
-                            'k' => {
-                                self.previous_entry();
-                                Ok(Vec::new())
-                            }
                             'u' => {
                                 if key.modifiers.contains(KeyModifiers::CONTROL) {
                                     self.page_up();
@@ -71,23 +69,20 @@ impl Interactable for DirectoryList {
                             }
                             ' ' => {
                                 if let Some(hovered_index) = self.state.hovered_index {
+                                    if let Some(selected_index) = self.state.selected_index {
+                                        if selected_index == hovered_index {
+                                            self.state.selected_index = None;
+                                            return Ok(Vec::new());
+                                        }
+                                    }
                                     if self.state.select_dir || hovered_index >= self.get_num_dirs() {
                                         self.state.selected_index = self.state.hovered_index;
                                     }
-
                                 }
                                 Ok(Vec::new())
                             }
                             _ => Ok(Vec::new()),
                         };
-                    }
-                    if let KeyCode::Tab = key.code {
-                        self.next_entry();
-                        return Ok(Vec::new());
-                    }
-                    if let KeyCode::BackTab = key.code {
-                        self.previous_entry();
-                        return Ok(Vec::new());
                     }
                     if let KeyCode::Esc = key.code {
                         if let Some(selected_index) = self.state.selected_index {

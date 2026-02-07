@@ -9,7 +9,7 @@ use crate::app::GlyphCommand::*;
 use crate::app::PageCommand::*;
 
 use crate::app::Convertible;
-use crate::event_handler::{Focusable, Interactable};
+use crate::event_handler::{is_cycle_backward_hover_key, is_cycle_forward_hover_key, Focusable, Interactable};
 use crate::model::{Entry, GlyphRepository, Layout, LayoutOrientation, LocalEntryState, Section};
 use crate::state::dialog::TextInputDialogState;
 use crate::state::page::{CreateGlyphPageState, GlyphEditState, GlyphLayoutState, GlyphMode, GlyphPageState};
@@ -28,30 +28,11 @@ impl Interactable for EntrancePage {
     ) -> Result<Vec<Command>> {
         match key.kind {
             KeyEventKind::Press => {
-                if let KeyCode::Tab = key.code {
+                if is_cycle_forward_hover_key(key) {
                     self.cycle_hover(1);
                 }
-                if let KeyCode::BackTab = key.code {
+                if is_cycle_backward_hover_key(key) {
                     self.cycle_hover(-1);
-                }
-                if let KeyCode::Down = key.code {
-                    self.cycle_hover(1);
-                }
-                if let KeyCode::Up = key.code {
-                    self.cycle_hover(-1);
-                }
-                if let KeyCode::Char(c) = key.code {
-                    match c {
-                        'j' => {
-                            self.cycle_hover(1);
-                        }
-                        'k' => {
-                            self.cycle_hover(-1);
-                        }
-                        _ => {
-
-                        }
-                    }
                 }
                 if let KeyCode::Esc = key.code {
                     return Ok(vec![
@@ -121,13 +102,11 @@ impl Interactable for CreateGlyphPage {
         if self.focused_child_ref().is_none() {
             match key.kind {
                 KeyEventKind::Press => {
-                    if let KeyCode::Tab = key.code {
+                    if is_cycle_forward_hover_key(key) {
                         self.cycle_hover(1);
-                        return Ok(Vec::new());
                     }
-                    if let KeyCode::BackTab = key.code {
+                    if is_cycle_backward_hover_key(key) {
                         self.cycle_hover(-1);
-                        return Ok(Vec::new());
                     }
                     if let KeyCode::Esc = key.code {
                         return Ok(vec![AppCommand(PopPage)]);
@@ -190,13 +169,11 @@ impl Interactable for OpenGlyphPage {
         if self.focused_child_ref().is_none() {
             match key.kind {
                 KeyEventKind::Press => {
-                    if let KeyCode::Tab = key.code {
+                    if is_cycle_forward_hover_key(key) {
                         self.cycle_hover(1);
-                        return Ok(Vec::new());
                     }
-                    if let KeyCode::BackTab = key.code {
+                    if is_cycle_backward_hover_key(key) {
                         self.cycle_hover(-1);
-                        return Ok(Vec::new());
                     }
                     if let KeyCode::Esc = key.code {
                         return Ok(vec![AppCommand(PopPage)]);
@@ -272,13 +249,11 @@ impl Interactable for GlyphPage {
         if self.focused_child_ref().is_none() {
             match key.kind {
                 KeyEventKind::Press => {
-                    if let KeyCode::Tab = key.code {
+                    if is_cycle_forward_hover_key(key) {
                         self.cycle_hover(1);
-                        return Ok(Vec::new());
                     }
-                    if let KeyCode::BackTab = key.code {
+                    if is_cycle_backward_hover_key(key) {
                         self.cycle_hover(-1);
-                        return Ok(Vec::new());
                     }
                     if let KeyCode::Esc = key.code {
                         return Ok(vec![AppCommand(PopPage)]);
@@ -345,13 +320,11 @@ impl Interactable for GlyphNavigationBar {
         } else {
             match key.kind {
                 KeyEventKind::Press => {
-                    if let KeyCode::Tab = key.code {
+                    if is_cycle_forward_hover_key(key) {
                         self.next_entry();
-                        return Ok(Vec::new());
                     }
-                    if let KeyCode::BackTab = key.code {
+                    if is_cycle_backward_hover_key(key) {
                         self.previous_entry();
-                        return Ok(Vec::new());
                     }
                     if let KeyCode::Esc = key.code {
                         self.set_focus(false);
@@ -371,14 +344,6 @@ impl Interactable for GlyphNavigationBar {
                     }
                     if let KeyCode::Char(c) = key.code {
                         match c {
-                            'j' => {
-                                self.next_entry();
-                                return Ok(Vec::new());
-                            }
-                            'k' => {
-                                self.previous_entry();
-                                return Ok(Vec::new());
-                            }
                             'A' => {
                                 return Ok(
                                     vec![
@@ -619,13 +584,11 @@ impl Interactable for GlyphEditOrderView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
         match key.kind {
             KeyEventKind::Press => {
-                if let KeyCode::Tab = key.code {
+                if is_cycle_forward_hover_key(key) {
                     self.cycle_section_hover(1);
-                    return Ok(Vec::new());
                 }
-                if let KeyCode::BackTab = key.code {
+                if is_cycle_backward_hover_key(key) {
                     self.cycle_section_hover(-1);
-                    return Ok(Vec::new());
                 }
                 if let KeyCode::Enter = key.code {
                     if let Some(index) = self.state.hovered_index {
@@ -691,14 +654,6 @@ impl Interactable for GlyphEditOrderView {
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             let eid: i64 = state.active_entry_id.unwrap();
                             state.delete_section_db(&eid, &sid)?;
-                            return Ok(Vec::new());
-                        }
-                        'j' => {
-                            self.cycle_section_hover(1);
-                            return Ok(Vec::new());
-                        }
-                        'k' => {
-                            self.cycle_section_hover(-1);
                             return Ok(Vec::new());
                         }
                         'A' => {
@@ -792,13 +747,11 @@ impl Interactable for GlyphEditContentView {
         if self.focused_child_ref().is_none() {
             match key.kind {
                 KeyEventKind::Press => {
-                    if let KeyCode::Tab = key.code {
+                    if is_cycle_forward_hover_key(key) {
                         self.cycle_hover(1);
-                        return Ok(Vec::new());
                     }
-                    if let KeyCode::BackTab = key.code {
+                    if is_cycle_backward_hover_key(key) {
                         self.cycle_hover(-1);
-                        return Ok(Vec::new());
                     }
                     if let KeyCode::Esc = key.code {
                         // Directly mutating parent state to lose focus
@@ -929,14 +882,6 @@ impl Interactable for GlyphLayoutOverview {
                         Ok(Vec::new())
                     }
                 }
-                if let KeyCode::Tab = key.code {
-                    self.cycle_layout_hover(1);
-                    return Ok(Vec::new());
-                }
-                if let KeyCode::BackTab = key.code {
-                    self.cycle_layout_hover(-1);
-                    return Ok(Vec::new());
-                }
                 if let KeyCode::PageUp = key.code {
                     self.state.scroll_state.borrow_mut().scroll_page_up();
                     return Ok(Vec::new());
@@ -953,6 +898,13 @@ impl Interactable for GlyphLayoutOverview {
                     self.state.scroll_state.borrow_mut().scroll_down();
                     return Ok(Vec::new());
                 }
+                // By putting Arrow key before cycle key, ignore the arrow key cycling
+                if is_cycle_forward_hover_key(key) {
+                    self.cycle_layout_hover(1);
+                }
+                if is_cycle_backward_hover_key(key) {
+                    self.cycle_layout_hover(-1);
+                }
                 if let KeyCode::Enter = key.code {
                     if let Some(hovered_index) = self.state.hovered_index{
                         self.state.selected_coordinate.borrow_mut().push(hovered_index);
@@ -965,14 +917,6 @@ impl Interactable for GlyphLayoutOverview {
                     match c {
                         'e' => {
                             *self.state.focused_panel_index.borrow_mut() = 1;
-                            return Ok(Vec::new());
-                        }
-                        'j' => {
-                            self.cycle_layout_hover(1);
-                            return Ok(Vec::new());
-                        }
-                        'k' => {
-                            self.cycle_layout_hover(-1);
                             return Ok(Vec::new());
                         }
                         'A' => {
@@ -1096,11 +1040,11 @@ impl Interactable for GlyphLayoutEditView {
                         *parent_state.shared_focus.borrow_mut() = false;
                         return Ok(Vec::new());
                     }
-                    if let KeyCode::Tab = key.code {
+                    if is_cycle_forward_hover_key(key) {
                         self.cycle_hover(1);
                         return Ok(Vec::new());
                     }
-                    if let KeyCode::BackTab = key.code {
+                    if is_cycle_backward_hover_key(key) {
                         self.cycle_hover(-1);
                         return Ok(Vec::new());
                     }

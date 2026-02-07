@@ -101,3 +101,43 @@ fn handle_global_events(key: &KeyEvent, app: &mut Application) -> () {
         _ => {}
     }
 }
+
+/*
+    Helper Function
+ */
+pub fn is_cycle_forward_hover_key(key_event: &KeyEvent) -> bool {
+    if let KeyCode::Char(c) = key_event.code {
+        return match c {
+            'j' => true,
+            _ => false
+        }
+    }
+    if let KeyCode::Down = key_event.code {
+        return true;
+    }
+    if let KeyCode::Right = key_event.code {
+        return true;
+    }
+    if let KeyCode::Tab = key_event.code {
+        return true;
+    }
+    false
+}
+pub fn is_cycle_backward_hover_key(key_event: &KeyEvent) -> bool {
+    if let KeyCode::Char(c) = key_event.code {
+        return match c {
+            'k' => true,
+            _ => false
+        }
+    }
+    if let KeyCode::Up = key_event.code {
+        return true;
+    }
+    if let KeyCode::Left = key_event.code {
+        return true;
+    }
+    if let KeyCode::BackTab = key_event.code {
+        return true;
+    }
+    false
+}
