@@ -14,7 +14,7 @@ impl Drawable for Button {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         match draw_flag {
             DrawFlag::HIGHLIGHTING => {
-                Line::from(["[", self.label.as_str(), "]"].concat())
+                Line::from(["> ", self.label.as_str(), "  "].concat())
                     .bold()
                     .centered()
                     .render(area, frame.buffer_mut());
@@ -33,10 +33,10 @@ impl Drawable for LineButton {
         let text = self.label.clone().to_string();
         match draw_flag {
             DrawFlag::HIGHLIGHTING => {
-                Line::from([" ", text.as_str(), " "].concat()).render(area, frame.buffer_mut());
+                Line::from(["> ", text.as_str(), "  "].concat()).render(area, frame.buffer_mut());
             }
             _ => {
-                Line::from(["[", text.as_str(), "]"].concat())
+                Line::from(["  ", text.as_str(), "  "].concat())
                     .bold()
                     .render(area, frame.buffer_mut());
             }
@@ -54,21 +54,14 @@ impl Drawable for DirectoryList {
             .unwrap_or("Invalid Path")
             .to_string();
         let widget_frame: Block = match draw_flag {
-            DrawFlag::DEFAULT => Block::default()
-                .borders(Borders::ALL)
-                .title(self.state.label.as_str())
-                .title_top(Span::from(current_path.as_str()).into_right_aligned_line()),
-            DrawFlag::HIGHLIGHTING => Block::default()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Double)
-                .title(self.state.label.as_str())
-                .title_top(Span::from(current_path.as_str()).into_right_aligned_line()),
-            DrawFlag::FOCUSED => Block::default()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Thick)
-                .title(self.state.label.as_str())
-                .title_top(Span::from(current_path.as_str()).into_right_aligned_line()),
-        };
+            DrawFlag::DEFAULT => Block::bordered(),
+            DrawFlag::HIGHLIGHTING => Block::bordered()
+                .border_type(BorderType::Double),
+            DrawFlag::FOCUSED => Block::bordered()
+                .border_type(BorderType::Thick),
+        }
+            .title(self.state.label.as_str())
+            .title_top(Span::from(current_path.as_str()).into_right_aligned_line());
 
         /*
            Directory Widget

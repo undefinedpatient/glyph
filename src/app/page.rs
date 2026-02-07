@@ -330,7 +330,6 @@ pub struct GlyphReadView {
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
     pub state: GlyphReadState,
-
 }
 
 
