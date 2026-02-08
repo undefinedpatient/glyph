@@ -205,7 +205,11 @@ impl Drawable for TextEditor {
         let inner_area = border.inner(area);
         let line_rows: Rows = inner_area.rows();
         border.render(area, frame.buffer_mut());
-        let lines: Vec<Line> = self.state.lines.iter().enumerate().map(
+        let lines: Vec<Line> = self.state.lines.iter().enumerate().skip_while(
+            |(line_number, line)| {
+                *line_number < self.state.scroll_offset
+            }
+        ).map(
             |(line_number, line)| {
                 let mut line = Line::from(
                     vec![Span::from(format!("{:<4}", line_number.to_string())).dim(),
@@ -217,9 +221,6 @@ impl Drawable for TextEditor {
                 } else {
                     line = line.bg(theme.background_color());
                 }
-
-
-
                 line
             }
         ).collect();
@@ -234,10 +235,10 @@ impl Drawable for TextEditor {
                 _x
             };
 
-
+            let y = _y.saturating_sub(self.state.scroll_offset);
             let cursor_position: Position = inner_area.as_position().offset(Offset {
                 x: 4 + x as i32,
-                y: _y as i32,
+                y: y as i32,
             });
             frame.set_cursor_position(cursor_position);
         }

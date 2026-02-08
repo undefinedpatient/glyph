@@ -329,6 +329,14 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
     pub fn switch_mode(&mut self, mode: EditMode) {
         self.state.mode = mode;
     }
+
+    pub fn scroll_offset(&mut self, offset: i16) -> () {
+        if offset.is_positive() {
+            self.state.scroll_offset = self.state.scroll_offset.saturating_add(offset.abs() as usize);
+        } else {
+            self.state.scroll_offset = self.state.scroll_offset.saturating_sub(offset.abs() as usize);
+        }
+    }
     pub fn move_to_next_line(&mut self) {
         self.state.cursor_line_index = self.state.cursor_line_index.saturating_add(1)
             .clamp(0, self.state.lines.len().saturating_sub(1));

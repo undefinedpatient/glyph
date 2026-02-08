@@ -295,6 +295,16 @@ fn handle_normal_mode(me: &mut TextEditor, key: &KeyEvent, parent_state: Option<
                     'x' => {
                         me.delete_char();
                     }
+                    'd' => {
+                        if key.modifiers.contains(KeyModifiers::CONTROL) {
+                            me.scroll_offset(16)
+                        }
+                    }
+                    'u' => {
+                        if key.modifiers.contains(KeyModifiers::CONTROL) {
+                            me.scroll_offset(-16)
+                        }
+                    }
                     'o' => {
                         me.insert_new_line_below();
                         me.move_to_next_line();
@@ -307,12 +317,12 @@ fn handle_normal_mode(me: &mut TextEditor, key: &KeyEvent, parent_state: Option<
                     'i' => {
                         me.switch_mode(EditMode::Insert);
                     }
-                    'v' => {
-                        me.switch_mode(EditMode::Visual);
-                    }
-                    'V' => {
-                        me.switch_mode(EditMode::VisualLine);
-                    }
+                    // 'v' => {
+                    //     me.switch_mode(EditMode::Visual);
+                    // }
+                    // 'V' => {
+                    //     me.switch_mode(EditMode::VisualLine);
+                    // }
                     _ => {
 
                     }
