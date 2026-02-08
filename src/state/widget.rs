@@ -41,8 +41,7 @@ pub struct TextEditorState {
     pub cursor_index: usize,
     pub cursor_line_index: usize,
 
-    pub anchor: usize,
-    pub anchor_line: usize,
+    pub anchor: (usize, usize),
 
     pub copy_buffer: Vec<Vec<char>>, // First line insert char, the rest directly insert line.
 }

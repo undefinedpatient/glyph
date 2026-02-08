@@ -285,8 +285,7 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
             cursor_index: 0,
             cursor_line_index: 0,
 
-            anchor: 0,
-            anchor_line: 0,
+            anchor: (0,0),
 
             copy_buffer: Vec::new(), // First line insert char, the rest directly insert line.
 
@@ -315,6 +314,18 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
         self.state.cursor_index = 0;
     }
 
+    pub fn get_cursor_position(&self) -> (usize, usize) {
+        (self.state.cursor_index, self.state.cursor_line_index)
+    }
+
+
+    pub fn get_line_len_at(&self, row: usize) -> usize {
+        if self.state.lines.get(row).is_some() {
+            return self.state.lines.get(row).unwrap().len();
+        }
+        0
+    }
+
     pub fn switch_mode(&mut self, mode: EditMode) {
         self.state.mode = mode;
     }
@@ -332,7 +343,9 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
         }
     }
     pub fn move_to_previous_char(&mut self) {
-        self.state.cursor_index = self.state.cursor_index.saturating_sub(1);
+        if let Some(current_line) = self.state.lines.get(self.state.cursor_line_index) {
+            self.state.cursor_index = self.state.cursor_index.clamp(0, current_line.len()).saturating_sub(1);
+        }
     }
     pub fn move_to_next_word(&mut self) -> Result<()> {
         self.move_to_next_char();

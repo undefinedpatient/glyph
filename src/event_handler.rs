@@ -123,6 +123,7 @@ pub fn is_cycle_forward_hover_key(key_event: &KeyEvent) -> bool {
     }
     false
 }
+
 pub fn is_cycle_backward_hover_key(key_event: &KeyEvent) -> bool {
     if let KeyCode::Char(c) = key_event.code {
         return match c {

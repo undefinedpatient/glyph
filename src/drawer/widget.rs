@@ -208,7 +208,7 @@ impl Drawable for TextEditor {
         let lines: Vec<Line> = self.state.lines.iter().enumerate().map(
             |(line_number, line)| {
                 let mut line = Line::from(
-                    vec![Span::from(line_number.to_string()+" ").dim(),
+                    vec![Span::from(format!("{:<4}", line_number.to_string())).dim(),
                          Span::from(line.iter().collect::<String>())
                     ]);
 
@@ -227,9 +227,17 @@ impl Drawable for TextEditor {
             lines.get(line_number).render(line_row, frame.buffer_mut());
         }
         if self.is_focused() {
+            let (_x, _y) = self.get_cursor_position();
+            let x = if _x > self.get_line_len_at(_y) {
+                self.get_line_len_at(_y)
+            } else {
+                _x
+            };
+
+
             let cursor_position: Position = inner_area.as_position().offset(Offset {
-                x: 2+ self.state.cursor_index as i32,
-                y: self.state.cursor_line_index as i32,
+                x: 4 + x as i32,
+                y: _y as i32,
             });
             frame.set_cursor_position(cursor_position);
         }
