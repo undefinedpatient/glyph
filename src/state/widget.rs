@@ -37,7 +37,7 @@ pub struct TextEditorState {
     
     pub mode: EditMode,
     pub lines: Vec<Vec<char>>,
-    pub scroll_offset: usize,
+    pub scroll_offset: (usize,usize),
     pub cursor_index: usize,
     pub cursor_line_index: usize,
 

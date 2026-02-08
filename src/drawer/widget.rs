@@ -204,18 +204,24 @@ impl Drawable for TextEditor {
         }
         let inner_area = border.inner(area);
         let line_rows: Rows = inner_area.rows();
+        let horizontal_offset = if self.state.cursor_index > inner_area.width.saturating_sub(7) as usize {
+            self.state.cursor_index - inner_area.width.saturating_sub(7) as usize
+        } else {
+            0
+        };
+
         border.render(area, frame.buffer_mut());
         let lines: Vec<Line> = self.state.lines.iter().enumerate().skip_while(
             |(line_number, line)| {
-                *line_number < self.state.scroll_offset
+                *line_number < self.state.scroll_offset.1
             }
         ).map(
             |(line_number, line)| {
+
                 let mut line = Line::from(
                     vec![Span::from(format!("{:<4}", line_number.to_string())).dim(),
-                         Span::from(line.iter().collect::<String>())
+                         Span::from(line.iter().skip(horizontal_offset).collect::<String>())
                     ]);
-
                 if line_number == self.state.cursor_line_index {
                     line = line.bg(theme.surface_low_color());
                 } else {
@@ -230,16 +236,20 @@ impl Drawable for TextEditor {
         if self.is_focused() {
             let (_x, _y) = self.get_cursor_position();
             let x = if _x > self.get_line_len_at(_y) {
-                self.get_line_len_at(_y)
+                self.get_line_len_at(_y).saturating_sub(horizontal_offset)
             } else {
-                _x
+                _x.saturating_sub(horizontal_offset)
             };
 
-            let y = _y.saturating_sub(self.state.scroll_offset);
+            let y = _y.saturating_sub(self.state.scroll_offset.1);
             let cursor_position: Position = inner_area.as_position().offset(Offset {
                 x: 4 + x as i32,
                 y: y as i32,
             });
+            if x < horizontal_offset {
+                return;
+            }
+            // if self.state.cursor_line_index >
             frame.set_cursor_position(cursor_position);
         }
     }

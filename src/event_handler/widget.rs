@@ -297,12 +297,12 @@ fn handle_normal_mode(me: &mut TextEditor, key: &KeyEvent, parent_state: Option<
                     }
                     'd' => {
                         if key.modifiers.contains(KeyModifiers::CONTROL) {
-                            me.scroll_offset(16)
+                            me.scroll_vertical_offset(16)
                         }
                     }
                     'u' => {
                         if key.modifiers.contains(KeyModifiers::CONTROL) {
-                            me.scroll_offset(-16)
+                            me.scroll_vertical_offset(-16)
                         }
                     }
                     'o' => {

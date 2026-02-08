@@ -281,7 +281,7 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
 
             mode: EditMode::Normal,
             lines: Vec::new(),
-            scroll_offset: 0,
+            scroll_offset: (0, 0),
             cursor_index: 0,
             cursor_line_index: 0,
 
@@ -330,13 +330,37 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
         self.state.mode = mode;
     }
 
-    pub fn scroll_offset(&mut self, offset: i16) -> () {
+    pub fn scroll_vertical_offset(&mut self, offset: i16) -> () {
         if offset.is_positive() {
-            self.state.scroll_offset = self.state.scroll_offset.saturating_add(offset.abs() as usize);
+            self.state.scroll_offset =
+                (
+                    self.state.scroll_offset.0,
+                    self.state.scroll_offset.1.saturating_add(offset.abs() as usize)
+                );
         } else {
-            self.state.scroll_offset = self.state.scroll_offset.saturating_sub(offset.abs() as usize);
+            self.state.scroll_offset =
+                (
+                    self.state.scroll_offset.0,
+                    self.state.scroll_offset.1.saturating_sub(offset.abs() as usize)
+                );
         }
     }
+    pub fn scroll_horizontal_offset(&mut self, offset: i16) -> () {
+        if offset.is_positive() {
+            self.state.scroll_offset =
+                (
+                    self.state.scroll_offset.0.saturating_add(offset.abs() as usize),
+                    self.state.scroll_offset.1
+                );
+        } else {
+            self.state.scroll_offset =
+                (
+                    self.state.scroll_offset.0.saturating_sub(offset.abs() as usize),
+                    self.state.scroll_offset.1
+                );
+        }
+    }
+    
     pub fn move_to_next_line(&mut self) {
         self.state.cursor_line_index = self.state.cursor_line_index.saturating_add(1)
             .clamp(0, self.state.lines.len().saturating_sub(1));
@@ -402,6 +426,9 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
             if current_line.is_empty() {
                 return;
             }
+            if self.state.cursor_index >= current_line.len() {
+                return
+            }
             self.state.cursor_index = self.state.cursor_index.clamp(0, current_line.len());
             current_line.remove(self.state.cursor_index);
         }
@@ -437,6 +464,23 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
         }
 
     }
+    pub fn auto_horizontal_offset(&mut self) -> () {
+        let cursor_screen_location: (usize, usize) =
+            (
+                self.state.cursor_index.saturating_sub(self.state.scroll_offset.0),
+                self.state.cursor_line_index.saturating_sub(self.state.scroll_offset.1)
+            );
+        
+        // Scroll the Vertical offset (1)
+        if cursor_screen_location.1 < 7 {
+            self.state.scroll_offset = (self.state.scroll_offset.0, self.state.cursor_line_index.saturating_sub(7));
+        }
+        if 42 - cursor_screen_location.1 < 7 {
+            self.state.scroll_offset = (self.state.scroll_offset.0, self.state.cursor_line_index.saturating_add(7));
+        }
+    }
+    // pub fn auto
+    
     fn remove_line_portion(&mut self, from:usize, to:usize) -> Vec<char> {
         if from == to {
             return vec![];
