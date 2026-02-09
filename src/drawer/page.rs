@@ -16,6 +16,7 @@ use std::cell::Ref;
 use std::rc::Rc;
 use tui_big_text::{BigText, PixelSize};
 use tui_scrollview::{ScrollView, ScrollbarVisibility};
+use crate::markdown::Markdown;
 
 macro_rules! block {
     ($title: expr, $flag: expr) => {
@@ -361,7 +362,7 @@ impl Drawable for GlyphReadView {
                             *position as i64 == section.position
                         }
                     ) {
-                        Paragraph::new(section.content.clone()).wrap(Wrap { trim: true }).block(
+                        Paragraph::new(Markdown::from_str(section.content.as_str(), area, theme) ).wrap(Wrap { trim: true }).block(
                             Block::new().title(Span::from(section.title.clone()).bold())
                         ).render(*area, scroll_view.buf_mut());
                     }

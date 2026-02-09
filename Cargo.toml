@@ -10,6 +10,7 @@ unused = {level = "allow"}
 # Core
 ratatui = "0.30.0"
 crossterm = "0.29.0"
+pulldown-cmark = "0.13.0"
 
 # Error
 color-eyre = "0.6.5"
@@ -22,4 +23,3 @@ tui-scrollview = "0.6.2"
 rusqlite = { version = "0.38.0", features = ["bundled"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
-pulldown-cmark = "0.13.0"
