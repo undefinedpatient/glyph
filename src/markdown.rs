@@ -9,11 +9,12 @@ pub struct Markdown;
 impl Markdown {
     pub fn from_str<'a>(str: &'a str, area: &Rect, theme: &'a dyn Theme) -> Text<'a> {
         let mut options = Options::empty();
-        options.insert(Options::ENABLE_TABLES);
+        options.insert(Options::ENABLE_TABLES| Options::ENABLE_STRIKETHROUGH);
         let parser = Parser::new_ext(&str, options);
         let mut lines: Vec<Line> = Vec::new();
         let mut current_line: Vec<Span> = Vec::new();
         let mut style: Style = Style::default();
+        let mut indent: u8 = 0u8;
         for event in parser {
             match event {
                 Event::Start(tag) => {
@@ -23,6 +24,12 @@ impl Markdown {
                         }
                         Tag::Strong => {
                             style = theme.bold();
+                        }
+                        Tag::Emphasis => {
+                            style = theme.italic();
+                        }
+                        Tag::Strikethrough => {
+                            style = theme.strikethrough();
                         }
                         _ => {}
                     }
@@ -47,7 +54,7 @@ impl Markdown {
                             current_line = Vec::new();
                             lines.push(Line::default());
                         }
-                        TagEnd::Strong => {
+                        TagEnd::Strong | TagEnd::Emphasis | TagEnd::Strikethrough => {
                             style = Style::default();
                         }
                         _ => {

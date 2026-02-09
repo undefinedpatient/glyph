@@ -1,4 +1,5 @@
-use ratatui::style::{Color, Style};
+use color_eyre::owo_colors::OwoColorize;
+use ratatui::style::{Color, Modifier, Style};
 pub trait Theme {
     fn background_color(&self) -> Color;
     fn foreground_color(&self) -> Color;
@@ -6,6 +7,7 @@ pub trait Theme {
     fn bold(&self) -> Style;
     fn italic(&self) -> Style;
     fn underline(&self) -> Style;
+    fn strikethrough(&self) -> Style;
 }
 pub struct Iceberg;
 impl Theme for Iceberg {
@@ -19,12 +21,15 @@ impl Theme for Iceberg {
         Color::Rgb(38, 52, 64)
     }
     fn bold(&self) -> Style{
-        Style::default().bold()
+        Style::default().add_modifier(Modifier::BOLD)
     }
     fn italic(&self) -> Style {
-        Style::default().italic()
+        Style::default().add_modifier(Modifier::ITALIC)
     }
     fn underline(&self) -> Style {
-        Style::default().underlined()
+        Style::default().add_modifier(Modifier::UNDERLINED)
+    }
+    fn strikethrough(&self) -> Style {
+        Style::default().add_modifier(Modifier::CROSSED_OUT)
     }
 }
