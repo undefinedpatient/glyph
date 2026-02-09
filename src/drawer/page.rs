@@ -361,7 +361,9 @@ impl Drawable for GlyphReadView {
                             *position as i64 == section.position
                         }
                     ) {
-                        Paragraph::new(section.content.clone()).wrap(Wrap { trim: true }).render(*area, scroll_view.buf_mut());
+                        Paragraph::new(section.content.clone()).wrap(Wrap { trim: true }).block(
+                            Block::new().title(Span::from(section.title.clone()).bold())
+                        ).render(*area, scroll_view.buf_mut());
                     }
                 }
                 scroll_view.render(area, frame.buffer_mut(), &mut *self.state.scroll_state.borrow_mut());
