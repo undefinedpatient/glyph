@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use crate::theme::Theme;
 use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 use ratatui::layout::Rect;
@@ -9,11 +10,11 @@ pub struct Markdown;
 impl Markdown {
     pub fn from_str<'a>(str: &'a str, area: &Rect, theme: &'a dyn Theme) -> Text<'a> {
         let mut options = Options::empty();
-        options.insert(Options::ENABLE_TABLES| Options::ENABLE_STRIKETHROUGH);
+        options.insert(Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH);
         let parser = Parser::new_ext(&str, options);
         let mut lines: Vec<Line> = Vec::new();
         let mut current_line: Vec<Span> = Vec::new();
-        let mut style: Style = Style::default().fg(theme.font());
+        let mut style: TextStyleBuilder = TextStyleBuilder::new();
         let mut indent: u8 = 0u8;
         for event in parser {
             match event {
@@ -23,13 +24,13 @@ impl Markdown {
                             lines.push(Line::default());
                         }
                         Tag::Strong => {
-                            style = theme.bold();
+                            style.set_flag(TextStyleFlag::STRONG);
                         }
                         Tag::Emphasis => {
-                            style = theme.italic();
+                            style.set_flag(TextStyleFlag::EMPHASIS);
                         }
                         Tag::Strikethrough => {
-                            style = theme.strikethrough();
+                            style.set_flag(TextStyleFlag::STRIKETHROUGH);
                         }
                         _ => {}
                     }
@@ -46,7 +47,7 @@ impl Markdown {
                 Event::Rule => {
                     lines.push(format!("{:-<width$}", "", width=area.width as usize).into())
                 }
-                Event::Text(text) => current_line.push(Span::styled(text, style)),
+                Event::Text(text) => current_line.push(Span::styled(text, style.build(theme))),
                 Event::End(tag) => {
                     match tag {
                         TagEnd::Paragraph => {
@@ -54,8 +55,14 @@ impl Markdown {
                             current_line = Vec::new();
                             lines.push(Line::default());
                         }
-                        TagEnd::Strong | TagEnd::Emphasis | TagEnd::Strikethrough => {
-                            style = Style::default().fg(theme.font());
+                        TagEnd::Strong => {
+                            style.remove_flag(TextStyleFlag::STRONG);
+                        }
+                        TagEnd::Emphasis => {
+                            style.remove_flag(TextStyleFlag::EMPHASIS);
+                        }
+                        TagEnd::Strikethrough => {
+                            style.remove_flag(TextStyleFlag::STRIKETHROUGH);
                         }
                         _ => {
 
@@ -69,5 +76,46 @@ impl Markdown {
             lines.push(Line::from(current_line));
         }
         Text::from(lines)
+    }
+}
+bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    struct TextStyleFlag: u32 {
+        const STRONG = 0b0000_0001;
+        const EMPHASIS = 0b0000_0010;
+        const STRIKETHROUGH = 0b0000_0100;
+    }
+
+}
+struct TextStyleBuilder{
+    flags: TextStyleFlag,
+}
+impl TextStyleBuilder {
+    pub fn new() -> TextStyleBuilder {
+        Self {
+            flags: TextStyleFlag::empty(),
+        }
+    }
+    pub fn set_flag(&mut self, flag: TextStyleFlag) -> () {
+        self.flags.insert(flag);
+    }
+    pub fn remove_flag(&mut self, flag: TextStyleFlag) {
+        self.flags.remove(flag);
+    }
+    pub fn build(&self, theme: &dyn Theme) -> Style {
+        let mut style: Style = Style::default().fg(theme.font());
+        if self.flags.contains(TextStyleFlag::STRONG) {
+            style = style.patch(theme.bold());
+        }
+        if self.flags.contains(TextStyleFlag::EMPHASIS) {
+            style = style.patch(theme.italic());
+        }
+        if self.flags.contains(TextStyleFlag::STRIKETHROUGH) {
+            style = style.patch(theme.strikethrough());
+        }
+        style
+    }
+    pub fn reset_all(&mut self) -> () {
+        self.flags = TextStyleFlag::empty();
     }
 }
