@@ -293,7 +293,7 @@ impl Drawable for GlyphViewer {
             Body
          */
         if self.state.local_entry_state_ref().unwrap().active_entry_id.is_none() {
-            let message: Paragraph = Paragraph::new("No Entry Selected").alignment(Alignment::Center);
+            let message: Paragraph = Paragraph::new("No Entry Selected ;_;").alignment(Alignment::Center);
             let center_area = inner_area.centered(Constraint::Fill(1), Constraint::Length(3));
             message.render(center_area, frame.buffer_mut());
             return;
@@ -525,7 +525,7 @@ impl Drawable for GlyphEditContentView {
 
         let inner_area = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
-        let areas = Layout::vertical([Constraint::Length(5), Constraint::Fill(3), Constraint::Length(1)]).flex(Flex::SpaceBetween).split(inner_area);
+        let areas = Layout::vertical([Constraint::Length(3), Constraint::Fill(3), Constraint::Length(1)]).flex(Flex::SpaceBetween).split(inner_area);
         let button_areas = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(areas[2]);
 
         let hover_index = self.state.hovered_index;

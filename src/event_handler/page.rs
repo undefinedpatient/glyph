@@ -608,6 +608,12 @@ impl Interactable for GlyphEditOrderView {
                         let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
                         let eid = state.active_entry_id.unwrap();
                         let sections: &Vec<(i64, Section)> = state.get_sections_ref(&eid);
+                        if self.state.editing_sid.borrow().is_some() {
+                            if self.state.editing_sid.borrow().unwrap() == sections.get(index).unwrap().0 {
+                                *self.state.editing_sid.borrow_mut() = None;
+                                return Ok(vec![GlyphCommand(RefreshEditSection)]);
+                            }
+                        }
                         *self.state.editing_sid.borrow_mut() = Some((*sections.get(index).unwrap()).0);
                         return Ok(vec![GlyphCommand(RefreshEditSection)]);
                     }
