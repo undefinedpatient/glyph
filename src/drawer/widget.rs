@@ -9,6 +9,7 @@ use ratatui::prelude::Stylize;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Widget, Wrap};
 use ratatui::Frame;
+use crate::block;
 
 impl Drawable for Button {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
@@ -53,14 +54,7 @@ impl Drawable for DirectoryList {
             .to_str()
             .unwrap_or("Invalid Path")
             .to_string();
-        let widget_frame: Block = match draw_flag {
-            DrawFlag::DEFAULT => Block::bordered(),
-            DrawFlag::HIGHLIGHTING => Block::bordered()
-                .border_type(BorderType::Double),
-            DrawFlag::FOCUSED => Block::bordered()
-                .border_type(BorderType::Thick),
-        }
-            .title(self.state.label.as_str())
+        let widget_frame: Block = block!(self.state.label.as_str(),draw_flag,theme)
             .title_top(Span::from(current_path.as_str()).into_right_aligned_line());
 
         /*
@@ -122,14 +116,7 @@ impl Drawable for TextField {
         // let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
         let content = self.state.chars.iter().collect::<String>();
         let content_paragraph: Paragraph = Paragraph::new(Line::from(content)).wrap(Wrap{trim: true});
-        let text_field_block: Block = Block::bordered()
-            .title(self.state.label.as_str())
-            .border_type(match draw_flag {
-                DrawFlag::DEFAULT => BorderType::Plain,
-                DrawFlag::HIGHLIGHTING => BorderType::Double,
-                DrawFlag::FOCUSED => BorderType::Thick,
-                _ => BorderType::LightDoubleDashed,
-            });
+        let text_field_block: Block = block!(self.state.label.as_str(),draw_flag,theme);
         let content_area: Rect = text_field_block.inner(area);
         if self.is_focused() {
             let cursor_position: Position = area.as_position().offset(Offset {
@@ -147,18 +134,11 @@ impl Drawable for TextField {
    Number Field
 */
 impl Drawable for NumberField {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, p3: &dyn Theme) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
         let text = self.state.chars.iter().collect::<String>();
         let text_line: Line = Line::from(text);
-        let text_field_block: Block = Block::bordered()
-            .title(self.state.label.as_str())
-            .border_type(match draw_flag {
-                DrawFlag::DEFAULT => BorderType::Plain,
-                DrawFlag::HIGHLIGHTING => BorderType::Double,
-                DrawFlag::FOCUSED => BorderType::Thick,
-                _ => BorderType::LightDoubleDashed,
-            });
+        let text_field_block: Block = block!(self.state.label.as_str(),draw_flag,theme);
         let text_line_area: Rect = text_field_block.inner(text_field_area);
         if self.is_focused() {
             let cursor_position: Position = text_field_area.as_position().offset(Offset {
@@ -167,7 +147,6 @@ impl Drawable for NumberField {
             });
             frame.set_cursor_position(cursor_position);
         }
-        Clear.render(text_field_area, frame.buffer_mut());
         text_field_block.render(text_field_area, frame.buffer_mut());
         text_line.render(text_line_area, frame.buffer_mut());
     }
@@ -178,14 +157,7 @@ impl Drawable for NumberField {
  */
 impl Drawable for TextEditor {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
-        let mut border: Block = Block::bordered()
-            .title(self.state.label.as_str())
-            .border_type(match draw_flag {
-                DrawFlag::DEFAULT => BorderType::Plain,
-                DrawFlag::HIGHLIGHTING => BorderType::Double,
-                DrawFlag::FOCUSED => BorderType::Thick,
-                _ => BorderType::LightDoubleDashed,
-            });
+        let mut border: Block = block!(self.state.label.as_str(),draw_flag,theme);
         match self.state.mode {
             EditMode::Normal => {
                 border = border.title(Line::from("NORMAL").bold())
@@ -222,9 +194,9 @@ impl Drawable for TextEditor {
                          Span::from(line.iter().skip(horizontal_offset).collect::<String>())
                     ]);
                 if line_number == self.state.cursor_line_index {
-                    line = line.bg(theme.surface_low_color());
+                    line = line.bg(theme.surface_low());
                 } else {
-                    line = line.bg(theme.background_color());
+                    line = line.bg(theme.background());
                 }
                 line
             }

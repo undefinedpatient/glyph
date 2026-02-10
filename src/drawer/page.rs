@@ -2,7 +2,7 @@ use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphEditContentView, Glyp
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use crate::markdown::Markdown;
-use crate::model;
+use crate::{block, model};
 use crate::model::{LayoutOrientation, LocalEntryState, Section, SizeMode};
 use crate::state::page::GlyphMode;
 use crate::theme::Theme;
@@ -18,21 +18,6 @@ use std::rc::Rc;
 use tui_big_text::{BigText, PixelSize};
 use tui_scrollview::{ScrollView, ScrollbarVisibility};
 
-macro_rules! block {
-    ($title: expr, $flag: expr) => {
-        match $flag {
-            DrawFlag::DEFAULT => {
-                Block::bordered().title($title)
-            }
-            DrawFlag::HIGHLIGHTING => {
-                Block::bordered().title(Line::from($title).bold()).border_type(BorderType::Double)
-            }
-            DrawFlag::FOCUSED => {
-                Block::bordered().title(Line::from($title).bold()).border_type(BorderType::Thick)
-            }
-        }
-    };
-}
 
 
 impl Drawable for EntrancePage {
@@ -40,23 +25,14 @@ impl Drawable for EntrancePage {
         /*
            Container Frame
         */
-        let block: Block = block!("Glyph", draw_flag);
-        /*
-          Title
-        */
-        let title = BigText::builder()
-            .pixel_size(PixelSize::HalfHeight)
-            .style(Style::new().blue())
-            .lines(vec!["Glyph".magenta().into()])
-            .alignment(HorizontalAlignment::Center)
-            .build();
+        let block: Block = block!("Glyph", draw_flag, theme);
 
         /*
 
         */
         let area_inner: Rect = block.inner(area);
         let rect: Rect = area_inner.centered(Constraint::Fill(1), Constraint::Ratio(1, 2));
-        let rects: Rc<[Rect]> = Layout::vertical([Constraint::Length(8), Constraint::Length(3)])
+        let areas: Rc<[Rect]> = Layout::vertical([Constraint::Length(8), Constraint::Length(3), Constraint::Length(3)])
             .flex(Flex::Center)
             .split(rect);
         let button_rects = Layout::vertical([
@@ -64,10 +40,21 @@ impl Drawable for EntrancePage {
             Constraint::Length(1),
             Constraint::Length(1),
         ])
-        .split(rects[1]);
+        .split(areas[2]);
+        /*
+          Title
+        */
+        let title = BigText::builder()
+            .pixel_size(PixelSize::HalfHeight)
+            .style(theme.on_surface())
+            .lines(vec![Line::from("Glyph")])
+            .alignment(HorizontalAlignment::Center)
+            .build();
+        let version: Line = Line::from("v0.1.0").centered();
         // Render Section
         block.render(area, frame.buffer_mut());
-        title.render(rects[0], frame.buffer_mut());
+        title.render(areas[0], frame.buffer_mut());
+        version.render(areas[1], frame.buffer_mut());
         for (i, button_interactable) in (&self.components).iter().enumerate() {
             if let Some(ci) = self.state.hovered_index {
                 if i == ci {
@@ -85,7 +72,7 @@ impl Drawable for CreateGlyphPage {
         /*
            Outer Frame
         */
-        let page_frame: Block = block!("Create Glyph", draw_flag);
+        let page_frame: Block = block!("Create Glyph", draw_flag, theme);
         /*
            Chucks
         */
@@ -141,7 +128,7 @@ impl Drawable for OpenGlyphPage {
         /*
            Outer Frame
         */
-        let page_frame: Block = block!("Open Glyph", draw_flag);
+        let page_frame: Block = block!("Open Glyph", draw_flag, theme);
         /*
            Chucks
         */
@@ -186,7 +173,7 @@ impl Drawable for GlyphPage {
         /*
            Outer Frame
         */
-        let page_frame: Block = block!("Glyph", draw_flag);
+        let page_frame: Block = block!("Glyph", draw_flag, theme);
 
 
         let chunks= Layout::vertical([
@@ -226,8 +213,7 @@ impl Drawable for GlyphNavigationBar {
         /*
            Container Frame
         */
-        let widget_frame: Block = block!("Entries", draw_flag);
-
+        let widget_frame: Block = block!("Entries", draw_flag, theme);
         /*
             List Items (Entry)
          */
@@ -287,7 +273,7 @@ impl Drawable for GlyphViewer {
         /*
            Container Frame
         */
-        let mut widget_frame: Block = block!("Content", draw_flag);
+        let mut widget_frame: Block = block!("Content", draw_flag, theme);
         match self.state.mode {
             GlyphMode::Read => {
                 widget_frame = widget_frame.title_top(Line::from("[ READ ]").right_aligned());
@@ -354,6 +340,8 @@ impl Drawable for GlyphReadView {
                     width: area.width,
                     height: height
                 }).scrollbars_visibility(ScrollbarVisibility::Never);
+                let background: Block = Block::new().bg(theme.background());
+                background.render(scroll_view.area(), scroll_view.buf_mut());
                 let areas: Vec<(u16, Rect)> = evaluate_read_areas(self, scroll_view.area(), layout, 0,0);
                 let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
                 for (sid, section) in ref_sections {
@@ -364,6 +352,7 @@ impl Drawable for GlyphReadView {
                     ) {
                         Paragraph::new(Markdown::from_str(section.content.as_str(), area, theme) ).wrap(Wrap { trim: true }).block(
                             Block::new().title(Span::from(section.title.clone()).bold())
+                                .border_style(theme.on_surface()).bg(theme.background())
                         ).render(*area, scroll_view.buf_mut());
                     }
                 }
@@ -379,7 +368,7 @@ fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &model::Layout, d
         target_section_text = position_target.to_string();
     }
 
-    let mut block: Block = Block::bordered().title(layout.label.as_str()).title_bottom(target_section_text);
+    let mut block: Block = Block::new().title(layout.label.as_str()).title_bottom(target_section_text);
     let recursive_area: Rect = block.inner(area);
     // Process the child
     let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
@@ -460,7 +449,7 @@ impl Drawable for GlyphEditOrderView{
         /*
            Container Frame
         */
-        let mut widget_frame: Block = block!("", draw_flag).title(Line::from("(q)").right_aligned());
+        let mut widget_frame: Block = block!("", draw_flag, theme).title(Line::from("(q)").right_aligned());
         let inner_area = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
 
@@ -525,7 +514,7 @@ impl Drawable for GlyphEditContentView {
         /*
            Container Frame
         */
-        let mut widget_frame: Block = block!("", draw_flag).title_top("(e)");
+        let mut widget_frame: Block = block!("", draw_flag, theme).title_top("(e)");
 
 
         // When has no editing sid
@@ -600,7 +589,7 @@ impl Drawable for GlyphLayoutOverview {
         /*
            Container Frame
         */
-        let mut widget_frame: Block = block!("", draw_flag).title(Line::from("(q)").right_aligned());
+        let mut widget_frame: Block = block!("", draw_flag, theme).title(Line::from("(q)").right_aligned());
         let inner_area = widget_frame.inner(area.centered_horizontally(Constraint::Percentage(90)));
         widget_frame.render(area, frame.buffer_mut());
 
@@ -613,7 +602,7 @@ impl Drawable for GlyphLayoutOverview {
         let layout = &entry_state.get_entry_ref(&eid).unwrap().layout;
         match layout.details.size_mode {
             SizeMode::Flex => {
-                evaluate_layout(self, inner_area, frame.buffer_mut(), layout, 0, Vec::new());
+                evaluate_layout(self, inner_area, frame.buffer_mut(), layout, 0, Vec::new(), theme);
             }
             SizeMode::Length => {
                 let height = layout.details.length;
@@ -621,7 +610,7 @@ impl Drawable for GlyphLayoutOverview {
                     width: inner_area.width,
                     height: height
                 }).scrollbars_visibility(ScrollbarVisibility::Never);
-                evaluate_layout(self,scroll_view.area(), scroll_view.buf_mut(), layout, 0, Vec::new());
+                evaluate_layout(self,scroll_view.area(), scroll_view.buf_mut(), layout, 0, Vec::new(), theme);
                 scroll_view.render(inner_area, frame.buffer_mut(), &mut *self.state.scroll_state.borrow_mut());
             }
         }
@@ -634,7 +623,7 @@ impl Drawable for GlyphLayoutEditView {
         /*
            Container Frame
         */
-        let mut widget_frame: Block = block!("", draw_flag).title(Line::from("(e)").left_aligned());
+        let mut widget_frame: Block = block!("", draw_flag, theme).title(Line::from("(e)").left_aligned());
         let inner_area = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
 
@@ -673,7 +662,7 @@ impl Drawable for GlyphLayoutEditView {
 
     }
 }
-fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, layout: &model::Layout, depth: u16, at: Vec<usize>) -> Vec<(u16, Rect)>{
+fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, layout: &model::Layout, depth: u16, at: Vec<usize>, theme: &dyn Theme) -> Vec<(u16, Rect)>{
     let mut target_section_text: String = "None".to_string();
     if let Some(position_target) = layout.section_index {
         target_section_text = position_target.to_string();
@@ -683,7 +672,7 @@ fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, la
 
 
     // Generate Border to render visualization.
-    let mut block: Block = Block::bordered().title(layout.label.as_str()).padding(Padding {left: 1, right: 1, top: 1, bottom: 1});
+    let mut block: Block = Block::bordered().title(layout.label.as_str()).padding(Padding {left: 1, right: 1, top: 1, bottom: 1}).style(theme.on_surface()).bg(theme.background());
     if at == *focused_coordinate {
         block = block.border_type(BorderType::Thick).title_style(Style::new().bold());
 
@@ -746,7 +735,8 @@ fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, la
             buffer,
             sub_layout,
             depth + 1,
-            sub_at
+            sub_at,
+            theme
         )].concat()
     }
     areas

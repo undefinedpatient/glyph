@@ -1,3 +1,4 @@
+use color_eyre::owo_colors::OwoColorize;
 use crate::app::dialog::{ConfirmDialog, NumberInputDialog, TextInputDialog};
 use crate::app::widget::LineButton;
 use crate::app::Convertible;
@@ -6,6 +7,7 @@ use crate::theme::Theme;
 use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Widget};
 use ratatui::Frame;
+use ratatui::style::Stylize;
 
 impl Drawable for TextInputDialog {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
@@ -16,6 +18,9 @@ impl Drawable for TextInputDialog {
                 DrawFlag::HIGHLIGHTING => BorderType::Double,
                 DrawFlag::FOCUSED => BorderType::Thick,
             })
+            .border_style(theme.on_surface())
+            .style(theme.on_surface())
+            .bg(theme.surface_low())
             .title("Text Input Dialog")
             .title_bottom(
                 (*self.components[0])
@@ -57,7 +62,10 @@ impl Drawable for ConfirmDialog {
                 DrawFlag::HIGHLIGHTING => BorderType::Double,
                 DrawFlag::FOCUSED => BorderType::Thick,
             })
-            .title("Confirm Dialog")
+            .border_style(theme.on_surface())
+            .style(theme.on_surface())
+            .bg(theme.surface_low())
+            .title("Confirmation Dialog")
             .title_bottom(
                 (*self.components[0])
                     .as_any()
@@ -90,6 +98,9 @@ impl Drawable for NumberInputDialog {
                 DrawFlag::HIGHLIGHTING => BorderType::Double,
                 DrawFlag::FOCUSED => BorderType::Thick,
             })
+            .border_style(theme.on_surface())
+            .style(theme.on_surface())
+            .bg(theme.surface_low())
             .title("Number Input Dialog")
             .title_bottom(
                 (*self.components[0])

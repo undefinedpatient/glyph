@@ -256,7 +256,20 @@ impl Interactable for GlyphPage {
                         self.cycle_hover(-1);
                     }
                     if let KeyCode::Esc = key.code {
-                        return Ok(vec![AppCommand(PopPage)]);
+                        if !self.state.local_entry_state_ref().unwrap().updated_entries.is_empty() {
+                            self.dialogs.push(
+                                ConfirmDialog::new(
+                                    "You have unsaved change! Exit anyway?"
+                                ).on_submit(
+                                    Box::new(|_,_| {
+                                        Ok(vec![AppCommand(PopPage)])
+                                    })
+                                )
+                                    .into()
+                            );
+                        } else {
+                            return Ok(vec![AppCommand(PopPage)]);
+                        }
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.state.hovered_index {

@@ -5,9 +5,9 @@ use std::any::Any;
 
 
 /*
-
     All popup's on_xxx() function only takes app's state.
-
+    Semantically, popup should never alter app state, it is
+    purely informational.
  */
 
 pub struct MessagePopup {

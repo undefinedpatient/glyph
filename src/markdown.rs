@@ -13,7 +13,7 @@ impl Markdown {
         let parser = Parser::new_ext(&str, options);
         let mut lines: Vec<Line> = Vec::new();
         let mut current_line: Vec<Span> = Vec::new();
-        let mut style: Style = Style::default();
+        let mut style: Style = Style::default().fg(theme.font());
         let mut indent: u8 = 0u8;
         for event in parser {
             match event {
@@ -55,7 +55,7 @@ impl Markdown {
                             lines.push(Line::default());
                         }
                         TagEnd::Strong | TagEnd::Emphasis | TagEnd::Strikethrough => {
-                            style = Style::default();
+                            style = Style::default().fg(theme.font());
                         }
                         _ => {
 

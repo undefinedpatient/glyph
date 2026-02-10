@@ -9,7 +9,7 @@ use ratatui::widgets::{Block, BorderType, Clear, Padding, Paragraph, Widget, Wra
 use ratatui::Frame;
 
 impl Drawable for MessagePopup {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, p3: &dyn Theme) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let ratio: f64 = 1.0/2.0;
         let width: u16 =  (((self.message.len().isqrt() as f64 + 1f64)  / ratio) as u16).clamp(42, area.width)+6;
         let height: u16 =  (((self.message.len().isqrt() as f64 + 1f64) * ratio) as u16).clamp(6, area.height)+6;
@@ -23,13 +23,17 @@ impl Drawable for MessagePopup {
                     .padding(Padding::uniform(1))
                     .title_top(Line::from(" Message ").centered())
                     .title_bottom(Line::from(Span::from(" [Understood] ").bold()).centered())
-                    .style(self.color)
+                    .border_style(theme.on_surface())
+                    .style(theme.on_surface())
+                    .bg(theme.surface_low())
             } else {
                 Block::bordered()
                     .padding(Padding::uniform(1))
                     .title_top(Line::from(" Message ").centered())
                     .title_bottom(Line::from(Span::from(" [Understood] ").bold()).centered())
-                    .style(self.color)
+                    .border_style(theme.on_surface())
+                    .style(theme.on_surface())
+                    .bg(theme.surface_low())
             });
         Clear.render(popup_area, frame.buffer_mut());
         paragraph_message.render(popup_area, frame.buffer_mut());
@@ -55,6 +59,9 @@ impl Drawable for ConfirmPopup {
                         .centered(),
                     )
                     .border_type(BorderType::Double)
+                    .border_style(theme.on_surface())
+                    .style(theme.on_surface())
+                    .bg(theme.surface_low())
             } else {
                 Block::bordered()
                     .padding(Padding::uniform(1))
@@ -67,6 +74,9 @@ impl Drawable for ConfirmPopup {
                         })
                         .centered(),
                     )
+                    .border_style(theme.on_surface())
+                    .style(theme.on_surface())
+                    .bg(theme.surface_low())
             });
 
         Clear.render(area, frame.buffer_mut());
