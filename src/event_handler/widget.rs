@@ -263,11 +263,20 @@ fn handle_normal_mode(me: &mut TextEditor, key: &KeyEvent, parent_state: Option<
                     'j' => {
                         me.move_to_next_line();
                     }
+                    'e' => {
+                        me.move_to_next_char();
+                        me.move_to_next_word()?;
+                        me.move_to_previous_char();
+                    }
                     'k' => {
                         me.move_to_previous_line();
                     }
                     'l' => {
                         me.move_to_next_char();
+                    }
+                    'a' => {
+                        me.move_to_next_char();
+                        me.switch_mode(EditMode::Insert);
                     }
                     'A' => {
                         me.move_to_end_of_line();
@@ -341,7 +350,12 @@ fn handle_normal_mode(me: &mut TextEditor, key: &KeyEvent, parent_state: Option<
                 me.move_to_next_line();
             }
             if let KeyCode::Backspace = key.code {
-                me.move_to_previous_char();
+                if me.get_cursor_position().0 == 0 {
+                    me.move_to_previous_line();
+                    me.move_to_end_of_line();
+                } else {
+                    me.move_to_previous_char();
+                }
             }
             Ok(Vec::new())
         }
@@ -370,8 +384,15 @@ fn handle_insert_mode(me: &mut TextEditor, key: &KeyEvent) -> color_eyre::eyre::
                 me.move_to_next_line();
             }
             if let KeyCode::Backspace = key.code {
-                me.move_to_previous_char();
-                me.delete_char();
+                if me.get_cursor_position().0 == 0 {
+                    me.move_to_previous_line();
+                    me.move_to_end_of_line();
+                    me.merge_with_next_line();
+                }
+                else {
+                    me.move_to_previous_char();
+                    me.delete_char();
+                }
             }
             if let KeyCode::Enter = key.code {
                 me.cut_into_next_newline();

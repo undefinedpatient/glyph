@@ -414,7 +414,7 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
         }
     }
 
-    pub fn insert_char(&mut self, char: char) {
+    pub fn insert_char(&mut self, char: char){
         if let Some(current_line) = self.state.lines.get_mut(self.state.cursor_line_index) {
             self.state.cursor_index = self.state.cursor_index.clamp(0, current_line.len());
             current_line.insert(self.state.cursor_index, char);
