@@ -1,9 +1,9 @@
-use crate::app::widget::{LineButton, NumberField, TextField};
+use crate::app::widget::{LineButton, TextField};
 use crate::app::Command::{self, *};
 use crate::app::PageCommand::*;
 use crate::app::{Component, Container};
-use crate::state::dialog::{ConfirmDialogState, EditLayoutDialogState, NumberInputDialogState, TextInputDialogState};
-use crate::state::widget::{NumberFieldState, TextFieldState};
+use crate::state::dialog::{ConfirmDialogState, NumberInputDialogState, TextInputDialogState};
+use crate::state::widget::TextFieldState;
 use crate::utils::cycle_offset;
 use color_eyre::eyre::Result;
 use std::any::Any;

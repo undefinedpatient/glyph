@@ -3,9 +3,9 @@ use crate::app::AppCommand::*;
 use crate::app::Command;
 use crate::app::Command::AppCommand;
 use crate::event_handler::Interactable;
+use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use std::any::Any;
-use color_eyre::eyre::Result;
 impl Interactable for MessagePopup {
     fn handle(
         &mut self,

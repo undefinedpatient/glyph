@@ -1,8 +1,8 @@
+use crate::theme::Theme;
 use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span, Text};
-use crate::theme::Theme;
 
 pub struct Markdown;
 

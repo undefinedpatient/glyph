@@ -3,7 +3,7 @@ use crate::app::widget::LineButton;
 use crate::app::Convertible;
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::theme::Theme;
-use ratatui::layout::{Alignment, Constraint, Layout, Rect};
+use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Widget};
 use ratatui::Frame;
 

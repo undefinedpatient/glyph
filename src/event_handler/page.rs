@@ -13,12 +13,12 @@ use crate::event_handler::{is_cycle_backward_hover_key, is_cycle_forward_hover_k
 use crate::model::{Entry, GlyphRepository, Layout, LayoutOrientation, LocalEntryState, Section};
 use crate::state::dialog::TextInputDialogState;
 use crate::state::page::{CreateGlyphPageState, GlyphEditState, GlyphLayoutState, GlyphMode, GlyphPageState};
+use crate::state::AppState;
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use rusqlite::fallible_iterator::FallibleIterator;
 use std::any::Any;
 use std::cell::{Ref, RefMut};
-use crate::state::AppState;
 
 impl Interactable for EntrancePage {
     fn handle(

@@ -1,13 +1,14 @@
 use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphEditContentView, GlyphEditOrderView, GlyphEditView, GlyphLayoutEditView, GlyphLayoutOverview, GlyphLayoutView, GlyphNavigationBar, GlyphPage, GlyphReadView, GlyphViewer, OpenGlyphPage};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
+use crate::markdown::Markdown;
 use crate::model;
 use crate::model::{LayoutOrientation, LocalEntryState, Section, SizeMode};
 use crate::state::page::GlyphMode;
 use crate::theme::Theme;
 use color_eyre::owo_colors::OwoColorize;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Alignment, Constraint, Flex, HorizontalAlignment, Layout, Offset, Position, Rect, Size};
+use ratatui::layout::{Alignment, Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect, Size};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, BorderType, Padding, Paragraph, StatefulWidget, Widget, Wrap};
@@ -16,7 +17,6 @@ use std::cell::Ref;
 use std::rc::Rc;
 use tui_big_text::{BigText, PixelSize};
 use tui_scrollview::{ScrollView, ScrollbarVisibility};
-use crate::markdown::Markdown;
 
 macro_rules! block {
     ($title: expr, $flag: expr) => {
@@ -536,26 +536,25 @@ impl Drawable for GlyphEditContentView {
 
         let inner_area = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
-        let lr_areas = Layout::horizontal( [Constraint::Max(24), Constraint::Fill(1)] ).split(inner_area);
-        let title_button_areas = Layout::vertical([Constraint::Length(5), Constraint::Fill(3)]).flex(Flex::SpaceBetween).split(lr_areas[0]);
-        let button_areas = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(title_button_areas[1]);
+        let areas = Layout::vertical([Constraint::Length(5), Constraint::Fill(3), Constraint::Length(1)]).flex(Flex::SpaceBetween).split(inner_area);
+        let button_areas = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(areas[2]);
 
         let hover_index = self.state.hovered_index;
-        self.containers[0].render(frame, title_button_areas[0],
+        self.containers[0].render(frame, areas[0],
 
                                   get_draw_flag(hover_index, 0, Some(self.containers[0].is_focused())),
                                   theme
         );
-        self.containers[1].render(frame, lr_areas[1],
+        self.containers[1].render(frame,areas[1],
                                   get_draw_flag(hover_index, 1, Some(self.containers[1].is_focused())),
                                   theme
         );
         self.components[0].render(frame, button_areas[0],
-                                  get_draw_flag(hover_index, 2, Some(self.containers[0].is_focused())),
+                                  get_draw_flag(hover_index, 2, None),
                                   theme
         );
         self.components[1].render(frame, button_areas[1],
-                                  get_draw_flag(hover_index, 3, Some(self.containers[1].is_focused())),
+                                  get_draw_flag(hover_index, 3, None),
                                   theme
         );
     }

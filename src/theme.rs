@@ -1,4 +1,3 @@
-use color_eyre::owo_colors::OwoColorize;
 use ratatui::style::{Color, Modifier, Style};
 pub trait Theme {
     fn background_color(&self) -> Color;

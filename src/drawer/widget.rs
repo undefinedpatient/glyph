@@ -1,4 +1,3 @@
-use color_eyre::owo_colors::OwoColorize;
 use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, OptionMenu, TextEditor, TextField};
 use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
@@ -8,7 +7,7 @@ use crate::utils::{get_dir_names, get_file_names};
 use ratatui::layout::{Constraint, Offset, Position, Rect, Rows};
 use ratatui::prelude::Stylize;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget, Wrap};
+use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Widget, Wrap};
 use ratatui::Frame;
 
 impl Drawable for Button {

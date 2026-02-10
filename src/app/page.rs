@@ -9,12 +9,11 @@ use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphEditConte
 use crate::state::widget::{DirectoryListState, NumberFieldState, OptionMenuState, TextEditorState, TextFieldState};
 use crate::state::AppState;
 use crate::utils::cycle_offset;
+use color_eyre::Report;
 use rusqlite::fallible_iterator::FallibleIterator;
 use rusqlite::Connection;
 use std::cell::{Ref, RefCell, RefMut};
-use std::cmp::PartialEq;
 use std::rc::Rc;
-use color_eyre::Report;
 use tui_scrollview::ScrollViewState;
 
 pub struct EntrancePage {
