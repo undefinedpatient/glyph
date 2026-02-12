@@ -1082,21 +1082,23 @@ impl Interactable for GlyphLayoutEditView {
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.state.hovered_index {
                             match index {
-
                                 0 => { // Label Field
                                     self.containers[0].set_focus(true);
                                 }
                                 1 => { // Size Field
                                     return self.components[0].handle(key, Some(&mut self.state));
                                 }
-                                2 => { // Length Field
+                                2 => { // Size Field
+                                    return self.components[1].handle(key, Some(&mut self.state));
+                                }
+                                3 => { // Length Field
                                     self.containers[1].set_focus(true);
                                 }
-                                3 => { // Flex Field
+                                4 => { // Flex Field
                                     self.containers[2].set_focus(true);
                                 }
-                                4 => {
-                                    return self.components[1].handle(key, Some(&mut self.state));
+                                5 => {
+                                    return self.components[2].handle(key, Some(&mut self.state));
                                 }
                                 _ => {
                                 }

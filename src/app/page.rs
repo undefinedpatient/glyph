@@ -4,7 +4,7 @@ use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::{AppCommand, GlyphCommand};
 use crate::app::GlyphCommand::{RefreshEditSection, RefreshLayoutEditPanel, SetEntryUnsavedState};
 use crate::app::{Component, Container, Convertible};
-use crate::model::{Entry, GlyphRepository, Layout, LocalEntryState, Section, SizeMode};
+use crate::model::{BorderMode, Entry, GlyphRepository, Layout, LocalEntryState, Section, SizeMode};
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphEditContentState, GlyphEditOrderState, GlyphEditState, GlyphLayoutEditState, GlyphLayoutOverviewState, GlyphLayoutState, GlyphMode, GlyphNavigationBarState, GlyphPageState, GlyphReadState, GlyphViewerState, OpenGlyphPageState};
 use crate::state::widget::{DirectoryListState, NumberFieldState, OptionMenuState, TextEditorState, TextFieldState};
 use crate::state::AppState;
@@ -723,6 +723,7 @@ impl GlyphLayoutEditView {
                             let eid: i64 = local_entry_state.active_entry_id.unwrap();
                             let entry: &mut Entry = local_entry_state.get_entry_mut(&eid).unwrap();
                             let sublayout_to_update = entry.layout.get_layout_at_mut(&coor).unwrap();
+
                             let selected_item_index: u8 = _state.current_index;
                             let selected_item_value: u8 = _state.options[selected_item_index as usize].1;
                             let parsed_selected_item = match selected_item_value {
@@ -738,6 +739,42 @@ impl GlyphLayoutEditView {
                             };
                             if sublayout_to_update.details.size_mode != parsed_selected_item {
                                 sublayout_to_update.details.size_mode = parsed_selected_item;
+                                return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
+                            }
+                            Ok(Vec::new())
+                        }
+                    )
+                ).into(),
+                OptionMenu::new(vec![
+                    ("Border: None".to_string(), 0),
+                    ("Border: Plain".to_string(), 1)
+                ], 0).on_interact(
+                    Box::new(
+                        |parent_state, state| {
+                            let _parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();
+                            let _state = state.unwrap().downcast_mut::<OptionMenuState>().unwrap();
+
+                            let coor: Vec<usize> = _parent_state.selected_coordinate.borrow().clone();
+                            let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
+                            let eid: i64 = local_entry_state.active_entry_id.unwrap();
+                            let entry: &mut Entry = local_entry_state.get_entry_mut(&eid).unwrap();
+                            let sublayout_to_update: &mut Layout = entry.layout.get_layout_at_mut(&coor).unwrap();
+
+                            let new_item_index: u8 = _state.current_index;
+                            let new_item_value: u8 = _state.options[new_item_index as usize].1;
+                            let parsed_item: BorderMode = match new_item_value {
+                                0 => {
+                                    BorderMode::None
+                                }
+                                1 => {
+                                    BorderMode::Plain
+                                }
+                                _ => {
+                                    return Err(Report::msg("Impossible to have another value for border."))
+                                }
+                            };
+                            if sublayout_to_update.details.border_mode != parsed_item {
+                                sublayout_to_update.details.border_mode = parsed_item;
                                 return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
                             }
                             Ok(Vec::new())
@@ -783,12 +820,17 @@ impl GlyphLayoutEditView {
         let root_layout_label: String = sub_layout.label.clone();
         let root_layout_length: u16  = sub_layout.details.length;
         let root_layout_flex: u16  = sub_layout.details.flex;
-        let root_layout_size_mode: u8 = match entry.layout.details.size_mode {
+        let root_layout_size_mode: u8 = match sub_layout.details.size_mode {
             SizeMode::Flex => 0,
             SizeMode::Length => 1,
         };
+        let root_layout_border_mode: u8 = match sub_layout.details.border_mode {
+            BorderMode::None => 0,
+            BorderMode::Plain => 1
+        };
         (*self.containers[0]).as_any_mut().downcast_mut::<TextField>().unwrap().replace(root_layout_label);
         (*self.components[0]).as_any_mut().downcast_mut::<OptionMenu>().unwrap().replace(root_layout_size_mode);
+        (*self.components[1]).as_any_mut().downcast_mut::<OptionMenu>().unwrap().replace(root_layout_border_mode);
         (*self.containers[1]).as_any_mut().downcast_mut::<NumberField>().unwrap().replace(root_layout_length as i16);
         (*self.containers[2]).as_any_mut().downcast_mut::<NumberField>().unwrap().replace(root_layout_flex as i16);
     }

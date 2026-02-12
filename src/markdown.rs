@@ -108,7 +108,6 @@ impl Markdown {
                             }
                         }
                         TagEnd::Paragraph => {
-                            current_line.push(Span::from("</P>"));
                             lines.push(Line::from(current_line));
                             current_line = Vec::new();
                             lines.push(Line::default());

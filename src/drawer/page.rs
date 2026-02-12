@@ -3,7 +3,7 @@ use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use crate::markdown::Markdown;
 use crate::{block, model};
-use crate::model::{LayoutOrientation, LocalEntryState, Section, SizeMode};
+use crate::model::{BorderMode, LayoutOrientation, LocalEntryState, Section, SizeMode};
 use crate::state::page::GlyphMode;
 use crate::theme::Theme;
 use color_eyre::owo_colors::OwoColorize;
@@ -322,15 +322,23 @@ impl Drawable for GlyphReadView {
         let layout = &entry_state.get_entry_ref(&eid).unwrap().layout;
         match layout.details.size_mode {
             SizeMode::Flex => {
-                let areas: Vec<(u16, Rect)> = evaluate_read_areas(self, area, layout, 0,0);
+                let areas: Vec<(u16, Rect, BorderMode)> = evaluate_read_areas(self, area, layout, 0,0);
                 let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
                 for (sid, section) in ref_sections {
-                    if let Some((position, area)) = areas.iter().find(
-                        |(position, area)|{
+                    if let Some((position, area, border_mode)) = areas.iter().find(
+                        |(position, area, border_mode)|{
                             *position as i64 == section.position
                         }
                     ) {
-                        Paragraph::new(section.content.clone()).wrap(Wrap { trim: true }).render(*area, frame.buffer_mut());
+                        let block = match border_mode {
+                            BorderMode::None => {
+                                Block::new().title(section.content.clone().bold())
+                            }
+                            BorderMode::Plain => {
+                                Block::bordered().title(section.content.clone().bold())
+                            }
+                        };
+                        Paragraph::new(section.content.clone()).block(block).wrap(Wrap { trim: false }).render(*area, frame.buffer_mut());
                     }
                 }
             }
@@ -342,18 +350,24 @@ impl Drawable for GlyphReadView {
                 }).scrollbars_visibility(ScrollbarVisibility::Never);
                 let background: Block = Block::new().bg(theme.background());
                 background.render(scroll_view.area(), scroll_view.buf_mut());
-                let areas: Vec<(u16, Rect)> = evaluate_read_areas(self, scroll_view.area(), layout, 0,0);
+                let areas: Vec<(u16, Rect, BorderMode)> = evaluate_read_areas(self, scroll_view.area(), layout, 0,0);
                 let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
                 for (sid, section) in ref_sections {
-                    if let Some((position, area)) = areas.iter().find(
-                        |(position, area)|{
+                    if let Some((position, area, border_mode)) = areas.iter().find(
+                        |(position, area, border_mode)|{
                             *position as i64 == section.position
                         }
                     ) {
-
+                        let block = match border_mode {
+                            BorderMode::None => {
+                                Block::new().title(section.content.clone().bold())
+                            }
+                            BorderMode::Plain => {
+                                Block::bordered().title(section.content.clone().bold())
+                            }
+                        };
                         Paragraph::new(Text::from(Markdown::from_str(section.content.as_str(), area, theme) )).wrap(Wrap { trim: false}).block(
-                            Block::new().title(Span::from(section.title.clone()).bold())
-                                .border_style(theme.on_surface()).bg(theme.background())
+                            block
                         ).render(*area, scroll_view.buf_mut());
                     }
                 }
@@ -363,7 +377,7 @@ impl Drawable for GlyphReadView {
 
     }
 }
-fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &model::Layout, depth: u16, at: usize) -> Vec<(u16, Rect)> {
+fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &model::Layout, depth: u16, at: usize) -> Vec<(u16, Rect, BorderMode)> {
     let mut target_section_text: String = "None".to_string();
     if let Some(position_target) = layout.section_index {
         target_section_text = position_target.to_string();
@@ -391,10 +405,10 @@ fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &model::Layout, d
             }
         };
 
-    let mut areas: Vec<(u16, Rect)> = vec![];
+    let mut areas: Vec<(u16, Rect, BorderMode)> = vec![];
     if let Some(section_index) = layout.section_index {
         if layout.sub_layouts.is_empty() {
-            areas.push((section_index, area));
+            areas.push((section_index, area, layout.details.border_mode.clone()));
         }
     }
     for (i, sub_layout) in layout.sub_layouts.iter().enumerate() {
@@ -407,7 +421,6 @@ fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &model::Layout, d
         )].concat()
     }
     areas
-
 }
 
 impl Drawable for GlyphEditView {
@@ -629,7 +642,7 @@ impl Drawable for GlyphLayoutEditView {
 
         let chunks = Layout::vertical([Constraint::Percentage(100), Constraint::Length(1)]).split(inner_area);
         let field_areas = Layout::vertical([
-            Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Length(3)
+            Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Length(3)
         ]).split(chunks[0]);
 
         // Label Field
@@ -642,21 +655,26 @@ impl Drawable for GlyphLayoutEditView {
                                   get_draw_flag(self.state.hovered_index, 1, None),
                                   theme
         );
+        // Border Mode Field
+        self.components[1].render(frame,field_areas[2],
+                                  get_draw_flag(self.state.hovered_index, 2, None),
+                                  theme
+        );
         // Length Field
-        self.containers[1].render(frame, field_areas[2],
-                                  get_draw_flag(self.state.hovered_index, 2, Some(self.containers[1].is_focused())),
+        self.containers[1].render(frame, field_areas[3],
+                                  get_draw_flag(self.state.hovered_index, 3, Some(self.containers[1].is_focused())),
                                   theme
         );
         // Flex Field
-        self.containers[2].render(frame, field_areas[3],
-                                  get_draw_flag(self.state.hovered_index, 3, Some(self.containers[2].is_focused())),
+        self.containers[2].render(frame, field_areas[4],
+                                  get_draw_flag(self.state.hovered_index, 4, Some(self.containers[2].is_focused())),
                                   theme
         );
 
 
         // Revert Button
-        self.components[1].render(frame, chunks[1],
-                                  get_draw_flag(self.state.hovered_index, 4, None),
+        self.components[2].render(frame, chunks[1],
+                                  get_draw_flag(self.state.hovered_index, 5, None),
                                   theme
         );
 

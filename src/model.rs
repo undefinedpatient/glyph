@@ -344,9 +344,15 @@ pub enum SizeMode {
     Length,
     Flex,
 }
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
+pub enum BorderMode {
+    None,
+    Plain,
+}
 #[derive(Serialize, Deserialize, Clone)]
 pub struct LayoutDetails {
     pub size_mode: SizeMode,
+    pub border_mode: BorderMode,
     pub length: u16, // Describe Self
     pub flex: u16, // Describe Self
 
@@ -429,6 +435,7 @@ impl LayoutDetails {
     pub fn new() -> Self {
         Self {
             size_mode: SizeMode::Flex,
+            border_mode: BorderMode::None,
             length: 42,
             flex: 1,
 
