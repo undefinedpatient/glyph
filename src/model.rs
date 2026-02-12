@@ -342,7 +342,6 @@ pub struct Layout {
     pub section_index: Option<u16>,
     pub sub_layouts: Vec<Layout>,
     pub details: LayoutDetails,
-    pub test: u8
 }
 impl Layout {
     pub fn new(label: &str) -> Self {
@@ -351,7 +350,6 @@ impl Layout {
             section_index: None,
             sub_layouts: Vec::new(),
             details: LayoutDetails::new(),
-            test: 0
         }
     }
     pub fn get_layout_at_ref(&self, coordinates: &Vec<usize>) -> Option<&Layout> {
