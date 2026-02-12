@@ -350,7 +350,8 @@ impl Drawable for GlyphReadView {
                             *position as i64 == section.position
                         }
                     ) {
-                        Paragraph::new(Markdown::from_str(section.content.as_str(), area, theme) ).wrap(Wrap { trim: true }).block(
+
+                        Paragraph::new(Text::from(Markdown::from_str(section.content.as_str(), area, theme) )).wrap(Wrap { trim: false}).block(
                             Block::new().title(Span::from(section.title.clone()).bold())
                                 .border_style(theme.on_surface()).bg(theme.background())
                         ).render(*area, scroll_view.buf_mut());
@@ -461,7 +462,7 @@ impl Drawable for GlyphEditOrderView{
         let edit_area = inner_area.centered_horizontally(Constraint::Percentage(90));
         let draw_section_list: Vec<((u32, u32), Paragraph)> = section_list.iter().enumerate().map(
             |(i, (key, value)): (usize, &(i64, Section))| {
-                let text = Text::from(value.content.clone());
+                let text = Text::from(Markdown::from_str(value.content.as_str(), &area, theme));
                 let mut section_dimension: (u32, u32) = (Text::width(&text) as u32 + 2, Text::height(&text) as u32 + 3);
 
                 let mut paragraph_frame: Block = Block::bordered();
@@ -521,7 +522,6 @@ impl Drawable for GlyphEditContentView {
         if self.state.editing_sid.borrow().is_none() {
             widget_frame = widget_frame.dim();
         }
-
 
         let inner_area = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());

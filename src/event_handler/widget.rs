@@ -383,6 +383,12 @@ fn handle_insert_mode(me: &mut TextEditor, key: &KeyEvent) -> color_eyre::eyre::
             if let KeyCode::Down = key.code {
                 me.move_to_next_line();
             }
+            if let KeyCode::Tab = key.code {
+                me.insert_char(' ');
+                me.insert_char(' ');
+                me.insert_char(' ');
+                me.insert_char(' ');
+            }
             if let KeyCode::Backspace = key.code {
                 if me.get_cursor_position().0 == 0 {
                     me.move_to_previous_line();

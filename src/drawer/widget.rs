@@ -190,8 +190,9 @@ impl Drawable for TextEditor {
             |(line_number, line)| {
 
                 let mut line = Line::from(
-                    vec![Span::from(format!("{:<4}", line_number.to_string())).dim(),
-                         Span::from(line.iter().skip(horizontal_offset).collect::<String>())
+                    vec![
+                        Span::from(format!("{:<4}", line_number.to_string())).dim(),
+                        Span::from(line.iter().skip(horizontal_offset).collect::<String>())
                     ]);
                 if line_number == self.state.cursor_line_index {
                     line = line.bg(theme.surface_low());

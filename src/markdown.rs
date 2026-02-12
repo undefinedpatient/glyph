@@ -4,6 +4,7 @@ use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span, Text};
+use ratatui::widgets::Paragraph;
 
 pub struct Markdown;
 
@@ -12,16 +13,28 @@ impl Markdown {
         let mut options = Options::empty();
         options.insert(Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH);
         let parser = Parser::new_ext(&str, options);
+
         let mut lines: Vec<Line> = Vec::new();
         let mut current_line: Vec<Span> = Vec::new();
+
         let mut style: TextStyleBuilder = TextStyleBuilder::new();
+
+        // List State
+        struct ListState {
+            level: u32,
+            is_ordered: bool,
+            item_index: u32,
+            bullet: char
+        }
+        let mut list_stack: Vec<ListState> = Vec::new();
+
+
         let mut indent: u8 = 0u8;
         for event in parser {
             match event {
                 Event::Start(tag) => {
                     match tag {
                         Tag::Paragraph => {
-                            lines.push(Line::default());
                         }
                         Tag::Strong => {
                             style.set_flag(TextStyleFlag::STRONG);
@@ -31,6 +44,35 @@ impl Markdown {
                         }
                         Tag::Strikethrough => {
                             style.set_flag(TextStyleFlag::STRIKETHROUGH);
+                        }
+                        Tag::List(is_ordered) => {
+                            let level = list_stack.len() as u32 + 1;
+                            let bullet = if is_ordered.is_some() {'?'} else {'•'};
+                            list_stack.push(ListState {
+                                level,
+                                is_ordered: is_ordered.is_some(),
+                                item_index: is_ordered.unwrap_or(1) as u32,
+                                bullet
+                            })
+                        }
+                        Tag::Item => {
+                            if let Some(state) = list_stack.last_mut() {
+                                // Add indentation
+                                let indent = "  ".repeat(state.level as usize);
+                                if !current_line.is_empty() {
+                                    lines.push(Line::from(current_line));
+                                    current_line = Vec::new();
+                                }
+                                current_line.push(Span::raw(indent));
+
+                                // Add marker
+                                if state.is_ordered {
+                                    current_line.push(Span::raw(format!("{}. ", state.item_index)));
+                                    state.item_index += 1;
+                                } else {
+                                    current_line.push(Span::raw(format!("{} ", state.bullet)));
+                                }
+                            }
                         }
                         _ => {}
                     }
@@ -47,10 +89,26 @@ impl Markdown {
                 Event::Rule => {
                     lines.push(format!("{:-<width$}", "", width=area.width as usize).into())
                 }
-                Event::Text(text) => current_line.push(Span::styled(text, style.build(theme))),
+                Event::Text(text) => {
+                    current_line.push(Span::styled(text, style.build(theme)));
+                },
                 Event::End(tag) => {
                     match tag {
+                        TagEnd::List(_) => {
+                            if !list_stack.is_empty() {
+                                list_stack.pop();
+                            } else {
+                                lines.push(Line::default());
+                            }
+                        }
+                        TagEnd::Item => {
+                            if !current_line.is_empty() {
+                                lines.push(Line::from(current_line));
+                                current_line = Vec::new();
+                            }
+                        }
                         TagEnd::Paragraph => {
+                            current_line.push(Span::from("</P>"));
                             lines.push(Line::from(current_line));
                             current_line = Vec::new();
                             lines.push(Line::default());
