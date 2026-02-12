@@ -5,16 +5,21 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::PathBuf;
 
+/// This store the fetched entries information, this avoids frequent interaction between application and database.
 pub struct LocalEntryState {
+    /// All entries in the database.
     pub entries: Vec<(i64, Entry)>,
     pub connection: Connection,
+    /// Current Active Entry being read/edited.
     pub active_entry_id: Option<i64>,
+    /// Holding all changed entries.
     pub updated_entries:  HashSet<i64>,
+    /// Holding entry id and entry name in specific order.
     pub ordered_entries: Vec<(i64, String)>,
-
 }
 
 impl LocalEntryState {
+    /// Create new LocalEntryState from connection.
     pub fn new(c: Connection) -> Self {
         let entries = EntryRepository::read_all(&c).unwrap();
         let ordered_entries: Vec<(i64, String)> = entries.iter().map(
@@ -31,9 +36,7 @@ impl LocalEntryState {
         }
     }
 
-    /*
-        Create New Entry, return Entry ID
-     */
+    /// Create New Entry, return Entry ID.
     pub fn get_entry_ref(&self, eid: &i64) -> Option<&Entry> {
         for (_eid, entry) in &self.entries {
             if *_eid == *eid {
@@ -42,6 +45,8 @@ impl LocalEntryState {
         }
         None
     }
+
+    /// Get mut ref Entry by its id, return Some(Entry) if and only if a relevant entry exist in state.
     pub fn get_entry_mut(&mut self, eid: &i64) -> Option<&mut Entry> {
         for (_eid, entry) in &mut self.entries {
             if *_eid == *eid {
@@ -50,6 +55,8 @@ impl LocalEntryState {
         }
         None
     }
+
+    /// Create a default entry in the database, this function interact and update database.
     pub fn create_default_entry_db(&mut self, entry_name: &str) -> Result<i64> {
         let entry_id: i64 = EntryRepository::create_default_entry(&self.connection, entry_name)?;
         let entry_result = EntryRepository::read_by_id(&self.connection, &entry_id);
@@ -62,9 +69,8 @@ impl LocalEntryState {
             Err(e) => Err(e)
         }
     }
-    /*
-        Update Entry by ID
-     */
+
+    /// Update entry's name by its id, this function interact and update database.
     pub fn update_entry_name_db(&mut self, eid: &i64, new_name: &str) -> Result<()> {
 
         EntryRepository::update_name(&self.connection, &eid, new_name)?;
@@ -75,14 +81,14 @@ impl LocalEntryState {
         Ok(())
     }
 
+    /// Update the database using the corresponding Entry in local state pointed by the eid parameter.
     pub fn save_entry_db(&mut self, eid: &i64) -> Result<()> {
         let entry: &Entry = self.get_entry_ref(eid).unwrap();
         EntryRepository::update_entry(&self.connection, eid, entry)?;
         Ok(())
     }
-    /*
-        Delete Entry by ID
-     */
+
+    /// Update the database by deleting corresponding Entry pointed by the eid parameter.
     pub fn delete_active_entry_db(&mut self) -> Result<usize> {
         if let Some(id) = self.active_entry_id {
             let result = EntryRepository::delete_by_id(&self.connection, &id);
@@ -105,6 +111,7 @@ impl LocalEntryState {
         }
     }
 
+    /// Update the current active entry eid.
     pub fn toggle_active_entry_id(&mut self, id: i64) {
         if let Some(oid) = self.active_entry_id {
             if oid == id {
@@ -116,12 +123,15 @@ impl LocalEntryState {
             self.active_entry_id = Some(id);
         }
     }
+
+    /// This function return ref Entry, that is currently active.
     pub fn get_active_entry_ref(&self) -> Option<&Entry> {
         if let Some(active_entry_id) = self.active_entry_id {
             return self.get_entry_ref(&active_entry_id);
         }
         None
     }
+    /// This function return ref mut Entry, that is currently active.
     pub fn get_active_entry_mut(&mut self) -> Option<&mut Entry> {
         if let Some(active_entry_id) = self.active_entry_id {
             return self.get_entry_mut(&active_entry_id);
@@ -331,41 +341,17 @@ pub struct Layout {
     pub label: String,
     pub section_index: Option<u16>,
     pub sub_layouts: Vec<Layout>,
-    pub details: LayoutDetails
+    pub details: LayoutDetails,
+    pub test: u8
 }
-
-#[derive(Serialize, Deserialize, Clone)]
-pub enum LayoutOrientation {
-    Horizontal,
-    Vertical,
-}
-#[derive(Serialize, Deserialize, Clone, PartialEq)]
-pub enum SizeMode {
-    Length,
-    Flex,
-}
-#[derive(Serialize, Deserialize, Clone, PartialEq)]
-pub enum BorderMode {
-    None,
-    Plain,
-}
-#[derive(Serialize, Deserialize, Clone)]
-pub struct LayoutDetails {
-    pub size_mode: SizeMode,
-    pub border_mode: BorderMode,
-    pub length: u16, // Describe Self
-    pub flex: u16, // Describe Self
-
-    pub orientation: LayoutOrientation, // Describing orientation main axis for the children
-}
-
 impl Layout {
     pub fn new(label: &str) -> Self {
         Self {
             label: String::from(label),
             section_index: None,
             sub_layouts: Vec::new(),
-            details: LayoutDetails::new()
+            details: LayoutDetails::new(),
+            test: 0
         }
     }
     pub fn get_layout_at_ref(&self, coordinates: &Vec<usize>) -> Option<&Layout> {
@@ -430,6 +416,32 @@ impl Layout {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub enum LayoutOrientation {
+    Horizontal,
+    Vertical,
+}
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
+pub enum SizeMode {
+    Length,
+    Flex,
+}
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
+pub enum BorderMode {
+    None,
+    Plain,
+}
+#[derive(Serialize, Deserialize, Clone)]
+pub struct LayoutDetails {
+    pub size_mode: SizeMode,
+    pub border_mode: BorderMode,
+    pub length: u16, // Describe Self
+    pub flex: u16, // Describe Self
+
+    pub orientation: LayoutOrientation, // Describing orientation main axis for the children
+}
+
+
 
 impl LayoutDetails {
     pub fn new() -> Self {
@@ -443,13 +455,6 @@ impl LayoutDetails {
         }
     }
 }
-
-
-
-
-
-
-
 
 
 pub struct GlyphRepository {}
@@ -561,7 +566,7 @@ impl EntryRepository {
             Entry {
                 entry_name: row.get(1)?,
                 sections: SectionRepository::read_by_entry_id(c, &id)?,
-                layout: serde_json::from_str(layout_string.as_str())?,
+                layout: serde_json::from_str(layout_string.as_str()).unwrap_or(Layout::new("")),
             }
         )
         )
