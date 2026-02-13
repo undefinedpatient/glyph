@@ -266,7 +266,7 @@ impl GlyphNavigationBar {
     }
     pub fn next_entry(&mut self) -> () {
         if let Ok(state) = self.state.entry_state.try_borrow() {
-            let num_entries = state.entries.len();
+            let num_entries = state.ordered_entries.len();
             if let Some(index) = self.state.hovered_index {
                 self.state.hovered_index = Some(cycle_offset(index as u16, 1, num_entries as u16) as usize);
             } else {
@@ -276,7 +276,7 @@ impl GlyphNavigationBar {
     }
     pub fn previous_entry(&mut self) -> () {
         if let Ok(state) = self.state.entry_state.try_borrow() {
-            let num_entries = state.entries.len();
+            let num_entries = state.ordered_entries.len();
             if let Some(index) = self.state.hovered_index {
                 self.state.hovered_index = Some(cycle_offset(index as u16, -1, num_entries as u16) as usize);
             } else {

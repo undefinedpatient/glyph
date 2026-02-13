@@ -344,9 +344,7 @@ impl Interactable for GlyphNavigationBar {
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Enter = key.code {
-                        if self.state.hovered_index.is_none() {
-
-                        } else {
+                        if self.state.hovered_index.is_some() {
                             let index: usize = self.state.hovered_index.unwrap();
                             let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                             let selected_id: i64 = self.state.local_entry_state_ref().unwrap().ordered_entries[index].0;
@@ -371,6 +369,30 @@ impl Interactable for GlyphNavigationBar {
                                                         let id = local_entry_state.create_default_entry_db(_state.text_input.as_str())?;
 
                                                         // Reconstruct the list of entry display
+                                                        Ok(vec![])
+                                                    })
+                                                ).into()
+                                            )
+                                        )
+                                    ]
+                                );
+                            }
+                            'F' => {
+                                return Ok(
+                                    vec![
+                                        PageCommand(
+                                            PushDialog(
+                                                TextInputDialog::new( "Filter Entry", "").on_submit(
+                                                    // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
+                                                    Box::new(|parent_state, state| {
+                                                        let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                                        let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
+                                                        let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
+                                                        local_entry_state.filter_entry_order_by(
+                                                            &|name|{
+                                                                name.contains(_state.text_input.as_str())
+                                                            }
+                                                        );
                                                         Ok(vec![])
                                                     })
                                                 ).into()
@@ -452,7 +474,7 @@ impl Interactable for GlyphViewer {
                 KeyEventKind::Press => {
                     if let KeyCode::Char(c) = key.code {
                         match c {
-                            '`' => {
+                            '\\' => {
                                 match self.state.mode {
                                     GlyphMode::Read => {
                                         self.state.mode = GlyphMode::Edit;
@@ -672,7 +694,7 @@ impl Interactable for GlyphEditOrderView {
                             self.state.editing_sid.replace(None);
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             let eid: i64 = state.active_entry_id.unwrap();
-                            state.delete_section_db(&eid, &sid)?;
+                            state.delete_section_db(&sid)?;
                             return Ok(Vec::new());
                         }
                         'A' => {

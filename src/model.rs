@@ -143,9 +143,7 @@ impl LocalEntryState {
         Section Section
 
      */
-    /*
-        Create Section to active_entry
-     */
+    /// Get ref Section by eid and sid.
     pub fn get_section_ref(&self, eid: &i64, sid: &i64) -> Option<&Section> {
         if let Some(entry) = self.get_entry_ref(eid) {
             for (_sid, section) in &entry.sections {
@@ -158,6 +156,7 @@ impl LocalEntryState {
             None
         }
     }
+    /// Get ref mut Section by eid and sid.
     pub fn get_section_mut(&mut self, eid: &i64, sid: &i64) -> Option<&mut Section> {
         if let Some(entry) = self.get_entry_mut(eid) {
             for (_sid, section) in &mut entry.sections {
@@ -170,24 +169,8 @@ impl LocalEntryState {
             None
         }
     }
-    pub fn delete_section_db(&mut self, eid: &i64, sid: &i64) -> Result<()> {
-        SectionRepository::delete_section(&self.connection, sid)?;
-        if let Some(entry) = self.get_entry_mut(eid) {
-            let mut index_of_section: usize = usize::MAX;
-            for (index, item) in &mut entry.sections.iter().enumerate() {
-                if (*item).0 == *sid {
-                    index_of_section = index;
-                }
-            }
-            if index_of_section == usize::MAX {
-                return Err(Report::msg("Section not found"));
-            }
-            entry.sections.remove(index_of_section);
-            Ok(())
-        } else {
-            Err(Report::msg("Entry not found"))
-        }
-    }
+
+    /// Create a new section and insert it into database.
     pub fn create_section_to_active_entry_db(&mut self, title: &str, content: &str) -> Result<i64> {
         if let Some(eid) = self.active_entry_id {
             let new_section: Section = Section::new(title, content, self.get_max_position_section(&eid)+1);
@@ -199,9 +182,8 @@ impl LocalEntryState {
             Err(Report::msg("No active entry found"))
         }
     }
-    /*
-        Update Section by sid
-     */
+
+    /// Update the Section specified by its id in the database, update the local state as well.
     pub fn update_section_by_sid_db(&mut self, sid: &i64, section: Section) -> Result<()> {
         let _sid = SectionRepository::update_section(&self.connection, sid, &section)?;
         let (eid, sid, section) = SectionRepository::read_by_id(&self.connection, sid)?.unwrap();
@@ -222,6 +204,29 @@ impl LocalEntryState {
         Ok(())
 
     }
+
+    /// Delete the corresponding Section in the database specified by the sid.
+    pub fn delete_section_db(&mut self, sid: &i64) -> Result<()> {
+        let (eid, sid, section) = SectionRepository::read_by_id(&self.connection, sid)?.unwrap();
+        SectionRepository::delete_section(&self.connection, &sid)?;
+        if let Some(entry) = self.get_entry_mut(&eid) {
+            let mut index_of_section: usize = usize::MAX;
+            for (index, item) in &mut entry.sections.iter().enumerate() {
+                if (*item).0 == sid {
+                    index_of_section = index;
+                }
+            }
+            if index_of_section == usize::MAX {
+                return Err(Report::msg("Section not found"));
+            }
+            entry.sections.remove(index_of_section);
+            Ok(())
+        } else {
+            Err(Report::msg("Entry not found"))
+        }
+    }
+
+    /// Return the total count of Sections under an Entry specified by its id.
     pub fn get_num_sections(&self, eid: &i64) -> usize {
         if let Some(entry) = self.get_entry_ref(eid){
             entry.sections.len()
@@ -229,10 +234,13 @@ impl LocalEntryState {
             0
         }
     }
+
+    /// Return a ref Vec<(sid: i64, Section)> under an Entry specified by its id.
     pub fn get_sections_ref(&self, eid: &i64) -> &Vec<(i64, Section)> {
         &self.get_entry_ref(eid).unwrap().sections
     }
 
+    /// Return all section's id under an Entry specified by its id.
     pub fn get_sections_sid(&self, eid: &i64) -> Vec<i64> {
         self.get_entry_ref(eid).unwrap().sections.iter().map(
             |(sid, section)| {
@@ -240,12 +248,25 @@ impl LocalEntryState {
             }
         ).collect()
     }
+
     pub fn sort_sections_by_position(&mut self, eid: &i64) -> () {
         if let Some(entry) = self.get_entry_mut(eid) {
             entry.sections.sort_by(|cur, nex| {
                 (*cur).1.position.cmp(&(*nex).1.position)
             })
         }
+    }
+
+    /// Filter all reachable entries and overwrite the old ordered_entries
+    /// It does not automatically sort the result.
+    pub fn filter_entry_order_by(&mut self, predicate: &dyn Fn(&str)->bool) -> () {
+        let mut new_ordered_entries: Vec<(i64, String)> = Vec::new();
+        for (eid, entry) in &self.entries {
+            if predicate(entry.entry_name.as_str()) {
+                new_ordered_entries.push((*eid, entry.entry_name.clone()));
+            }
+        }
+        self.ordered_entries = new_ordered_entries;
     }
 
 
@@ -261,6 +282,9 @@ impl LocalEntryState {
             }
         ).collect();
     }
+
+
+    /// Return the max. section position designated by the user.
     fn get_max_position_section(&self, eid: &i64) -> i64 {
         let sections = &self.get_entry_ref(eid).unwrap().sections;
         let mut max: i64 = 0;
@@ -271,6 +295,8 @@ impl LocalEntryState {
         }
         max
     }
+
+    /// Return the min. section position designated by the user.
     fn get_min_position_section(&self, eid: &i64) -> i64 {
         let sections = &self.get_entry_ref(eid).unwrap().sections;
         let mut min: i64 = 0;

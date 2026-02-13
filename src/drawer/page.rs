@@ -218,11 +218,12 @@ impl Drawable for GlyphNavigationBar {
             List Items (Entry)
          */
         let ref_entry_state = self.state.entry_state.borrow();
-        let plain_entries: Vec<(i64, String)> = ref_entry_state.entries.iter().map(
-            |(id,entry)| {
-                (id.clone(), entry.entry_name.clone())
-            }
-        ).collect();
+        // let plain_entries: Vec<(i64, String)> = ref_entry_state.entries.iter().map(
+        //     |(id,entry)| {
+        //         (id.clone(), entry.entry_name.clone())
+        //     }
+        // ).collect();
+        let plain_entries: &Vec<(i64, String)> = &ref_entry_state.ordered_entries;
         let mut list_items: Vec<Line> = plain_entries
             .iter()
             .enumerate()
@@ -332,10 +333,10 @@ impl Drawable for GlyphReadView {
                     ) {
                         let block = match border_mode {
                             BorderMode::None => {
-                                Block::new().title(section.content.clone().bold())
+                                Block::new().title(section.title.clone().bold())
                             }
                             BorderMode::Plain => {
-                                Block::bordered().title(section.content.clone().bold())
+                                Block::bordered().title(section.title.clone().bold())
                             }
                         };
                         Paragraph::new(section.content.clone()).block(block).wrap(Wrap { trim: false }).render(*area, frame.buffer_mut());
@@ -360,10 +361,10 @@ impl Drawable for GlyphReadView {
                     ) {
                         let block = match border_mode {
                             BorderMode::None => {
-                                Block::new().title(section.content.clone().bold())
+                                Block::new().title(section.title.clone().bold())
                             }
                             BorderMode::Plain => {
-                                Block::bordered().title(section.content.clone().bold())
+                                Block::bordered().title(section.title.clone().bold())
                             }
                         };
                         Paragraph::new(Text::from(Markdown::from_str(section.content.as_str(), area, theme) )).wrap(Wrap { trim: false}).block(
@@ -388,10 +389,13 @@ fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &model::Layout, d
     // Process the child
     let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
         |(index, sub)| {
-            if (sub.details.flex != 0) {
-                Constraint::Fill(sub.details.flex)
-            } else {
-                Constraint::Length(sub.details.length)
+            match sub.details.size_mode {
+                SizeMode::Flex => {
+                    Constraint::Fill(sub.details.flex)
+                }
+                SizeMode::Length => {
+                    Constraint::Length(sub.details.length)
+                }
             }
         }
     ).collect();
