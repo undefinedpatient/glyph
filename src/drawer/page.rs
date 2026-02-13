@@ -516,7 +516,7 @@ impl Drawable for GlyphEditOrderView{
                 border_type
             );
             let inner_area = block.inner(section_areas[index]);
-            block.title(section.title.as_str()).render(section_areas[index], frame.buffer_mut());
+            block.title(section.title.as_str()).title_bottom(String::from("Position: ") + format!("{}", section.position).as_str()).render(section_areas[index], frame.buffer_mut());
             Markdown::render_markdown(section.content.as_str(), &inner_area, frame.buffer_mut(), theme);
         }
     }

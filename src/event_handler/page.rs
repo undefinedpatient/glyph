@@ -125,7 +125,7 @@ impl Interactable for CreateGlyphPage {
                                 2 => {
                                     // Create Button
                                     self.dialogs.push(
-                                        TextInputDialog::new( "Glyph Name", "untitled_glyph", )
+                                        TextInputDialog::new( "Glyph Name", "untitled_glyph")
                                             .on_submit( Box::new(|parent_state, state| {
                                                 let _parent_state = parent_state.unwrap().downcast_mut::<CreateGlyphPageState>().unwrap();
                                                 let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
@@ -630,10 +630,16 @@ impl Interactable for GlyphEditOrderView {
                         let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
                         let eid = state.active_entry_id.unwrap();
                         let sections: &Vec<(i64, Section)> = state.get_sections_ref(&eid);
+                        if sections.len() == 0 {
+                            return Ok(Vec::new());
+                        }
                         if self.state.editing_sid.borrow().is_some() {
-                            if self.state.editing_sid.borrow().unwrap() == sections.get(index).unwrap().0 {
-                                *self.state.editing_sid.borrow_mut() = None;
-                                return Ok(vec![GlyphCommand(RefreshEditSection)]);
+                            let editing_sid: i64 = self.state.editing_sid.borrow().unwrap();
+                            if let Some(selected_section) = sections.get(index) {
+                                if editing_sid == selected_section.0 {
+                                    *self.state.editing_sid.borrow_mut() = None;
+                                    return Ok(vec![GlyphCommand(RefreshEditSection)]);
+                                }
                             }
                         }
                         *self.state.editing_sid.borrow_mut() = Some((*sections.get(index).unwrap()).0);
