@@ -1,5 +1,5 @@
-use std::io;
-
+use std::{fs, io};
+use std::path::PathBuf;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture, Event};
 use crossterm::execute;
 use crossterm::terminal::{
@@ -10,6 +10,7 @@ use ratatui::backend::Backend;
 use ratatui::prelude::CrosstermBackend;
 use ratatui::style::Stylize;
 use ratatui::Terminal;
+use color_eyre::eyre::Result;
 
 mod app;
 mod drawer;
@@ -23,8 +24,14 @@ mod markdown;
 
 use app::Application;
 use drawer::draw;
+use crate::model::GlyphRepository;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args: Vec<String> = std::env::args().collect();
+    let should_close: bool = handle_cli(&args)?;
+    if should_close {
+        return Ok(());
+    }
     // Init
     enable_raw_mode()?;
     let mut stderr = io::stderr();
@@ -58,6 +65,30 @@ fn run<B: Backend>(terminal: &mut Terminal<B>, app: &mut Application) -> io::Res
         }
         if app.state.should_quit {
             break;
+        }
+    }
+    Ok(true)
+}
+
+/// Handle CLI command, return whether should the program exit immediately right after execution.
+fn handle_cli(args: &Vec<String>) -> Result<bool> {
+    if args.len() == 1 {
+        return Ok(false);
+    }
+    if let Some(arg) = args.get(1) {
+        match arg.as_str() {
+            "new" => {
+                let new_glyph_name: String = args.get(2).unwrap_or(&String::from("untitled_glyph")).clone();
+                GlyphRepository::init_glyph_db(&PathBuf::from(new_glyph_name+".glyph"))?;
+                return Ok(true)
+            }
+            "delete" => {
+                fs::remove_file(&args.get(2).unwrap())?;
+                return Ok(true)
+            }
+            _ => {
+                println!("Invalid Command\nAvailable commands: \n - new\n - delete")
+            }
         }
     }
     Ok(true)

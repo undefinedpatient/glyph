@@ -445,7 +445,7 @@ impl GlyphEditOrderView{
     }
 
     // Return the active selected section as Mutable Reference
-    pub(crate) fn get_editing_section_mut(&mut self) -> RefMut<Section> {
+    pub(crate) fn get_editing_section_mut(&'_ mut self) -> RefMut<'_, Section> {
         let editing_sid: i64 = self.state.editing_sid.borrow().unwrap().clone();
         let entry_state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
         let active_entry_id: i64 = entry_state.active_entry_id.unwrap();

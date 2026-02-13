@@ -486,12 +486,12 @@ impl Drawable for GlyphEditOrderView{
                 if stack_height>area.height {
                     return false;
                 }
-                let estimate_num_of_lines: usize = section.content.lines().count().clamp(3,12);
+                let estimate_num_of_lines: usize = section.content.lines().count().clamp(3,12) + 2; // Adding 2 counts for the border space.
                 stack_height += estimate_num_of_lines as u16;
                 true
             }).map(
             |(i64, section)| {
-                let estimate_num_of_lines: usize = section.content.lines().count().clamp(3,12);
+                let estimate_num_of_lines: usize = section.content.lines().count().clamp(3,12) + 2;
                 Constraint::Length(estimate_num_of_lines as u16)
             }
         ).collect();
