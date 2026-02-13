@@ -339,7 +339,9 @@ impl Drawable for GlyphReadView {
                                 Block::bordered().title(section.title.clone().bold())
                             }
                         };
-                        Paragraph::new(section.content.clone()).block(block).wrap(Wrap { trim: false }).render(*area, frame.buffer_mut());
+                        let inner_area: Rect = block.inner(*area);
+                        block.render(*area, frame.buffer_mut());
+                        Markdown::render_markdown(section.content.as_str(), &inner_area, frame.buffer_mut(), theme);
                     }
                 }
             }
@@ -367,9 +369,9 @@ impl Drawable for GlyphReadView {
                                 Block::bordered().title(section.title.clone().bold())
                             }
                         };
-                        Paragraph::new(Text::from(Markdown::from_str(section.content.as_str(), area, theme) )).wrap(Wrap { trim: false}).block(
-                            block
-                        ).render(*area, scroll_view.buf_mut());
+                        let inner_area: Rect = block.inner(*area);
+                        block.render(*area, scroll_view.buf_mut());
+                        Markdown::render_markdown(section.content.as_str(), &inner_area, scroll_view.buf_mut(), theme);
                     }
                 }
                 scroll_view.render(area, frame.buffer_mut(), &mut *self.state.scroll_state.borrow_mut());
@@ -477,52 +479,45 @@ impl Drawable for GlyphEditOrderView{
         let eid = state.active_entry_id.unwrap();
         let section_list: &Vec<(i64, Section)> = state.get_sections_ref(&eid);
         let edit_area = inner_area.centered_horizontally(Constraint::Percentage(90));
-        let draw_section_list: Vec<((u32, u32), Paragraph)> = section_list.iter().enumerate().map(
-            |(i, (key, value)): (usize, &(i64, Section))| {
-                let text = Text::from(Markdown::from_str(value.content.as_str(), &area, theme));
-                let mut section_dimension: (u32, u32) = (Text::width(&text) as u32 + 2, Text::height(&text) as u32 + 3);
 
-                let mut paragraph_frame: Block = Block::bordered();
-                if let Some(index) = self.state.hovered_index {
-                    if index == i {
-                        paragraph_frame = paragraph_frame.border_type(BorderType::Double)
-                    }
-                }
-                if let Ok(o_sid) = self.state.editing_sid.try_borrow() {
-                    if let Some(sid) = *o_sid {
-                        if sid == *key {
-                            paragraph_frame = paragraph_frame.border_type(BorderType::Thick)
-                        }
-                    }
-                }
-                let paragraph = Paragraph::new(text)
-                    .block(paragraph_frame.title(value.title.clone()).title_bottom(value.position.to_string()));
-
-                return (section_dimension, paragraph);
-            }
-        ).collect();
-
-
-        let mut stack_height: u16 = 0u16;
-        let section_constraints: Vec<Constraint> = draw_section_list.iter().take_while(
-            |((w,h), paragraph): &&((u32, u32), Paragraph)|{
+        let mut stack_height = 0;
+        let section_constraints: Vec<Constraint> = section_list.iter().take_while(
+            |(i64, section)|{
                 if stack_height>area.height {
                     return false;
                 }
-                stack_height += *h as u16;
+                let estimate_num_of_lines: usize = section.content.lines().count().clamp(3,12);
+                stack_height += estimate_num_of_lines as u16;
                 true
             }).map(
-            |((w,h),_)| {
-                Constraint::Length(*h as u16)
+            |(i64, section)| {
+                let estimate_num_of_lines: usize = section.content.lines().count().clamp(3,12);
+                Constraint::Length(estimate_num_of_lines as u16)
             }
         ).collect();
         let section_areas = Layout::vertical(section_constraints).split(edit_area);
 
-        for (index, (_ ,paragraph)) in draw_section_list.iter().enumerate() {
+        for (index, (sid ,section)) in section_list.iter().enumerate() {
             if index >= section_areas.len() {
                 break;
             }
-            paragraph.render(section_areas[index], frame.buffer_mut());
+            let mut border_type = BorderType::Plain;
+            if let Some(hovered_index) = self.state.hovered_index {
+                if index == hovered_index {
+                    border_type = BorderType::Double;
+                }
+            }
+            if let Some(focused_sid) = *self.state.editing_sid.borrow() {
+                if focused_sid == *sid {
+                    border_type = BorderType::Thick
+                }
+            }
+            let block: Block = Block::bordered().border_type(
+                border_type
+            );
+            let inner_area = block.inner(section_areas[index]);
+            block.title(section.title.as_str()).render(section_areas[index], frame.buffer_mut());
+            Markdown::render_markdown(section.content.as_str(), &inner_area, frame.buffer_mut(), theme);
         }
     }
 }

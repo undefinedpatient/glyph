@@ -1,21 +1,24 @@
 use bitflags::bitflags;
 use crate::theme::Theme;
 use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
+use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::Paragraph;
+use ratatui::widgets::Widget;
 
+/// This is a customized Markdown Drawer powered by pulldown-cmark.
 pub struct Markdown;
 
 impl Markdown {
-    pub fn from_str<'a>(str: &'a str, area: &Rect, theme: &'a dyn Theme) -> Text<'a> {
+    pub fn render_markdown<'a>(str: &'a str, area: &Rect, buffer: &mut Buffer, theme: &'a dyn Theme) -> () {
         let mut options = Options::empty();
         options.insert(Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH);
         let parser = Parser::new_ext(&str, options);
 
         let mut lines: Vec<Line> = Vec::new();
         let mut current_line: Vec<Span> = Vec::new();
+        let mut next_position: usize = 0; // Next y-position the line to be inserted.
 
         let mut style: TextStyleBuilder = TextStyleBuilder::new();
 
@@ -132,7 +135,7 @@ impl Markdown {
         if !current_line.is_empty() {
             lines.push(Line::from(current_line));
         }
-        Text::from(lines)
+        Text::from(lines).render(*area, buffer);
     }
 }
 bitflags! {
