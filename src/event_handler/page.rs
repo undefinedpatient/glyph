@@ -674,7 +674,6 @@ impl Interactable for GlyphEditOrderView {
                             drop(state);
 
                             return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
-
                         }
                         '-' => {
                             if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {

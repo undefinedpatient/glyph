@@ -1,24 +1,25 @@
 use bitflags::bitflags;
+use color_eyre::owo_colors::OwoColorize;
 use crate::theme::Theme;
 use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
-use ratatui::style::Style;
+use ratatui::layout::{Offset, Rect, Size};
+use ratatui::style::{Color, Style, Stylize};
 use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::Widget;
+use ratatui::widgets::{Block, Borders, Widget};
 
 /// This is a customized Markdown Drawer powered by pulldown-cmark.
-pub struct Markdown;
+pub struct MarkdownRenderer;
 
-impl Markdown {
+impl MarkdownRenderer {
     pub fn render_markdown<'a>(str: &'a str, area: &Rect, buffer: &mut Buffer, theme: &'a dyn Theme) -> () {
         let mut options = Options::empty();
-        options.insert(Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH);
+        options.insert(Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH | Options::ENABLE_FOOTNOTES);
         let parser = Parser::new_ext(&str, options);
 
         let mut lines: Vec<Line> = Vec::new();
         let mut current_line: Vec<Span> = Vec::new();
-        let mut next_position: usize = 0; // Next y-position the line to be inserted.
+        let mut render_offset: usize = 0; // Next y-position the line to be inserted.
 
         let mut style: TextStyleBuilder = TextStyleBuilder::new();
 
@@ -29,15 +30,18 @@ impl Markdown {
             item_index: u32,
             bullet: char
         }
+        struct QuoteState {
+            level: u32,
+        }
         let mut list_stack: Vec<ListState> = Vec::new();
+        let mut quote_state: QuoteState = QuoteState { level: 0 };
 
-
-        let mut indent: u8 = 0u8;
         for event in parser {
             match event {
                 Event::Start(tag) => {
                     match tag {
                         Tag::Paragraph => {
+                            current_line.push(Span::from("<p>"));
                         }
                         Tag::Strong => {
                             style.set_flag(TextStyleFlag::STRONG);
@@ -57,6 +61,9 @@ impl Markdown {
                                 item_index: is_ordered.unwrap_or(1) as u32,
                                 bullet
                             })
+                        }
+                        Tag::BlockQuote(quote_type) => {
+                            quote_state.level += 1;
                         }
                         Tag::Item => {
                             if let Some(state) = list_stack.last_mut() {
@@ -81,16 +88,25 @@ impl Markdown {
                     }
                 },
                 Event::HardBreak => {
+                    if quote_state.level != 0 {
+                        current_line.insert(0, Span::from("░ ".repeat(quote_state.level as usize)));
+                    }
                     lines.push(Line::from(current_line));
                     current_line = Vec::new();
                     lines.push(Line::default());
+                    render_offset += 1;
                 }
                 Event::SoftBreak => {
+                    if quote_state.level != 0{
+                        current_line.insert(0, Span::from("░ ".repeat(quote_state.level as usize)));
+                    }
                     lines.push(Line::from(current_line));
                     current_line = Vec::new();
+                    render_offset += 1;
                 }
                 Event::Rule => {
-                    lines.push(format!("{:-<width$}", "", width=area.width as usize).into())
+                    lines.push(Line::from(format!("{:—<width$}", "", width=area.width as usize - 1)).dark_gray());
+                    render_offset+=1;
                 }
                 Event::Text(text) => {
                     current_line.push(Span::styled(text, style.build(theme)));
@@ -102,18 +118,34 @@ impl Markdown {
                                 list_stack.pop();
                             } else {
                                 lines.push(Line::default());
+                                render_offset+=1;
                             }
                         }
                         TagEnd::Item => {
                             if !current_line.is_empty() {
                                 lines.push(Line::from(current_line));
                                 current_line = Vec::new();
+                                render_offset+=1;
+                            }
+                        }
+                        TagEnd::BlockQuote(quote_type) => {
+                            quote_state.level = quote_state.level.saturating_sub(1);
+                            if quote_state.level == 0 {
+                                lines.push(Line::default());
                             }
                         }
                         TagEnd::Paragraph => {
-                            lines.push(Line::from(current_line));
-                            current_line = Vec::new();
-                            lines.push(Line::default());
+                            current_line.push(Span::from("</p>"));
+                            if quote_state.level != 0{
+                                current_line.insert(0, Span::from("░ ".repeat(quote_state.level as usize)));
+                                lines.push(Line::from(current_line));
+                                current_line = Vec::new();
+                            } else {
+                                lines.push(Line::from(current_line));
+                                current_line = Vec::new();
+                                lines.push(Line::default());
+                            }
+                            render_offset+=1;
                         }
                         TagEnd::Strong => {
                             style.remove_flag(TextStyleFlag::STRONG);
@@ -145,7 +177,6 @@ bitflags! {
         const EMPHASIS = 0b0000_0010;
         const STRIKETHROUGH = 0b0000_0100;
     }
-
 }
 struct TextStyleBuilder{
     flags: TextStyleFlag,

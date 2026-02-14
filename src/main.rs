@@ -20,7 +20,7 @@ mod state;
 mod utils;
 mod model;
 mod theme;
-mod markdown;
+mod markdown_renderer;
 
 use app::Application;
 use drawer::draw;

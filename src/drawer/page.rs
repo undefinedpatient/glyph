@@ -1,7 +1,7 @@
 use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphEditContentView, GlyphEditOrderView, GlyphEditView, GlyphLayoutEditView, GlyphLayoutOverview, GlyphLayoutView, GlyphNavigationBar, GlyphPage, GlyphReadView, GlyphViewer, OpenGlyphPage};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
-use crate::markdown::Markdown;
+use crate::markdown_renderer::MarkdownRenderer;
 use crate::{block, model};
 use crate::model::{BorderMode, LayoutOrientation, LocalEntryState, Section, SizeMode};
 use crate::state::page::GlyphMode;
@@ -341,7 +341,7 @@ impl Drawable for GlyphReadView {
                         };
                         let inner_area: Rect = block.inner(*area);
                         block.render(*area, frame.buffer_mut());
-                        Markdown::render_markdown(section.content.as_str(), &inner_area, frame.buffer_mut(), theme);
+                        MarkdownRenderer::render_markdown(section.content.as_str(), &inner_area, frame.buffer_mut(), theme);
                     }
                 }
             }
@@ -371,7 +371,7 @@ impl Drawable for GlyphReadView {
                         };
                         let inner_area: Rect = block.inner(*area);
                         block.render(*area, scroll_view.buf_mut());
-                        Markdown::render_markdown(section.content.as_str(), &inner_area, scroll_view.buf_mut(), theme);
+                        MarkdownRenderer::render_markdown(section.content.as_str(), &inner_area, scroll_view.buf_mut(), theme);
                     }
                 }
                 scroll_view.render(area, frame.buffer_mut(), &mut *self.state.scroll_state.borrow_mut());
@@ -517,7 +517,7 @@ impl Drawable for GlyphEditOrderView{
             );
             let inner_area = block.inner(section_areas[index]);
             block.title(section.title.as_str()).title_bottom(String::from("Position: ") + format!("{}", section.position).as_str()).render(section_areas[index], frame.buffer_mut());
-            Markdown::render_markdown(section.content.as_str(), &inner_area, frame.buffer_mut(), theme);
+            MarkdownRenderer::render_markdown(section.content.as_str(), &inner_area, frame.buffer_mut(), theme);
         }
     }
 }
