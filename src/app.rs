@@ -1,5 +1,6 @@
 use std::any::Any;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use rusqlite::Connection;
 
 pub mod dialog;
 pub mod page;
@@ -11,6 +12,8 @@ use crate::event_handler::{Focusable, Interactable};
 use crate::state::AppState;
 use crate::theme::Iceberg;
 use page::EntrancePage;
+use crate::app::page::GlyphPage;
+use crate::model::GlyphRepository;
 
 pub enum Command {
     AppCommand(AppCommand),
@@ -165,6 +168,16 @@ impl Application {
     pub fn new() -> Application {
         Application {
             page_states: vec![Box::new(EntrancePage::new())],
+            popup_states: Vec::new(),
+            state: AppState {
+                theme: Iceberg,
+                should_quit: false},
+            q_commands: Vec::new(),
+        }
+    }
+    pub fn from(connection: Connection) -> Application {
+        Application {
+            page_states: vec![EntrancePage::new().into(), GlyphPage::new(connection).into()],
             popup_states: Vec::new(),
             state: AppState {
                 theme: Iceberg,

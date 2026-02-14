@@ -11,6 +11,7 @@ use ratatui::prelude::CrosstermBackend;
 use ratatui::style::Stylize;
 use ratatui::Terminal;
 use color_eyre::eyre::Result;
+use rusqlite::Connection;
 
 mod app;
 mod drawer;
@@ -28,10 +29,11 @@ use crate::model::GlyphRepository;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
-    let should_close: bool = handle_cli(&args)?;
-    if should_close {
+    let cli_result: (bool, Option<Connection>) = handle_cli(&args)?;
+    if cli_result.0 {
         return Ok(());
     }
+
     // Init
     enable_raw_mode()?;
     let mut stderr = io::stderr();
@@ -40,6 +42,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut terminal = Terminal::new(backend)?;
     // Main
     let mut app: Application = Application::new();
+    if cli_result.1.is_some() {
+        app = Application::from(cli_result.1.unwrap());
+    }
     let result = run(&mut terminal, &mut app);
     // Restore
     disable_raw_mode()?;
@@ -71,25 +76,34 @@ fn run<B: Backend>(terminal: &mut Terminal<B>, app: &mut Application) -> io::Res
 }
 
 /// Handle CLI command, return whether should the program exit immediately right after execution.
-fn handle_cli(args: &Vec<String>) -> Result<bool> {
+fn handle_cli(args: &Vec<String>) -> Result<(bool, Option<Connection>)> {
     if args.len() == 1 {
-        return Ok(false);
+        return Ok((false, None));
     }
     if let Some(arg) = args.get(1) {
         match arg.as_str() {
             "new" => {
                 let new_glyph_name: String = args.get(2).unwrap_or(&String::from("untitled_glyph")).clone();
                 GlyphRepository::init_glyph_db(&PathBuf::from(new_glyph_name+".glyph"))?;
-                return Ok(true)
+                return Ok((true, None));
             }
             "delete" => {
                 fs::remove_file(&args.get(2).unwrap())?;
-                return Ok(true)
+                return Ok((true, None));
+            }
+            "open" => {
+                let glyph_path: String = args.get(2).unwrap().clone();
+                if !fs::exists(&glyph_path)? {
+                    println!("Glyph does not exist: {}", glyph_path);
+                    return Ok((true, None));
+                };
+                let connection = GlyphRepository::init_glyph_db(&PathBuf::from(glyph_path))?;
+                return Ok((false, Some(connection)));
             }
             _ => {
                 println!("Invalid Command\nAvailable commands: \n - new\n - delete")
             }
         }
     }
-    Ok(true)
+    Ok((true, None))
 }
