@@ -1,12 +1,13 @@
 use bitflags::bitflags;
 use color_eyre::owo_colors::OwoColorize;
 use crate::theme::Theme;
-use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
+use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Offset, Rect, Size};
 use ratatui::style::{Color, Style, Stylize};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Widget};
+use tui_big_text::{BigText, PixelSize};
 
 /// This is a customized Markdown Drawer powered by pulldown-cmark.
 pub struct MarkdownRenderer;
@@ -33,15 +34,21 @@ impl MarkdownRenderer {
         struct QuoteState {
             level: u32,
         }
+
+        struct HeaderState{
+            level: Option<HeadingLevel>
+        }
         let mut list_stack: Vec<ListState> = Vec::new();
         let mut quote_state: QuoteState = QuoteState { level: 0 };
+        let mut header_state: HeaderState = HeaderState { level: None };
 
         for event in parser {
             match event {
                 Event::Start(tag) => {
                     match tag {
+                        Tag::Heading { level: l, id: _, classes: _, attrs: _ } => {
+                        }
                         Tag::Paragraph => {
-                            current_line.push(Span::from("<p>"));
                         }
                         Tag::Strong => {
                             style.set_flag(TextStyleFlag::STRONG);
@@ -113,6 +120,88 @@ impl MarkdownRenderer {
                 },
                 Event::End(tag) => {
                     match tag {
+                        TagEnd::Heading(level) => {
+                            match level {
+                                HeadingLevel::H1 => {
+                                    let text = BigText::builder().lines([Line::from(current_line)]).pixel_size(PixelSize::Full).build();
+                                    text.render(area.offset(Offset{x:0, y:render_offset as i32}).intersection(*area), buffer);
+                                    current_line = Vec::new();
+
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    render_offset += 8;
+
+                                },
+                                HeadingLevel::H2 => {
+                                    let text = BigText::builder().lines([Line::from(current_line)]).pixel_size(PixelSize::HalfWidth).build();
+                                    text.render(area.offset(Offset{x:0, y:render_offset as i32}).intersection(*area), buffer);
+                                    current_line = Vec::new();
+
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    render_offset += 8;
+
+                                },
+                                HeadingLevel::H3 => {
+                                    let text = BigText::builder().lines([Line::from(current_line)]).pixel_size(PixelSize::HalfHeight).build();
+                                    text.render(area.offset(Offset{x:0, y:render_offset as i32}).intersection(*area), buffer);
+                                    current_line = Vec::new();
+
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    render_offset += 4;
+                                },
+                                HeadingLevel::H4 => {
+                                    let text = BigText::builder().lines([Line::from(current_line)]).pixel_size(PixelSize::Quadrant).build();
+                                    text.render(area.offset(Offset{x:0, y:render_offset as i32}).intersection(*area), buffer);
+                                    current_line = Vec::new();
+
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    render_offset += 4;
+                                },
+                                HeadingLevel::H5 => {
+                                    let text = BigText::builder().lines([Line::from(current_line)]).pixel_size(PixelSize::Sextant).build();
+                                    text.render(area.offset(Offset{x:0, y:render_offset as i32}).intersection(*area), buffer);
+                                    current_line = Vec::new();
+
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    render_offset += 3;
+                                },
+                                HeadingLevel::H6 => {
+                                    let text = BigText::builder().lines([Line::from(current_line)]).pixel_size(PixelSize::Octant).build();
+                                    text.render(area.offset(Offset{x:0, y:render_offset as i32}).intersection(*area), buffer);
+                                    current_line = Vec::new();
+
+                                    lines.push(Line::default());
+                                    lines.push(Line::default());
+                                    render_offset += 2;
+                                }
+                                _ => {
+
+                                }
+                            }
+                        }
                         TagEnd::List(_) => {
                             if !list_stack.is_empty() {
                                 list_stack.pop();
@@ -135,7 +224,6 @@ impl MarkdownRenderer {
                             }
                         }
                         TagEnd::Paragraph => {
-                            current_line.push(Span::from("</p>"));
                             if quote_state.level != 0{
                                 current_line.insert(0, Span::from("░ ".repeat(quote_state.level as usize)));
                                 lines.push(Line::from(current_line));
