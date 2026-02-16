@@ -658,7 +658,9 @@ impl GlyphLayoutEditView {
                 ).into(),
                 OptionMenu::new(vec![
                     ("Border: None".to_string(), 0),
-                    ("Border: Plain".to_string(), 1)
+                    ("Border: Plain".to_string(), 1),
+                    ("Border: Dashed".to_string(), 2),
+                    ("Border: Rounded".to_string(), 3),
                 ], 0).on_interact(
                     Box::new(
                         |parent_state, state| {
@@ -679,6 +681,12 @@ impl GlyphLayoutEditView {
                                 }
                                 1 => {
                                     BorderMode::Plain
+                                }
+                                2 => {
+                                    BorderMode::Dashed
+                                }
+                                3 => {
+                                    BorderMode::Rounded
                                 }
                                 _ => {
                                     return Err(Report::msg("Impossible to have another value for border."))
@@ -737,7 +745,9 @@ impl GlyphLayoutEditView {
         };
         let root_layout_border_mode: u8 = match sub_layout.details.border_mode {
             BorderMode::None => 0,
-            BorderMode::Plain => 1
+            BorderMode::Plain => 1,
+            BorderMode::Dashed => 2,
+            BorderMode::Rounded => 3,
         };
         (*self.containers[0]).as_any_mut().downcast_mut::<TextField>().unwrap().replace(root_layout_label);
         (*self.components[0]).as_any_mut().downcast_mut::<OptionMenu>().unwrap().replace(root_layout_size_mode);

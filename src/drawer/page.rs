@@ -338,6 +338,12 @@ impl Drawable for GReadView {
                             BorderMode::Plain => {
                                 Block::bordered().title(section.title.clone().bold())
                             }
+                            BorderMode::Dashed => {
+                                Block::bordered().border_type(BorderType::LightDoubleDashed).title(section.title.clone().bold())
+                            }
+                            BorderMode::Rounded => {
+                                Block::bordered().border_type(BorderType::Rounded).title(section.title.clone().bold())
+                            }
                         };
                         let inner_area: Rect = block.inner(*area);
                         block.render(*area, frame.buffer_mut());
@@ -367,6 +373,12 @@ impl Drawable for GReadView {
                             }
                             BorderMode::Plain => {
                                 Block::bordered().title(section.title.clone().bold())
+                            }
+                            BorderMode::Dashed => {
+                                Block::bordered().border_type(BorderType::LightDoubleDashed).title(section.title.clone().bold())
+                            }
+                            BorderMode::Rounded => {
+                                Block::bordered().border_type(BorderType::Rounded).title(section.title.clone().bold())
                             }
                         };
                         let inner_area: Rect = block.inner(*area);

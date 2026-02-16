@@ -464,6 +464,8 @@ pub enum SizeMode {
 pub enum BorderMode {
     None,
     Plain,
+    Dashed,
+    Rounded
 }
 #[derive(Serialize, Deserialize, Clone)]
 pub struct LayoutDetails {
