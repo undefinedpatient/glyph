@@ -1,6 +1,6 @@
 use crate::app::dialog::{ConfirmDialog, TextInputDialog};
-use crate::app::page::{CreateGlyphPage, GlyphLayoutEditView, GlyphLayoutOverview, GlyphNavigationBar, GlyphPage, OpenGlyphPage};
-use crate::app::page::{EntrancePage, GlyphSectionNavBar, GlyphEditView, GlyphLayoutView, GlyphReadView, GlyphViewer};
+use crate::app::page::{CreateGlyphPage, GlyphLayoutEditView, GlyphLayoutOverview, GNavBar, GlyphPage, OpenGlyphPage};
+use crate::app::page::{EntrancePage, GSectionNavBar, GlyphEditView, GlyphLayoutView, GReadView, GViewer};
 use crate::app::popup::ConfirmPopup;
 
 use crate::app::AppCommand::*;
@@ -325,7 +325,7 @@ impl Interactable for GlyphPage {
     Navigation Bar (Subpage)
  */
 
-impl Interactable for GlyphNavigationBar {
+impl Interactable for GNavBar {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
@@ -461,7 +461,7 @@ impl Interactable for GlyphNavigationBar {
     }
 }
 
-impl Interactable for GlyphViewer {
+impl Interactable for GViewer {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
@@ -581,7 +581,7 @@ impl Interactable for GlyphViewer {
         }
     }
 }
-impl Interactable for GlyphReadView {
+impl Interactable for GReadView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
         match key.kind {
             KeyEventKind::Press => {
@@ -615,7 +615,7 @@ impl Interactable for GlyphReadView {
     }
 }
 
-impl Interactable for GlyphSectionNavBar {
+impl Interactable for GSectionNavBar {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
         match key.kind {
             KeyEventKind::Press => {
@@ -633,16 +633,16 @@ impl Interactable for GlyphSectionNavBar {
                         if sections.len() == 0 {
                             return Ok(Vec::new());
                         }
-                        if self.state.editing_sid.borrow().is_some() {
-                            let editing_sid: i64 = self.state.editing_sid.borrow().unwrap();
+                        if self.state.active_sid.borrow().is_some() {
+                            let editing_sid: i64 = self.state.active_sid.borrow().unwrap();
                             if let Some(selected_section) = sections.get(index) {
                                 if editing_sid == selected_section.0 {
-                                    *self.state.editing_sid.borrow_mut() = None;
+                                    *self.state.active_sid.borrow_mut() = None;
                                     return Ok(vec![GlyphCommand(RefreshEditSectionEditor)]);
                                 }
                             }
                         }
-                        *self.state.editing_sid.borrow_mut() = Some((*sections.get(index).unwrap()).0);
+                        *self.state.active_sid.borrow_mut() = Some((*sections.get(index).unwrap()).0);
                         return Ok(vec![GlyphCommand(RefreshEditSectionEditor)]);
                     }
                 }
@@ -658,7 +658,7 @@ impl Interactable for GlyphSectionNavBar {
                             if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
                                 return Ok(Vec::new());
                             }
-                            if self.state.editing_sid.borrow().is_none() {
+                            if self.state.active_sid.borrow().is_none() {
                                 return Ok(Vec::new());
                             }
                             let mut section: RefMut<Section> = self.get_editing_section_mut();
@@ -675,7 +675,7 @@ impl Interactable for GlyphSectionNavBar {
                             if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
                                 return Ok(Vec::new());
                             }
-                            if self.state.editing_sid.borrow().is_none() {
+                            if self.state.active_sid.borrow().is_none() {
                                 return Ok(Vec::new());
                             }
                             let mut section: RefMut<Section> = self.get_editing_section_mut();
@@ -688,11 +688,11 @@ impl Interactable for GlyphSectionNavBar {
                             return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
                         }
                         'x' => {
-                            if self.state.editing_sid.borrow().is_none() {
+                            if self.state.active_sid.borrow().is_none() {
                                 return Ok(Vec::new());
                             }
-                            let sid: i64 = self.state.editing_sid.borrow().as_ref().unwrap().clone();
-                            self.state.editing_sid.replace(None);
+                            let sid: i64 = self.state.active_sid.borrow().as_ref().unwrap().clone();
+                            self.state.active_sid.replace(None);
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             let eid: i64 = state.active_entry_id.unwrap();
                             state.delete_section_db(&sid)?;
@@ -706,9 +706,36 @@ impl Interactable for GlyphSectionNavBar {
                             )?;
                             return Ok(Vec::new());
                         }
+                        'R' => {
+                            let local_entry_state = self.state.local_entry_state_ref().unwrap();
+                            if self.state.active_sid.borrow().is_none() {
+                                return Ok(Vec::new());
+                            }
+                            let sid = self.state.active_sid.borrow().as_ref().unwrap().clone();
+                            let eid = local_entry_state.active_entry_id.unwrap();
+                            let active_section_name: String = local_entry_state.get_section_ref(&eid, &sid).unwrap().title.clone();
+                            return Ok(
+                                vec![
+                                    PageCommand(
+                                        PushDialog(
+                                            TextInputDialog::new( "Rename Section Title", active_section_name.as_str()).on_submit(
+                                                // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
+                                                Box::new(move |parent_state, state| {
+                                                    let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                                    let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
+                                                    let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
+                                                    let new_name: &str = _state.text_input.as_str();
+                                                    local_entry_state.update_section_name_db(&sid, new_name)?;
+                                                    Ok(vec![])
+                                                })
+                                            ).into()
+                                        )
+                                    )
+                                ]
+                            );
+                        }
                         _ => {
                             return Ok(Vec::new());
-
                         }
                     }
                 }

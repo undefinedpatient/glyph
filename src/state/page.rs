@@ -90,7 +90,7 @@ pub struct GlyphEditOrderState {
 
 
     // Shared Data
-    pub editing_sid: Rc<RefCell<Option<i64>>>,
+    pub active_sid: Rc<RefCell<Option<i64>>>,
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
 /*

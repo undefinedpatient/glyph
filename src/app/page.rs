@@ -214,8 +214,8 @@ impl GlyphPage {
         Self {
             dialogs: Vec::new(),
             containers: vec![
-                GlyphNavigationBar::new(entry_state.clone()).into(),
-                GlyphViewer::new(entry_state.clone()).into(),
+                GNavBar::new(entry_state.clone()).into(),
+                GViewer::new(entry_state.clone()).into(),
                 // GlyphOldViewer::new(entry_state.clone()).into()
             ],
             components: Vec::new(),
@@ -247,11 +247,11 @@ impl From<GlyphPage> for Box<dyn Container> {
     Glyph Navigation Bar (SubPage)
  */
 
-pub struct GlyphNavigationBar {
+pub struct GNavBar {
     pub state: GlyphNavigationBarState
 }
 
-impl GlyphNavigationBar {
+impl GNavBar {
     pub fn new(entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         Self {
             state: GlyphNavigationBarState {
@@ -305,8 +305,8 @@ impl GlyphNavigationBar {
 
 }
 
-impl From<GlyphNavigationBar> for Box<dyn Container> {
-    fn from(component: GlyphNavigationBar) -> Self {
+impl From<GNavBar> for Box<dyn Container> {
+    fn from(component: GNavBar) -> Self {
         Box::new(component)
     }
 }
@@ -320,11 +320,11 @@ impl From<GlyphNavigationBar> for Box<dyn Container> {
 
 
 // Mediator
-pub struct GlyphViewer {
+pub struct GViewer {
     pub(crate) state: GlyphViewerState,
     pub(crate) containers: [Box<dyn Container>; 3],
 }
-pub struct GlyphReadView {
+pub struct GReadView {
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
     pub state: GlyphReadState,
@@ -337,7 +337,7 @@ pub struct GlyphEditView {
     pub state: GlyphEditState,
 }
 
-pub struct GlyphSectionNavBar {
+pub struct GSectionNavBar {
     pub state: GlyphEditOrderState,
 }
 
@@ -359,12 +359,12 @@ pub struct GlyphLayoutEditView {
 }
 
 
-impl GlyphViewer {
+impl GViewer {
     pub fn new(entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         let shared_focus: Rc<RefCell<bool>> = Rc::new(RefCell::new(false));
         Self {
             containers: [
-                GlyphReadView::new(shared_focus.clone(), entry_state.clone()).into(),
+                GReadView::new(shared_focus.clone(), entry_state.clone()).into(),
                 GlyphEditView::new(shared_focus.clone(), entry_state.clone()).into(),
                 GlyphLayoutView::new(shared_focus.clone(), entry_state.clone()).into(),
             ],
@@ -376,7 +376,7 @@ impl GlyphViewer {
         }
     }
 }
-impl GlyphReadView {
+impl GReadView {
     pub fn new(shared_focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         let scroll_state = RefCell::new(ScrollViewState::default());
         Self {
@@ -396,7 +396,7 @@ impl GlyphEditView {
         let is_editing: bool = false;
         Self {
             containers: vec![
-                GlyphSectionNavBar::new(editing_sid.clone(), entry_state.clone()).into(),
+                GSectionNavBar::new(editing_sid.clone(), entry_state.clone()).into(),
                 TextEditor::new("Editor", "")
                     .on_exit(Box::new(
                         |parent_state, state| {
@@ -453,7 +453,7 @@ impl GlyphEditView {
         }
     }
 }
-impl GlyphSectionNavBar {
+impl GSectionNavBar {
     pub fn new(
         editing_sid: Rc<RefCell<Option<i64>>>,
         entry_state: Rc<RefCell<LocalEntryState>>,
@@ -462,7 +462,7 @@ impl GlyphSectionNavBar {
             state: GlyphEditOrderState {
                 hovered_index: None,
 
-                editing_sid,
+                active_sid: editing_sid,
                 entry_state
             }
         }
@@ -481,7 +481,7 @@ impl GlyphSectionNavBar {
 
     /// Return the active selected section as Mutable Reference
     pub(crate) fn get_editing_section_mut(&'_ mut self) -> RefMut<'_, Section> {
-        let editing_sid: i64 = self.state.editing_sid.borrow().unwrap().clone();
+        let editing_sid: i64 = self.state.active_sid.borrow().unwrap().clone();
         let entry_state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
         let active_entry_id: i64 = entry_state.active_entry_id.unwrap();
         RefMut::map(entry_state, |state|{
@@ -747,13 +747,13 @@ impl GlyphLayoutEditView {
     }
 }
 
-impl From<GlyphViewer> for Box<dyn Container> {
-    fn from(container: GlyphViewer) -> Self {
+impl From<GViewer> for Box<dyn Container> {
+    fn from(container: GViewer) -> Self {
         Box::new(container)
     }
 }
-impl From<GlyphReadView> for Box<dyn Container> {
-    fn from(container: GlyphReadView) -> Self {
+impl From<GReadView> for Box<dyn Container> {
+    fn from(container: GReadView) -> Self {
         Box::new(container)
     }
 }
@@ -762,8 +762,8 @@ impl From<GlyphEditView> for Box<dyn Container> {
         Box::new(container)
     }
 }
-impl From<GlyphSectionNavBar> for Box<dyn Container> {
-    fn from(container: GlyphSectionNavBar) -> Self {
+impl From<GSectionNavBar> for Box<dyn Container> {
+    fn from(container: GSectionNavBar) -> Self {
         Box::new(container)
     }
 }

@@ -1,4 +1,4 @@
-use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphSectionNavBar, GlyphEditView, GlyphLayoutEditView, GlyphLayoutOverview, GlyphLayoutView, GlyphNavigationBar, GlyphPage, GlyphReadView, GlyphViewer, OpenGlyphPage};
+use crate::app::page::{CreateGlyphPage, EntrancePage, GSectionNavBar, GlyphEditView, GlyphLayoutEditView, GlyphLayoutOverview, GlyphLayoutView, GNavBar, GlyphPage, GReadView, GViewer, OpenGlyphPage};
 use crate::app::Container;
 use crate::event_handler::Focusable;
 
@@ -119,7 +119,7 @@ impl Focusable for GlyphPage {
 /*
     Navigation Bar (Subpage)
  */
-impl Focusable for GlyphNavigationBar {
+impl Focusable for GNavBar {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
@@ -139,7 +139,7 @@ impl Focusable for GlyphNavigationBar {
 /*
     Glyph Viewers
  */
-impl Focusable for GlyphViewer {
+impl Focusable for GViewer {
     fn is_focused(&self) -> bool {
         self.state.is_focused.borrow().clone()
     }
@@ -157,7 +157,7 @@ impl Focusable for GlyphViewer {
         None
     }
 }
-impl Focusable for GlyphReadView {
+impl Focusable for GReadView {
     fn is_focused(&self) -> bool {
         self.state.is_focused.borrow().clone()
     }
@@ -208,7 +208,7 @@ impl Focusable for GlyphEditView {
     }
 }
 
-impl Focusable for GlyphSectionNavBar {
+impl Focusable for GSectionNavBar {
     fn is_focused(&self) -> bool {
         false
     }

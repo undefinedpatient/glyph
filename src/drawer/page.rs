@@ -1,4 +1,4 @@
-use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphSectionNavBar, GlyphEditView, GlyphLayoutEditView, GlyphLayoutOverview, GlyphLayoutView, GlyphNavigationBar, GlyphPage, GlyphReadView, GlyphViewer, OpenGlyphPage};
+use crate::app::page::{CreateGlyphPage, EntrancePage, GSectionNavBar, GlyphEditView, GlyphLayoutEditView, GlyphLayoutOverview, GlyphLayoutView, GNavBar, GlyphPage, GReadView, GViewer, OpenGlyphPage};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use crate::markdown_renderer::MarkdownRenderer;
@@ -208,7 +208,7 @@ impl Drawable for GlyphPage {
     Navigation Bar (Subpage)
  */
 
-impl Drawable for GlyphNavigationBar {
+impl Drawable for GNavBar {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
@@ -269,7 +269,7 @@ impl Drawable for GlyphNavigationBar {
     }
 }
 
-impl Drawable for GlyphViewer {
+impl Drawable for GViewer {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
@@ -312,7 +312,7 @@ impl Drawable for GlyphViewer {
         }
     }
 }
-impl Drawable for GlyphReadView {
+impl Drawable for GReadView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
             Evaluate Page Layout via the root layout
@@ -380,7 +380,7 @@ impl Drawable for GlyphReadView {
 
     }
 }
-fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &model::Layout, depth: u16, at: usize) -> Vec<(u16, Rect, BorderMode)> {
+fn evaluate_read_areas(me: &GReadView, area: Rect, layout: &model::Layout, depth: u16, at: usize) -> Vec<(u16, Rect, BorderMode)> {
     let mut target_section_text: String = "None".to_string();
     if let Some(position_target) = layout.section_index {
         target_section_text = position_target.to_string();
@@ -461,7 +461,7 @@ impl Drawable for GlyphEditView {
 }
 
 
-impl Drawable for GlyphSectionNavBar {
+impl Drawable for GSectionNavBar {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
@@ -517,7 +517,7 @@ impl Drawable for GlyphSectionNavBar {
                     border_type = BorderType::Double;
                 }
             }
-            if let Some(focused_sid) = *self.state.editing_sid.borrow() {
+            if let Some(focused_sid) = *self.state.active_sid.borrow() {
                 if focused_sid == *sid {
                     border_type = BorderType::Thick
                 }

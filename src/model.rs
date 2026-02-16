@@ -169,6 +169,16 @@ impl LocalEntryState {
             None
         }
     }
+    /// Update section's name by its id, this function interact and update database.
+    pub fn update_section_name_db(&mut self, sid: &i64, new_name: &str) -> Result<()> {
+
+        SectionRepository::update_name(&self.connection, &sid, new_name)?;
+        let (eid, sid, section): (i64, i64, Section) = SectionRepository::read_by_id(&self.connection, &sid)?.unwrap();
+
+        let current_section: &mut Section = self.get_section_mut(&eid, &sid).unwrap();
+        current_section.title = section.title;
+        Ok(())
+    }
 
     /// Create a new section and insert it into database.
     pub fn create_section_to_active_entry_db(&mut self, title: &str, content: &str) -> Result<i64> {
@@ -617,6 +627,20 @@ impl SectionRepository {
         )?;
         let id = c.last_insert_rowid();
         return Ok(id);
+    }
+    pub fn update_name(c: &Connection, sid: &i64, new_name: &str) -> Result<()> {
+        if c.execute(
+            "
+                UPDATE sections
+                SET
+                    title = ?2
+                WHERE id = ?1
+            ",
+            params![sid, new_name],
+        )? != 1 {
+            return Err(Report::msg("Tried to update name but there is no entry"));
+        }
+        return Ok(());
     }
     pub fn update_section(c: &Connection, sid: &i64, section: &Section) -> Result<i64> {
         c.execute(
