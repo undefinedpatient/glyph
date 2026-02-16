@@ -1,4 +1,4 @@
-use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphEditContentView, GlyphEditOrderView, GlyphEditView, GlyphLayoutEditView, GlyphLayoutOverview, GlyphLayoutView, GlyphNavigationBar, GlyphPage, GlyphReadView, GlyphViewer, OpenGlyphPage};
+use crate::app::page::{CreateGlyphPage, EntrancePage, GlyphSectionNavBar, GlyphEditView, GlyphLayoutEditView, GlyphLayoutOverview, GlyphLayoutView, GlyphNavigationBar, GlyphPage, GlyphReadView, GlyphViewer, OpenGlyphPage};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use crate::markdown_renderer::MarkdownRenderer;
@@ -434,28 +434,25 @@ impl Drawable for GlyphEditView {
         /*
            Container Frame
         */
-        let focused_panel_index = *self.state.focused_panel_index.borrow();
-        let edit_areas = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(2)]).split(area);
+        let edit_areas = Layout::horizontal([Constraint::Length(32), Constraint::Fill(1)]).split(area);
         self.containers[0].render(frame, edit_areas[0],
-                                  if !self.is_focused() {
-                                      DrawFlag::DEFAULT
-                                  }
-                                  else if focused_panel_index == 0 {
-                                      DrawFlag::FOCUSED
-                                  } else {
-                                      DrawFlag::DEFAULT
-                                  },
+                                  get_draw_flag(
+                                      if self.state.is_editing {
+                                          Some(1)
+                                      } else {
+                                          Some(0)
+                                      }
+                                      ,0,Some(!self.state.is_editing)),
                                   theme
         );
         self.containers[1].render(frame, edit_areas[1],
-                                  if !self.is_focused() {
-                                      DrawFlag::DEFAULT
-                                  }
-                                  else if focused_panel_index == 1 {
-                                      DrawFlag::FOCUSED
-                                  } else {
-                                      DrawFlag::DEFAULT
-                                  },
+                                  get_draw_flag(
+                                      if self.state.is_editing {
+                                          Some(1)
+                                      } else {
+                                          Some(0)
+                                      }
+                                      ,1,Some(self.state.is_editing)),
                                   theme
                                   ,
         );
@@ -464,17 +461,30 @@ impl Drawable for GlyphEditView {
 }
 
 
-impl Drawable for GlyphEditOrderView{
+impl Drawable for GlyphSectionNavBar {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
         */
-        let mut widget_frame: Block = block!("", draw_flag, theme).title(Line::from("(q)").right_aligned());
-        let inner_area = widget_frame.inner(area);
-        widget_frame.render(area, frame.buffer_mut());
+        let mut block: Block = Block::bordered();
+        match draw_flag {
+            DrawFlag::DEFAULT => {
+
+            }
+            DrawFlag::HIGHLIGHTING => {
+
+            }
+            DrawFlag::FOCUSED => {
+                block = block.border_type(BorderType::Thick);
+            }
+        }
+        let inner_area: Rect = block.inner(area);
+        block.render(area, frame.buffer_mut());
 
 
+        /*
 
+         */
         let state = self.state.entry_state.borrow();
         let eid = state.active_entry_id.unwrap();
         let section_list: &Vec<(i64, Section)> = state.get_sections_ref(&eid);
@@ -483,7 +493,7 @@ impl Drawable for GlyphEditOrderView{
         let mut stack_height = 0;
         let section_constraints: Vec<Constraint> = section_list.iter().take_while(
             |(i64, section)|{
-                if stack_height>area.height {
+                if stack_height>inner_area.height {
                     return false;
                 }
                 let estimate_num_of_lines: usize = section.content.lines().count().clamp(3,12) + 2; // Adding 2 counts for the border space.
@@ -516,50 +526,20 @@ impl Drawable for GlyphEditOrderView{
                 border_type
             );
             let inner_area = block.inner(section_areas[index]);
-            block.title(section.title.as_str()).title_bottom(String::from("Position: ") + format!("{}", section.position).as_str()).render(section_areas[index], frame.buffer_mut());
+            block.title(
+                if section.title.is_empty() {
+                    "<Empty Title>".dim()
+                } else {
+                    section.title.as_str().not_dim()
+
+                }
+            ).title_top(Line::from(String::from("Position: ") + format!("{}", section.position).as_str()).right_aligned())
+                .render(section_areas[index], frame.buffer_mut());
             MarkdownRenderer::render_markdown(section.content.as_str(), &inner_area, frame.buffer_mut(), theme);
         }
     }
 }
 
-impl Drawable for GlyphEditContentView {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
-        /*
-           Container Frame
-        */
-        let mut widget_frame: Block = block!("", draw_flag, theme).title_top("(e)");
-
-
-        // When has no editing sid
-        if self.state.editing_sid.borrow().is_none() {
-            widget_frame = widget_frame.dim();
-        }
-
-        let inner_area = widget_frame.inner(area);
-        widget_frame.render(area, frame.buffer_mut());
-        let areas = Layout::vertical([Constraint::Length(3), Constraint::Fill(3), Constraint::Length(1)]).flex(Flex::SpaceBetween).split(inner_area);
-        let button_areas = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(areas[2]);
-
-        let hover_index = self.state.hovered_index;
-        self.containers[0].render(frame, areas[0],
-
-                                  get_draw_flag(hover_index, 0, Some(self.containers[0].is_focused())),
-                                  theme
-        );
-        self.containers[1].render(frame,areas[1],
-                                  get_draw_flag(hover_index, 1, Some(self.containers[1].is_focused())),
-                                  theme
-        );
-        self.components[0].render(frame, button_areas[0],
-                                  get_draw_flag(hover_index, 2, None),
-                                  theme
-        );
-        self.components[1].render(frame, button_areas[1],
-                                  get_draw_flag(hover_index, 3, None),
-                                  theme
-        );
-    }
-}
 
 impl Drawable for GlyphLayoutView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
@@ -706,10 +686,7 @@ fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, la
         block = block.title_bottom(Line::from("(Disabled)").dim());
     } else {
         block = block.title_bottom(Line::from(target_section_text));
-
     }
-
-
 
     // Process the child
     let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(

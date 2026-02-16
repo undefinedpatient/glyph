@@ -76,32 +76,23 @@ pub struct GlyphReadState {
 
 pub struct GlyphEditState {
     pub shared_focus: Rc<RefCell<bool>>, // Shared state across all view
-    pub focused_panel_index: Rc<RefCell<usize>>, // It is either Ordering or Editing
     pub hovered_index: Option<usize>,
     // Shared Data
 
-    pub editing_sid: Rc<RefCell<Option<i64>>>,
+    pub is_editing: bool, // It is either Ordering or Editing
+    pub active_sid: Rc<RefCell<Option<i64>>>,
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
 
 
 pub struct GlyphEditOrderState {
     pub hovered_index: Option<usize>,
-    pub focused_panel_index: Rc<RefCell<usize>>, // It is either Ordering or Editing
+
 
     // Shared Data
     pub editing_sid: Rc<RefCell<Option<i64>>>,
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
-pub struct GlyphEditContentState {
-    pub hovered_index: Option<usize>,
-    pub focused_panel_index: Rc<RefCell<usize>>, // It is either Ordering or Editing
-    pub section_buffer: Option<Section>,
-    // Shared Data
-    pub editing_sid: Rc<RefCell<Option<i64>>>,
-    pub entry_state: Rc<RefCell<LocalEntryState>>,
-}
-
 /*
     Layout State
  */
@@ -251,25 +242,6 @@ impl GlyphEditOrderState {
         ).ok()
     }
 }
-impl GlyphEditContentState{
-    pub(crate) fn local_entry_state_ref(&'_  self) -> Option<Ref<'_, LocalEntryState>> {
-        Ref::filter_map(
-            self.entry_state.try_borrow().ok()?,
-            |state| {
-                Some(state)
-            }
-        ).ok()
-    }
-    pub(crate) fn local_entry_state_mut(&'_ mut self) -> Option<RefMut<'_, LocalEntryState>> {
-        RefMut::filter_map(
-            self.entry_state.try_borrow_mut().ok()?,
-            |state| {
-                Some(state)
-            }
-        ).ok()
-    }
-}
-
 impl GlyphLayoutState{
     pub(crate) fn local_entry_state_ref(&'_  self) -> Option<Ref<'_, LocalEntryState>> {
         Ref::filter_map(

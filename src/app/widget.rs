@@ -382,7 +382,7 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
     pub fn move_to_next_word(&mut self) -> Result<()> {
         self.move_to_next_char();
         let _y: usize = self.state.cursor_line_index;
-        let _x: usize = self.state.cursor_index.clamp(0, self.state.lines[_y].len()-1);
+        let _x: usize = self.state.cursor_index.clamp(0, self.state.lines[_y].len().saturating_sub(1));
         if let Some((x, y)) = self.find_next(_x, _y,' ') {
             self.state.cursor_index = x;
         } else {

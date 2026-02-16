@@ -599,7 +599,7 @@ impl EntryRepository {
 struct SectionRepository {}
 impl SectionRepository {
     pub fn read_by_entry_id(c: &Connection, entry_id: &i64) -> Result<Vec<(i64, Section)>> {
-        let mut stmt = c.prepare("SELECT id, entry_id, position, title, content FROM sections WHERE entry_id = ?1")?;
+        let mut stmt = c.prepare("SELECT id, entry_id, position, title, content FROM sections WHERE entry_id = ?1 ORDER BY position ASC")?;
         let mut rows: Rows = stmt.query(params![*entry_id])?;
         let mut sections: Vec<(i64, Section)> = Vec::new();
         while let Some(row) = rows.next()? {
