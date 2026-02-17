@@ -12,7 +12,7 @@ use crate::event_handler::{Focusable, Interactable};
 use crate::state::AppState;
 use crate::theme::Iceberg;
 use page::EntrancePage;
-use crate::app::page::GlyphPage;
+use crate::app::page::GPage;
 use crate::model::GlyphRepository;
 
 pub enum Command {
@@ -177,7 +177,7 @@ impl Application {
     }
     pub fn from(connection: Connection) -> Application {
         Application {
-            page_states: vec![EntrancePage::new().into(), GlyphPage::new(connection).into()],
+            page_states: vec![EntrancePage::new().into(), GPage::new(connection).into()],
             popup_states: Vec::new(),
             state: AppState {
                 theme: Iceberg,

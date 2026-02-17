@@ -1,6 +1,6 @@
 use crate::app::dialog::{ConfirmDialog, TextInputDialog};
-use crate::app::page::{CreateGlyphPage, GlyphLayoutEditView, GlyphLayoutOverview, GNavBar, GlyphPage, OpenGlyphPage};
-use crate::app::page::{EntrancePage, GSectionNavBar, GlyphEditView, GlyphLayoutView, GReadView, GViewer};
+use crate::app::page::{GCreatePage, GLayoutEditView, GLayoutOverview, GNavBar, GPage, GOpenPage};
+use crate::app::page::{EntrancePage, GSectionNavBar, GEditView, GLayoutView, GReadView, GViewer};
 use crate::app::popup::ConfirmPopup;
 
 use crate::app::AppCommand::*;
@@ -60,7 +60,7 @@ impl Interactable for EntrancePage {
         Ok(Vec::new())
     }
 }
-impl Interactable for CreateGlyphPage {
+impl Interactable for GCreatePage {
     fn handle(
         &mut self,
         key: &KeyEvent,
@@ -136,7 +136,7 @@ impl Interactable for CreateGlyphPage {
                                                     vec![
                                                         PageCommand(PopDialog),
                                                         AppCommand(PushPage(
-                                                            GlyphPage::new(connection.unwrap()).into()
+                                                            GPage::new(connection.unwrap()).into()
                                                         )),
                                                         AppCommand(PopPage)
                                                     ]
@@ -162,7 +162,7 @@ impl Interactable for CreateGlyphPage {
         }
     }
 }
-impl Interactable for OpenGlyphPage {
+impl Interactable for GOpenPage {
     fn handle(
         &mut self,
         key: &KeyEvent,
@@ -212,7 +212,7 @@ impl Interactable for OpenGlyphPage {
     }
 }
 
-impl Interactable for GlyphPage {
+impl Interactable for GPage {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         /*
             Process Dialog
@@ -486,8 +486,8 @@ impl Interactable for GViewer {
 
                                         // Dangerous Cheating here
                                         (*(*self.containers[2])
-                                            .as_any_mut().downcast_mut::<GlyphLayoutView>().unwrap().containers[1])
-                                            .as_any_mut().downcast_mut::<GlyphLayoutEditView>().unwrap().refresh_layout_edit_panel();
+                                            .as_any_mut().downcast_mut::<GLayoutView>().unwrap().containers[1])
+                                            .as_any_mut().downcast_mut::<GLayoutEditView>().unwrap().refresh_layout_edit_panel();
                                     }
                                     GlyphMode::Layout => {
                                         self.state.mode = GlyphMode::Read;
@@ -749,7 +749,7 @@ impl Interactable for GSectionNavBar {
         }
     }
 }
-impl Interactable for GlyphEditView {
+impl Interactable for GEditView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
         if self.state.is_editing {
             self.containers[1].handle(key, Some(&mut self.state))
@@ -801,39 +801,26 @@ impl Interactable for GlyphEditView {
 
 
 
-impl Interactable for GlyphLayoutView {
+impl Interactable for GLayoutView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
-        let focused_panel_index = *self.state.focused_panel_index.borrow();
-        if focused_panel_index == 1 {
-            let result = self.containers[1].as_mut().handle(key, Some(&mut self.state));
-            return if result.is_err() {
-                result
-            } else {
-                let mut processed_commands: Vec<Command> = Vec::new();
-                let mut commands = result?;
-                while let Some(command) = commands.pop() {
-                    match command {
-                        GlyphCommand(com) => {
-                            match com {
-                                RefreshLayoutEditPanel => {
-                                    (*self.containers[1]).as_any_mut().downcast_mut::<GlyphLayoutEditView>().unwrap().refresh_layout_edit_panel();
-                                }
-                                _ => {
-                                    processed_commands.insert(0, GlyphCommand(com));
-                                }
-                            }
-                        }
-                        _ => {
-                            processed_commands.insert(0, command);
+        if self.state.is_editing {
+            self.containers[1].as_mut().handle(key, Some(&mut self.state))
+        } else {
+            match key.kind {
+                KeyEventKind::Press => {
+                    if let KeyCode::Esc = key.code {
+                        if self.state.selected_coordinate.borrow().is_empty() {
+                            self.state.shared_focus.replace(false);
                         }
                     }
                 }
-                Ok(processed_commands)
+                _ => {
+
+                }
             }
-        } else {
             let result = self.containers[0].as_mut().handle(key, Some(&mut self.state));
-            return if result.is_err() {
-                result
+                return if result.is_err() {
+                    result
             } else {
                 let mut processed_commands: Vec<Command> = Vec::new();
                 let mut commands = result?;
@@ -842,7 +829,7 @@ impl Interactable for GlyphLayoutView {
                         GlyphCommand(com) => {
                             match com {
                                 RefreshLayoutEditPanel => {
-                                    (*self.containers[1]).as_any_mut().downcast_mut::<GlyphLayoutEditView>().unwrap().refresh_layout_edit_panel();
+                                    (*self.containers[1]).as_any_mut().downcast_mut::<GLayoutEditView>().unwrap().refresh_layout_edit_panel();
                                 }
                                 _ => {
                                     processed_commands.insert(0, GlyphCommand(com));
@@ -860,7 +847,7 @@ impl Interactable for GlyphLayoutView {
 
     }
 }
-impl Interactable for GlyphLayoutOverview {
+impl Interactable for GLayoutOverview {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
         match key.kind {
             KeyEventKind::Press => {
@@ -909,7 +896,8 @@ impl Interactable for GlyphLayoutOverview {
                 if let KeyCode::Char(c) = key.code {
                     match c {
                         'e' => {
-                            *self.state.focused_panel_index.borrow_mut() = 1;
+                            let parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutState>().unwrap();
+                            parent_state.is_editing = true;
                             return Ok(Vec::new());
                         }
                         'A' => {
@@ -1023,14 +1011,14 @@ impl Interactable for GlyphLayoutOverview {
     }
 }
 
-impl Interactable for GlyphLayoutEditView {
+impl Interactable for GLayoutEditView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
         if self.focused_child_ref().is_none() {
             match key.kind {
                 KeyEventKind::Press => {
                     if let KeyCode::Esc = key.code {
                         let parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutState>().unwrap();
-                        *parent_state.shared_focus.borrow_mut() = false;
+                        parent_state.is_editing = false;
                         return Ok(Vec::new());
                     }
                     if is_cycle_forward_hover_key(key) {
@@ -1040,18 +1028,6 @@ impl Interactable for GlyphLayoutEditView {
                     if is_cycle_backward_hover_key(key) {
                         self.cycle_hover(-1);
                         return Ok(Vec::new());
-                    }
-                    if let KeyCode::Char(c) = key.code {
-                        match c {
-                            'q' => {
-                                *self.state.focused_panel_index.borrow_mut() = 0;
-                                return Ok(Vec::new());
-                            }
-                            _ => {
-                                return Ok(Vec::new());
-
-                            }
-                        }
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.state.hovered_index {

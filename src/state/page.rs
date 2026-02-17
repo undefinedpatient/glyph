@@ -99,7 +99,7 @@ pub struct GlyphEditOrderState {
 
 pub struct GlyphLayoutState {
     pub shared_focus: Rc<RefCell<bool>>, // Shared state across all layout view
-    pub focused_panel_index: Rc<RefCell<usize>>, // It is either Ordering or Editing
+    pub is_editing: bool, // It is either Ordering or Editing
 
     // Shared Data
     pub selected_coordinate: Rc<RefCell<Vec<usize>>>,
@@ -107,7 +107,6 @@ pub struct GlyphLayoutState {
 }
 
 pub struct GlyphLayoutOverviewState {
-    pub focused_panel_index: Rc<RefCell<usize>>, // It is either Viewing or Editing
     pub hovered_index: Option<usize>, // Note this is the hovered index for sub-layouts, not widgets.
     pub scroll_state: RefCell<ScrollViewState>,
 
@@ -120,7 +119,6 @@ pub struct GlyphLayoutOverviewState {
 }
 
 pub struct GlyphLayoutEditState {
-    pub focused_panel_index: Rc<RefCell<usize>>, // It is either Viewing or Editing
     pub hovered_index: Option<usize>,
 
     // Shared Data

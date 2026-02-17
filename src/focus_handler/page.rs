@@ -1,4 +1,4 @@
-use crate::app::page::{CreateGlyphPage, EntrancePage, GSectionNavBar, GlyphEditView, GlyphLayoutEditView, GlyphLayoutOverview, GlyphLayoutView, GNavBar, GlyphPage, GReadView, GViewer, OpenGlyphPage};
+use crate::app::page::{GCreatePage, EntrancePage, GSectionNavBar, GEditView, GLayoutEditView, GLayoutOverview, GLayoutView, GNavBar, GPage, GReadView, GViewer, GOpenPage};
 use crate::app::Container;
 use crate::event_handler::Focusable;
 
@@ -19,7 +19,7 @@ impl Focusable for EntrancePage {
         None
     }
 }
-impl Focusable for CreateGlyphPage {
+impl Focusable for GCreatePage {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
@@ -51,7 +51,7 @@ impl Focusable for CreateGlyphPage {
         None
     }
 }
-impl Focusable for OpenGlyphPage {
+impl Focusable for GOpenPage {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
@@ -83,7 +83,7 @@ impl Focusable for OpenGlyphPage {
         None
     }
 }
-impl Focusable for GlyphPage {
+impl Focusable for GPage {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
@@ -176,7 +176,7 @@ impl Focusable for GReadView {
     }
 
 }
-impl Focusable for GlyphEditView {
+impl Focusable for GEditView {
 
     fn is_focused(&self) -> bool {
         self.state.shared_focus.borrow().clone()
@@ -224,7 +224,7 @@ impl Focusable for GSectionNavBar {
     }
 }
 
-impl Focusable for GlyphLayoutView {
+impl Focusable for GLayoutView {
     fn is_focused(&self) -> bool {
         self.state.shared_focus.borrow().clone()
     }
@@ -233,28 +233,34 @@ impl Focusable for GlyphLayoutView {
         *focus = value;
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {
-        None
+        if self.state.is_editing {
+            Some(self.containers[1].as_ref())
+        } else {
+            Some(self.containers[0].as_ref())
+        }
     }
     fn focused_child_mut(&mut self) -> Option<&mut dyn Container> {
-        None
+        if self.state.is_editing {
+            Some(self.containers[1].as_mut())
+        } else {
+            Some(self.containers[0].as_mut())
+        }
     }
     fn focused_child_index(&self) -> Option<usize> {
-        None
+        if self.state.is_editing {
+            Some(1)
+        } else {
+            Some(0)
+        }
     }
 
 }
 
-impl Focusable for GlyphLayoutOverview {
+impl Focusable for GLayoutOverview {
     fn is_focused(&self) -> bool {
-        self.state.focused_panel_index.borrow().clone() == 0
+        false
     }
     fn set_focus(&mut self, value: bool) -> () {
-        let mut focused_panel_index = self.state.focused_panel_index.borrow_mut();
-        if value {
-            *focused_panel_index = 0
-        } else {
-            *focused_panel_index = 1
-        }
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {
         None
@@ -267,17 +273,11 @@ impl Focusable for GlyphLayoutOverview {
     }
 }
 
-impl Focusable for GlyphLayoutEditView {
+impl Focusable for GLayoutEditView {
     fn is_focused(&self) -> bool {
-        self.state.focused_panel_index.borrow().clone() == 1
+        false
     }
     fn set_focus(&mut self, value: bool) -> () {
-        let mut focused_panel_index = self.state.focused_panel_index.borrow_mut();
-        if value {
-            *focused_panel_index = 1
-        } else {
-            *focused_panel_index = 0
-        }
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {
         for container in &self.containers {

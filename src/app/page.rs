@@ -29,7 +29,7 @@ impl EntrancePage {
                         vec![
                             AppCommand(
                                 PushPage(
-                                    CreateGlyphPage::new().into()
+                                    GCreatePage::new().into()
                                 )
 
                             )
@@ -41,7 +41,7 @@ impl EntrancePage {
                         vec![
                             AppCommand(
                                 PushPage(
-                                    OpenGlyphPage::new().into()
+                                    GOpenPage::new().into()
                                 )
                             )
                         ]
@@ -85,13 +85,13 @@ impl From<EntrancePage> for Box<dyn Container> {
     }
 }
 
-pub struct CreateGlyphPage {
+pub struct GCreatePage {
     pub dialogs: Vec<Box<dyn Container>>,
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
     pub state: CreateGlyphPageState,
 }
-impl CreateGlyphPage {
+impl GCreatePage {
     pub fn new() -> Self {
         Self {
             dialogs: Vec::new(),
@@ -130,17 +130,17 @@ impl CreateGlyphPage {
         }
     }
 }
-impl From<CreateGlyphPage> for Box<dyn Container> {
-    fn from(page: CreateGlyphPage) -> Self {
+impl From<GCreatePage> for Box<dyn Container> {
+    fn from(page: GCreatePage) -> Self {
         Box::new(page)
     }
 }
-pub struct OpenGlyphPage {
+pub struct GOpenPage {
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
     pub state: OpenGlyphPageState,
 }
-impl OpenGlyphPage {
+impl GOpenPage {
     pub fn new() -> Self {
         Self {
             containers: vec![Box::new(DirectoryList::new("Directory", true,false)
@@ -169,7 +169,7 @@ impl OpenGlyphPage {
                             Ok(vec![
                                 AppCommand(PushPage(
                                     Box::new(
-                                        GlyphPage::new(connection)
+                                        GPage::new(connection)
                                     )
                                 )),
                                 AppCommand(PopPage)
@@ -195,20 +195,20 @@ impl OpenGlyphPage {
         }
     }
 }
-impl From<OpenGlyphPage> for Box<dyn Container> {
-    fn from(page: OpenGlyphPage) -> Self {
+impl From<GOpenPage> for Box<dyn Container> {
+    fn from(page: GOpenPage) -> Self {
         Box::new(page)
     }
 }
 
-pub struct GlyphPage {
+pub struct GPage {
     pub dialogs: Vec<Box<dyn Container>>,
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
     pub state: GlyphPageState
 }
 
-impl GlyphPage {
+impl GPage {
     pub fn new(connection: Connection) -> Self {
         let entry_state: Rc<RefCell<LocalEntryState>> = Rc::new(RefCell::new(LocalEntryState::new(connection)));
         Self {
@@ -237,8 +237,8 @@ impl GlyphPage {
     }
 }
 
-impl From<GlyphPage> for Box<dyn Container> {
-    fn from(container: GlyphPage) -> Self {
+impl From<GPage> for Box<dyn Container> {
+    fn from(container: GPage) -> Self {
         Box::new(container)
     }
 }
@@ -332,7 +332,7 @@ pub struct GReadView {
 
 
 
-pub struct GlyphEditView {
+pub struct GEditView {
     pub containers: Vec<Box<dyn Container>>,
     pub state: GlyphEditState,
 }
@@ -341,18 +341,18 @@ pub struct GSectionNavBar {
     pub state: GlyphEditOrderState,
 }
 
-pub struct GlyphLayoutView{
+pub struct GLayoutView {
     pub dialogs: Vec<Box<dyn Container>>,
     pub containers: Vec<Box<dyn Container>>,
 
     pub state: GlyphLayoutState,
 }
 
-pub struct GlyphLayoutOverview {
+pub struct GLayoutOverview {
     pub state: GlyphLayoutOverviewState,
 }
 
-pub struct GlyphLayoutEditView {
+pub struct GLayoutEditView {
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
     pub state: GlyphLayoutEditState,
@@ -365,8 +365,8 @@ impl GViewer {
         Self {
             containers: [
                 GReadView::new(shared_focus.clone(), entry_state.clone()).into(),
-                GlyphEditView::new(shared_focus.clone(), entry_state.clone()).into(),
-                GlyphLayoutView::new(shared_focus.clone(), entry_state.clone()).into(),
+                GEditView::new(shared_focus.clone(), entry_state.clone()).into(),
+                GLayoutView::new(shared_focus.clone(), entry_state.clone()).into(),
             ],
             state: GlyphViewerState {
                 is_focused: shared_focus,
@@ -390,7 +390,7 @@ impl GReadView {
         }
     }
 }
-impl GlyphEditView {
+impl GEditView {
     pub fn new(shared_focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         let editing_sid : Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(None));
         let is_editing: bool = false;
@@ -491,22 +491,20 @@ impl GSectionNavBar {
 
 }
 
-impl GlyphLayoutView {
+impl GLayoutView {
     pub fn new(shared_focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
-        let focused_panel_index = Rc::new(RefCell::new(0));
         let selected_coordinate: Rc<RefCell<Vec<usize>>> = Rc::new(RefCell::new(vec![]));
+        let is_editing: bool = false;
         Self {
             dialogs: vec![],
             containers: vec![
-                GlyphLayoutOverview::new(selected_coordinate.clone(), entry_state.clone(), focused_panel_index.clone()).into(),
-                GlyphLayoutEditView::new(selected_coordinate.clone(), entry_state.clone(), focused_panel_index.clone()).into()
+                GLayoutOverview::new(selected_coordinate.clone(), entry_state.clone()).into(),
+                GLayoutEditView::new(selected_coordinate.clone(), entry_state.clone()).into()
             ],
             state: GlyphLayoutState {
                 shared_focus,
-                focused_panel_index,
                 selected_coordinate,
-
-
+                is_editing,
                 entry_state
             }
 
@@ -515,16 +513,14 @@ impl GlyphLayoutView {
     }
 }
 
-impl GlyphLayoutOverview {
+impl GLayoutOverview {
     pub fn new(
         selected_coordinate: Rc<RefCell<Vec<usize>>>,
         entry_state: Rc<RefCell<LocalEntryState>>,
-        focused_panel_index: Rc<RefCell<usize>>,
     ) -> Self {
         let scroll_state = RefCell::new(ScrollViewState::default());
         Self {
             state: GlyphLayoutOverviewState {
-                focused_panel_index,
                 hovered_index: None,
                 selected_coordinate,
                 scroll_state,
@@ -550,11 +546,10 @@ impl GlyphLayoutOverview {
     }
 }
 
-impl GlyphLayoutEditView {
+impl GLayoutEditView {
     pub fn new(
         selected_coordinate: Rc<RefCell<Vec<usize>>>,
         entry_state: Rc<RefCell<LocalEntryState>>,
-        focused_panel_index: Rc<RefCell<usize>>,
     ) -> Self {
         Self {
             containers: vec![
@@ -711,7 +706,6 @@ impl GlyphLayoutEditView {
             ],
 
             state: GlyphLayoutEditState{
-                focused_panel_index,
                 hovered_index: None,
                 selected_coordinate,
 
@@ -767,8 +761,8 @@ impl From<GReadView> for Box<dyn Container> {
         Box::new(container)
     }
 }
-impl From<GlyphEditView> for Box<dyn Container> {
-    fn from(container: GlyphEditView) -> Self {
+impl From<GEditView> for Box<dyn Container> {
+    fn from(container: GEditView) -> Self {
         Box::new(container)
     }
 }
@@ -777,18 +771,18 @@ impl From<GSectionNavBar> for Box<dyn Container> {
         Box::new(container)
     }
 }
-impl From<GlyphLayoutView> for Box<dyn Container> {
-    fn from(container: GlyphLayoutView) -> Self {
+impl From<GLayoutView> for Box<dyn Container> {
+    fn from(container: GLayoutView) -> Self {
         Box::new(container)
     }
 }
-impl From<GlyphLayoutOverview> for Box<dyn Container> {
-    fn from(container: GlyphLayoutOverview) -> Self {
+impl From<GLayoutOverview> for Box<dyn Container> {
+    fn from(container: GLayoutOverview) -> Self {
         Box::new(container)
     }
 }
-impl From<GlyphLayoutEditView> for Box<dyn Container> {
-    fn from(container: GlyphLayoutEditView) -> Self {
+impl From<GLayoutEditView> for Box<dyn Container> {
+    fn from(container: GLayoutEditView) -> Self {
         Box::new(container)
     }
 }

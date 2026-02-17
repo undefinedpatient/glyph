@@ -13,8 +13,6 @@ use std::any::Any;
     Dialog is simply a overlay container, all dialog on_xxx() take two state, parent_state and the state dialog possesses.
     It differs from popup in a way that, it could alter app state.
  */
-
-
 pub struct TextInputDialog {
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
