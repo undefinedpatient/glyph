@@ -38,6 +38,9 @@ impl Interactable for TextInputDialog {
                                 }
                                 2 => {
                                     // Confirm Button
+                                    if ! self.is_valid_input() {
+                                        return Ok(Vec::new());
+                                    }
                                     if let Some(on_submit) = self.on_submit.take() {
                                         let callback_result = on_submit(parent_state, Some(&mut self.state));
                                         if callback_result.is_err() {
@@ -151,6 +154,9 @@ impl Interactable for NumberInputDialog {
                                 }
                                 2 => {
                                     // Confirm Button
+                                    if ! self.is_valid_input() {
+                                        return Ok(Vec::new());
+                                    }
                                     if let Some(on_submit) = self.on_submit.take() {
                                         let callback_result = on_submit(parent_state, Some(&mut self.state));
                                         if callback_result.is_err() {

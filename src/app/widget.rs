@@ -218,11 +218,11 @@ impl From<TextField> for Box<dyn Container> {
 pub struct NumberField {
     pub state: NumberFieldState,
     pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
-    pub validate: Box<dyn Fn(i64) -> bool>
+    pub validate: Box<dyn Fn(&str) -> bool>
 }
 
 impl NumberField {
-    pub fn new(label: &str, default: i16, validate: Box<dyn Fn(i64)->bool>) -> Self {
+    pub fn new(label: &str, default: i16, validate: Box<dyn Fn(&str)->bool>) -> Self {
         Self {
             state: NumberFieldState {
                 is_focused: false,

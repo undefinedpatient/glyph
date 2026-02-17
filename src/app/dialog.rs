@@ -58,7 +58,11 @@ impl TextInputDialog {
         self.on_submit = Some(on_submit);
         self
     }
-
+    
+    pub fn is_valid_input(&self) -> bool {
+        (*self.containers[0]).as_any().downcast_ref::<TextField>().unwrap().state.is_valid
+    }
+    
     pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {
         let max: u16 = (self.containers.len() + self.components.len()) as u16;
         if let Some(hover_index) = self.state.hovered_index {
@@ -128,7 +132,7 @@ pub struct NumberInputDialog {
     pub on_submit: Option<Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 impl NumberInputDialog {
-    pub fn new(field_title: &str, default: i16, validate: Box<dyn Fn(i64)->bool>) -> Self {
+    pub fn new(field_title: &str, default: i16, validate: Box<dyn Fn(&str)->bool>) -> Self {
         Self {
             containers: vec![
                 NumberField::new(
@@ -164,6 +168,9 @@ impl NumberInputDialog {
     pub fn on_submit(mut self, on_submit:Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>) ->Self {
         self.on_submit = Some(on_submit);
         self
+    }
+    pub fn is_valid_input(&self) -> bool {
+        (*self.containers[0]).as_any().downcast_ref::<NumberField>().unwrap().state.is_valid
     }
 
     pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {

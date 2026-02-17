@@ -217,7 +217,7 @@ impl Interactable for NumberField {
                         self.delete_char();
                     }
                     // Validation
-                    self.state.is_valid = (*self.validate)(self.state.chars.iter().collect::<String>().parse::<i64>()?);
+                    self.state.is_valid = (*self.validate)(self.state.chars.iter().collect::<String>().as_str());
                     Ok(Vec::new())
                 }
                 _ => Ok(Vec::new()),

@@ -398,8 +398,7 @@ fn evaluate_read_areas(me: &GReadView, area: Rect, layout: &model::Layout, depth
         target_section_text = position_target.to_string();
     }
 
-    let mut block: Block = Block::new().title(layout.label.as_str()).title_bottom(target_section_text);
-    let recursive_area: Rect = block.inner(area);
+    let mut recursive_area: Rect = area;
     // Process the child
     let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
         |(index, sub)| {

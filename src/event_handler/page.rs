@@ -720,7 +720,7 @@ impl Interactable for GSectionNavBar {
                                 vec![
                                     PageCommand(
                                         PushDialog(
-                                            TextInputDialog::new( "Rename Section Title", active_section_name.as_str(), Box::new(|value|{!value.is_empty()})).on_submit(
+                                            TextInputDialog::new( "Rename Section Title", active_section_name.as_str(), Box::new(|value|{true})).on_submit(
                                                 // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
                                                 Box::new(move |parent_state, state| {
                                                     let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();

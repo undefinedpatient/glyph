@@ -573,7 +573,14 @@ impl GLayoutEditView {
                         }
                     )
                 ).into(),
-                NumberField::new("Length", 0, Box::new(|value|{value.is_positive()})).on_exit(
+                NumberField::new("Length", 0, Box::new(|value|{
+                    let parse = value.parse::<i64>();
+                    if let Ok(value) = parse {
+                        value.is_positive()
+                    } else {
+                        false
+                    }
+                })).on_exit(
                     Box::new(
                         |parent_state, state| {
                             let _parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();
@@ -584,7 +591,7 @@ impl GLayoutEditView {
                             let eid: i64 = local_entry_state.active_entry_id.unwrap();
                             let entry: &mut Entry = local_entry_state.get_entry_mut(&eid).unwrap();
                             let sublayout_to_update = entry.layout.get_layout_at_mut(&coor).unwrap();
-                            let new_value: u16 = _state.chars.iter().collect::<String>().parse().unwrap();
+                            let new_value: u16 = _state.chars.iter().collect::<String>().parse().unwrap_or(42);
                             if sublayout_to_update.details.length != new_value{
                                 sublayout_to_update.details.length = new_value;
                                 return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
@@ -593,7 +600,15 @@ impl GLayoutEditView {
                         }
                     )
                 ).into(),
-                NumberField::new("Flex", 0, Box::new(|value|{value.is_positive()})).on_exit(
+                NumberField::new("Flex", 0, Box::new(|value| {
+                        let parse = value.parse::<i64>();
+                        if let Ok(value) = parse {
+                            value.is_positive()
+                        } else {
+                            false
+                        }
+                    }
+                )).on_exit(
                     Box::new(
                         |parent_state, state| {
                             let _parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();
