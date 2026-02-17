@@ -17,12 +17,14 @@ pub struct TextFieldState {
     pub label: String,
     pub chars: Vec<char>,
     pub cursor_index: usize,
+    pub is_valid: bool,
 }
 pub struct NumberFieldState {
     pub is_focused: bool,
     pub label: String,
     pub chars: Vec<char>,
     pub cursor_index: usize,
+    pub is_valid: bool,
 }
 
 pub enum EditMode {

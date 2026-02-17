@@ -166,6 +166,8 @@ impl Interactable for TextField {
                         self.move_to_previous_char();
                         self.delete_char();
                     }
+                    // Validation
+                    self.state.is_valid = (*self.validate)(self.state.chars.iter().collect::<String>().as_str());
                     Ok(Vec::new())
                 }
                 _ => Ok(Vec::new()),
@@ -214,6 +216,8 @@ impl Interactable for NumberField {
                         self.move_to_previous_char();
                         self.delete_char();
                     }
+                    // Validation
+                    self.state.is_valid = (*self.validate)(self.state.chars.iter().collect::<String>().parse::<i64>()?);
                     Ok(Vec::new())
                 }
                 _ => Ok(Vec::new()),

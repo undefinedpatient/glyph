@@ -125,10 +125,12 @@ impl Interactable for CreateGlyphPage {
                                 2 => {
                                     // Create Button
                                     self.dialogs.push(
-                                        TextInputDialog::new( "Glyph Name", "untitled_glyph")
+                                        TextInputDialog::new( "Glyph Name", "untitled_glyph", Box::new(|value|{!value.is_empty()}))
                                             .on_submit( Box::new(|parent_state, state| {
+                                                
                                                 let _parent_state = parent_state.unwrap().downcast_mut::<CreateGlyphPageState>().unwrap();
                                                 let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
+                                                
                                                 let connection = GlyphRepository::init_glyph_db(&_parent_state.path_to_create.join(_state.text_input.clone()+".glyph"));
                                                 Ok(
                                                     vec![
@@ -360,7 +362,7 @@ impl Interactable for GNavBar {
                                     vec![
                                         PageCommand(
                                             PushDialog(
-                                                TextInputDialog::new( "New Entry Name", "untitled").on_submit(
+                                                TextInputDialog::new( "New Entry Name", "untitled", Box::new(|value|{!value.is_empty()})).on_submit(
                                                     // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
                                                     Box::new(|parent_state, state| {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
@@ -382,7 +384,7 @@ impl Interactable for GNavBar {
                                     vec![
                                         PageCommand(
                                             PushDialog(
-                                                TextInputDialog::new( "Filter Entry", "").on_submit(
+                                                TextInputDialog::new( "Filter Entry", "", Box::new(|value|{true})).on_submit(
                                                     // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
                                                     Box::new(|parent_state, state| {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
@@ -407,7 +409,7 @@ impl Interactable for GNavBar {
                                     vec![
                                         PageCommand(
                                             PushDialog(
-                                                TextInputDialog::new( "Rename Entry", active_entry_name.as_str()).on_submit(
+                                                TextInputDialog::new( "Rename Entry", active_entry_name.as_str(), Box::new(|value|{!value.is_empty()})).on_submit(
                                                     // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
                                                     Box::new(|parent_state, state| {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
@@ -718,7 +720,7 @@ impl Interactable for GSectionNavBar {
                                 vec![
                                     PageCommand(
                                         PushDialog(
-                                            TextInputDialog::new( "Rename Section Title", active_section_name.as_str()).on_submit(
+                                            TextInputDialog::new( "Rename Section Title", active_section_name.as_str(), Box::new(|value|{!value.is_empty()})).on_submit(
                                                 // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
                                                 Box::new(move |parent_state, state| {
                                                     let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();

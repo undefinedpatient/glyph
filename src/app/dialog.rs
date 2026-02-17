@@ -1,4 +1,4 @@
-use crate::app::widget::{LineButton, TextField};
+use crate::app::widget::{LineButton, NumberField, TextField};
 use crate::app::Command::{self, *};
 use crate::app::PageCommand::*;
 use crate::app::{Component, Container};
@@ -23,12 +23,13 @@ pub struct TextInputDialog {
     pub on_submit: Option<Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 impl TextInputDialog {
-    pub fn new(field_title: &str, default: &str) -> Self {
+    pub fn new(field_title: &str, default: &str, validate: Box<dyn Fn(&str)->bool>) -> Self {
         Self {
             containers: vec![
                 TextField::new(
                     field_title,
                     default,
+                    validate,
                 )
                     .on_exit(
                         Box::new(
@@ -129,12 +130,13 @@ pub struct NumberInputDialog {
     pub on_submit: Option<Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 impl NumberInputDialog {
-    pub fn new(field_title: &str, default: i16) -> Self {
+    pub fn new(field_title: &str, default: i16, validate: Box<dyn Fn(i64)->bool>) -> Self {
         Self {
             containers: vec![
-                TextField::new(
+                NumberField::new(
                     field_title,
-                    default.to_string().as_str(),
+                    default,
+                    validate
                 )
                     .on_exit(
                         Box::new(

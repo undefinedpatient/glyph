@@ -116,7 +116,10 @@ impl Drawable for TextField {
         // let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
         let content = self.state.chars.iter().collect::<String>();
         let content_paragraph: Paragraph = Paragraph::new(Line::from(content)).wrap(Wrap{trim: true});
-        let text_field_block: Block = block!(self.state.label.as_str(),draw_flag,theme);
+        let mut text_field_block: Block = block!(self.state.label.as_str(),draw_flag,theme);
+        if !self.state.is_valid {
+            text_field_block = text_field_block.red().title_bottom("Invalid Input");
+        }
         let content_area: Rect = text_field_block.inner(area);
         if self.is_focused() {
             let cursor_position: Position = area.as_position().offset(Offset {
@@ -138,8 +141,11 @@ impl Drawable for NumberField {
         let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
         let text = self.state.chars.iter().collect::<String>();
         let text_line: Line = Line::from(text);
-        let text_field_block: Block = block!(self.state.label.as_str(),draw_flag,theme);
-        let text_line_area: Rect = text_field_block.inner(text_field_area);
+        let mut number_field_block: Block = block!(self.state.label.as_str(),draw_flag,theme);
+        if !self.state.is_valid {
+            number_field_block = number_field_block.red().title_bottom("Invalid Input");
+        }
+        let text_line_area: Rect = number_field_block.inner(text_field_area);
         if self.is_focused() {
             let cursor_position: Position = text_field_area.as_position().offset(Offset {
                 x: 1 + self.state.cursor_index as i32,
@@ -147,7 +153,7 @@ impl Drawable for NumberField {
             });
             frame.set_cursor_position(cursor_position);
         }
-        text_field_block.render(text_field_area, frame.buffer_mut());
+        number_field_block.render(text_field_area, frame.buffer_mut());
         text_line.render(text_line_area, frame.buffer_mut());
     }
 }

@@ -558,7 +558,7 @@ impl GlyphLayoutEditView {
     ) -> Self {
         Self {
             containers: vec![
-                TextField::new("Label", "").on_exit(
+                TextField::new("Label", "", Box::new(|value|{true})).on_exit(
                     Box::new(
                         |parent_state, state| {
                             let _parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();
@@ -578,7 +578,7 @@ impl GlyphLayoutEditView {
                         }
                     )
                 ).into(),
-                NumberField::new("Length", 0).on_exit(
+                NumberField::new("Length", 0, Box::new(|value|{value.is_positive()})).on_exit(
                     Box::new(
                         |parent_state, state| {
                             let _parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();
@@ -598,7 +598,7 @@ impl GlyphLayoutEditView {
                         }
                     )
                 ).into(),
-                NumberField::new("Flex", 0).on_exit(
+                NumberField::new("Flex", 0, Box::new(|value|{value.is_positive()})).on_exit(
                     Box::new(
                         |parent_state, state| {
                             let _parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();

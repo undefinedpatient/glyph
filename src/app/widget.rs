@@ -158,18 +158,21 @@ impl From<DirectoryList> for Box<dyn Container> {
 pub struct TextField {
     pub state: TextFieldState,
     pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+    pub validate: Box<dyn Fn(&str) -> bool>
 }
 
 impl TextField {
-    pub fn new(label: &str, default: &str) -> Self {
+    pub fn new(label: &str, default: &str, validate: Box<dyn Fn(&str)->bool>) -> Self {
         Self {
             state: TextFieldState {
                 is_focused: false,
                 label: label.to_string(),
                 chars: default.chars().collect(),
                 cursor_index: default.len(),
+                is_valid: true,
             },
             on_exit: None,
+            validate
         }
     }
     pub fn replace(&mut self, content: String) -> () {
@@ -215,18 +218,21 @@ impl From<TextField> for Box<dyn Container> {
 pub struct NumberField {
     pub state: NumberFieldState,
     pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+    pub validate: Box<dyn Fn(i64) -> bool>
 }
 
 impl NumberField {
-    pub fn new(label: &str, default: i16) -> Self {
+    pub fn new(label: &str, default: i16, validate: Box<dyn Fn(i64)->bool>) -> Self {
         Self {
             state: NumberFieldState {
                 is_focused: false,
                 label: label.to_string(),
                 chars: default.to_string().chars().collect(),
                 cursor_index: default.to_string().len(),
+                is_valid: true,
             },
             on_exit: None,
+            validate,
         }
     }
     pub fn replace(&mut self, content: i16) -> () {
