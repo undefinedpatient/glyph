@@ -1,20 +1,17 @@
-use std::any::Any;
+use crate::app::widget::line_button::LineButton;
+use crate::app::Command::PageCommand;
+use crate::app::PageCommand::PopDialog;
+use crate::app::{get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable};
+use crate::theme::Theme;
+use crate::utils::cycle_offset;
 use color_eyre::eyre::Result;
 use color_eyre::Report;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::style::Stylize;
 use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Widget};
-use crate::app::{Command, Component, Container};
-use crate::app::Command::PageCommand;
-use crate::app::PageCommand::PopDialog;
-use crate::drawer::{DrawFlag, Drawable};
-use crate::event_handler::{is_cycle_backward_hover_key, is_cycle_forward_hover_key, Interactable};
-use crate::focus_handler::Focusable;
-use crate::theme::Theme;
-use crate::utils::cycle_offset;
-use crate::widget::line_button::LineButton;
+use ratatui::Frame;
+use std::any::Any;
 
 pub struct ConfirmDialogState {
     pub is_focused: bool,
@@ -80,7 +77,7 @@ impl Drawable for ConfirmDialog {
                     .as_any()
                     .downcast_ref::<LineButton>()
                     .unwrap()
-                    .as_line(crate::drawer::get_draw_flag(self.state.hovered_index, 0, None))
+                    .as_line(get_draw_flag(self.state.hovered_index, 0, None))
                     .right_aligned(),
             )
             .title_bottom(
@@ -88,7 +85,7 @@ impl Drawable for ConfirmDialog {
                     .as_any()
                     .downcast_ref::<LineButton>()
                     .unwrap()
-                    .as_line(crate::drawer::get_draw_flag(self.state.hovered_index, 1, None))
+                    .as_line(get_draw_flag(self.state.hovered_index, 1, None))
                     .right_aligned(),
             );
         let inner_dialog_area = dialog_frame.inner(dialog_area);

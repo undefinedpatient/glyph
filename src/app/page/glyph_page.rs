@@ -1,29 +1,26 @@
-use ratatui::widgets::BorderType;
-use std::any::Any;
-use std::cell::{Ref, RefCell, RefMut};
-use std::rc::Rc;
+use crate::app::dialog::confirm_dialog::ConfirmDialog;
+use crate::app::dialog::text_input_dialog::{TextInputDialog, TextInputDialogState};
+use crate::app::page::glyph_viewer::GlyphViewer;
+use crate::app::AppCommand::PopPage;
+use crate::app::Command::{AppCommand, PageCommand};
+use crate::app::PageCommand::{PopDialog, PushDialog};
+use crate::app::{get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable};
+use crate::block;
+use crate::models::entry::Entry;
+use crate::services::LocalEntryState;
+use crate::theme::Theme;
+use crate::utils::cycle_offset;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Offset, Rect};
 use ratatui::prelude::{Line, Span, Widget};
 use ratatui::style::Stylize;
 use ratatui::widgets::Block;
+use ratatui::widgets::BorderType;
+use ratatui::Frame;
 use rusqlite::Connection;
-use crate::app::{Command, Component, Container};
-use crate::app::AppCommand::PopPage;
-use crate::app::Command::{AppCommand, PageCommand};
-use crate::app::PageCommand::{PopDialog, PushDialog};
-use crate::block;
-use crate::dialog::confirm_dialog::ConfirmDialog;
-use crate::dialog::text_input_dialog::{TextInputDialog, TextInputDialogState};
-use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
-use crate::event_handler::{is_cycle_backward_hover_key, is_cycle_forward_hover_key, Interactable};
-use crate::focus_handler::Focusable;
-use crate::model::entry::Entry;
-use crate::page::glyph_viewer::GViewer;
-use crate::services::LocalEntryState;
-use crate::theme::Theme;
-use crate::utils::cycle_offset;
+use std::any::Any;
+use std::cell::{Ref, RefCell, RefMut};
+use std::rc::Rc;
 
 pub struct GlyphPageState {
     pub is_focused: bool,
@@ -65,7 +62,7 @@ impl GlyphPage {
             dialogs: Vec::new(),
             containers: vec![
                 GlyphNavigationBar::new(entry_state.clone()).into(),
-                GViewer::new(entry_state.clone()).into(),
+                GlyphViewer::new(entry_state.clone()).into(),
                 // GlyphOldViewer::new(entry_state.clone()).into()
             ],
             components: Vec::new(),

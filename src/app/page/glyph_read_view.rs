@@ -1,21 +1,18 @@
-use std::any::Any;
-use std::cell::{Ref, RefCell, RefMut};
-use std::rc::Rc;
+use crate::app::{Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable};
+use crate::models::layout::{BorderMode, LayoutOrientation, SizeMode};
+use crate::models::section::Section;
+use crate::services::LocalEntryState;
+use crate::theme::Theme;
+use crate::utils::markdown_renderer::MarkdownRenderer;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect, Size};
 use ratatui::style::Stylize;
 use ratatui::widgets::{Block, BorderType, StatefulWidget, Widget};
+use ratatui::Frame;
+use std::any::Any;
+use std::cell::{Ref, RefCell, RefMut};
+use std::rc::Rc;
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
-use crate::app::{Command, Component, Container};
-use crate::drawer::{DrawFlag, Drawable};
-use crate::event_handler::Interactable;
-use crate::focus_handler::Focusable;
-use crate::markdown_renderer::MarkdownRenderer;
-use crate::model::layout::{BorderMode, LayoutOrientation, SizeMode};
-use crate::model::section::Section;
-use crate::services::LocalEntryState;
-use crate::theme::Theme;
 
 pub struct GlyphReadState {
     pub is_focused: Rc<RefCell<bool>>, // Shared state across all view
@@ -42,17 +39,17 @@ impl GlyphReadState{
         ).ok()
     }
 }
-pub struct GReadView {
+pub struct GlyphReadView {
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
     pub state: GlyphReadState,
 }
-impl From<GReadView> for Box<dyn Container> {
-    fn from(container: GReadView) -> Self {
+impl From<GlyphReadView> for Box<dyn Container> {
+    fn from(container: GlyphReadView) -> Self {
         Box::new(container)
     }
 }
-impl GReadView {
+impl GlyphReadView {
     pub fn new(shared_focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         let scroll_state = RefCell::new(ScrollViewState::default());
         Self {
@@ -66,7 +63,7 @@ impl GReadView {
         }
     }
 }
-impl Drawable for GReadView {
+impl Drawable for GlyphReadView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
             Evaluate Page Layout via the root layout
@@ -146,7 +143,7 @@ impl Drawable for GReadView {
 
     }
 }
-fn evaluate_read_areas(me: &GReadView, area: Rect, layout: &crate::model::layout::Layout, depth: u16, at: usize) -> Vec<(u16, Rect, BorderMode)> {
+fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &crate::models::layout::Layout, depth: u16, at: usize) -> Vec<(u16, Rect, BorderMode)> {
     let mut target_section_text: String = "None".to_string();
     if let Some(position_target) = layout.section_index {
         target_section_text = position_target.to_string();
@@ -194,7 +191,7 @@ fn evaluate_read_areas(me: &GReadView, area: Rect, layout: &crate::model::layout
     areas
 }
 
-impl Interactable for GReadView {
+impl Interactable for GlyphReadView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         match key.kind {
             KeyEventKind::Press => {
@@ -227,7 +224,7 @@ impl Interactable for GReadView {
 
     }
 }
-impl Focusable for GReadView {
+impl Focusable for GlyphReadView {
     fn is_focused(&self) -> bool {
         self.state.is_focused.borrow().clone()
     }

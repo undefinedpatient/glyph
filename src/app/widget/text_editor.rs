@@ -1,18 +1,15 @@
-use ratatui::widgets::BorderType;
-use std::any::Any;
+use crate::app::{Command, Container, DrawFlag, Drawable, Focusable, Interactable};
+use crate::block;
+use crate::theme::Theme;
+use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use ratatui::Frame;
 use ratatui::layout::{Offset, Position, Rect, Rows};
 use ratatui::prelude::{Line, Span, Widget};
-use ratatui::widgets::Block;
-use color_eyre::eyre::Result;
 use ratatui::style::Stylize;
-use crate::app::{Command, Container};
-use crate::block;
-use crate::drawer::{DrawFlag, Drawable};
-use crate::event_handler::Interactable;
-use crate::focus_handler::Focusable;
-use crate::theme::Theme;
+use ratatui::widgets::Block;
+use ratatui::widgets::BorderType;
+use ratatui::Frame;
+use std::any::Any;
 
 pub enum EditMode {
     Normal,

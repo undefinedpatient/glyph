@@ -1,31 +1,28 @@
-use ratatui::prelude::Stylize;
-use std::any::Any;
-use std::cell::{Ref, RefCell, RefMut};
-use std::rc::Rc;
-use color_eyre::Report;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use ratatui::buffer::Buffer;
-use ratatui::Frame;
-use ratatui::layout::{Constraint, Rect, Size};
-use ratatui::prelude::{Line, Style};
-use ratatui::widgets::{Block, BorderType, Padding, StatefulWidget, Widget};
-use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
-use crate::app::{Command, Component, Container};
+use crate::app::widget::button::Button;
+use crate::app::widget::number_field::{NumberField, NumberFieldState};
+use crate::app::widget::option_menu::{OptionMenu, OptionMenuState};
+use crate::app::widget::text_field::{TextField, TextFieldState};
 use crate::app::Command::GlyphCommand;
 use crate::app::GlyphCommand::{RefreshLayoutEditPanel, SetEntryUnsavedState};
+use crate::app::{get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable};
 use crate::block;
-use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
-use crate::event_handler::{is_cycle_backward_hover_key, is_cycle_forward_hover_key, Interactable};
-use crate::focus_handler::Focusable;
-use crate::model::entry::Entry;
-use crate::model::layout::{BorderMode, Layout, LayoutOrientation, SizeMode};
+use crate::models::entry::Entry;
+use crate::models::layout::{BorderMode, Layout, LayoutOrientation, SizeMode};
 use crate::services::LocalEntryState;
 use crate::theme::Theme;
 use crate::utils::cycle_offset;
-use crate::widget::button::Button;
-use crate::widget::number_field::{NumberField, NumberFieldState};
-use crate::widget::option_menu::{OptionMenu, OptionMenuState};
-use crate::widget::text_field::{TextField, TextFieldState};
+use color_eyre::Report;
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use ratatui::buffer::Buffer;
+use ratatui::layout::{Constraint, Rect, Size};
+use ratatui::prelude::Stylize;
+use ratatui::prelude::{Line, Style};
+use ratatui::widgets::{Block, BorderType, Padding, StatefulWidget, Widget};
+use ratatui::Frame;
+use std::any::Any;
+use std::cell::{Ref, RefCell, RefMut};
+use std::rc::Rc;
+use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
 pub struct GlyphLayoutState {
     pub shared_focus: Rc<RefCell<bool>>, // Shared state across all layout view
@@ -53,21 +50,21 @@ impl GlyphLayoutState{
         ).ok()
     }
 }
-pub struct GLayoutView {
+pub struct GlyphLayoutView {
     pub dialogs: Vec<Box<dyn Container>>,
     pub containers: Vec<Box<dyn Container>>,
 
     pub state: GlyphLayoutState,
 }
-impl GLayoutView {
+impl GlyphLayoutView {
     pub fn new(shared_focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         let selected_coordinate: Rc<RefCell<Vec<usize>>> = Rc::new(RefCell::new(vec![]));
         let is_editing: bool = false;
         Self {
             dialogs: vec![],
             containers: vec![
-                GLayoutOverview::new(selected_coordinate.clone(), entry_state.clone()).into(),
-                GLayoutEditView::new(selected_coordinate.clone(), entry_state.clone()).into()
+                GlyphLayoutOverview::new(selected_coordinate.clone(), entry_state.clone()).into(),
+                GlyphLayoutEditView::new(selected_coordinate.clone(), entry_state.clone()).into()
             ],
             state: GlyphLayoutState {
                 shared_focus,
@@ -80,13 +77,13 @@ impl GLayoutView {
         }
     }
 }
-impl From<GLayoutView> for Box<dyn Container> {
-    fn from(container: GLayoutView) -> Self {
+impl From<GlyphLayoutView> for Box<dyn Container> {
+    fn from(container: GlyphLayoutView) -> Self {
         Box::new(container)
     }
 }
 
-impl Drawable for GLayoutView {
+impl Drawable for GlyphLayoutView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
@@ -119,7 +116,7 @@ impl Drawable for GLayoutView {
     }
 
 }
-impl Interactable for GLayoutView {
+impl Interactable for GlyphLayoutView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         if self.state.is_editing {
             self.containers[1].as_mut().handle(key, Some(&mut self.state))
@@ -147,7 +144,7 @@ impl Interactable for GLayoutView {
                         GlyphCommand(com) => {
                             match com {
                                 RefreshLayoutEditPanel => {
-                                    (*self.containers[1]).as_any_mut().downcast_mut::<GLayoutEditView>().unwrap().refresh_layout_edit_panel();
+                                    (*self.containers[1]).as_any_mut().downcast_mut::<GlyphLayoutEditView>().unwrap().refresh_layout_edit_panel();
                                 }
                                 _ => {
                                     processed_commands.insert(0, GlyphCommand(com));
@@ -166,7 +163,7 @@ impl Interactable for GLayoutView {
     }
 }
 
-impl Focusable for GLayoutView {
+impl Focusable for GlyphLayoutView {
     fn is_focused(&self) -> bool {
         self.state.shared_focus.borrow().clone()
     }
@@ -238,10 +235,10 @@ impl GlyphLayoutOverviewState{
         ).ok()
     }
 }
-pub struct GLayoutOverview {
+pub struct GlyphLayoutOverview {
     pub state: GlyphLayoutOverviewState,
 }
-impl GLayoutOverview {
+impl GlyphLayoutOverview {
     pub fn new(
         selected_coordinate: Rc<RefCell<Vec<usize>>>,
         entry_state: Rc<RefCell<LocalEntryState>>,
@@ -274,12 +271,12 @@ impl GLayoutOverview {
     }
 }
 
-impl From<GLayoutOverview> for Box<dyn Container> {
-    fn from(container: GLayoutOverview) -> Self {
+impl From<GlyphLayoutOverview> for Box<dyn Container> {
+    fn from(container: GlyphLayoutOverview) -> Self {
         Box::new(container)
     }
 }
-impl Drawable for GLayoutOverview {
+impl Drawable for GlyphLayoutOverview {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
 
         /*
@@ -307,7 +304,7 @@ impl Drawable for GLayoutOverview {
     }
 }
 
-impl Interactable for GLayoutOverview {
+impl Interactable for GlyphLayoutOverview {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         match key.kind {
             KeyEventKind::Press => {
@@ -473,7 +470,7 @@ impl Interactable for GLayoutOverview {
 
 
 
-impl Focusable for GLayoutOverview {
+impl Focusable for GlyphLayoutOverview {
     fn is_focused(&self) -> bool {
         false
     }
@@ -519,12 +516,12 @@ impl GlyphLayoutEditState{
         ).ok()
     }
 }
-pub struct GLayoutEditView {
+pub struct GlyphLayoutEditView {
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
     pub state: GlyphLayoutEditState,
 }
-impl GLayoutEditView {
+impl GlyphLayoutEditView {
     pub fn new(
         selected_coordinate: Rc<RefCell<Vec<usize>>>,
         entry_state: Rc<RefCell<LocalEntryState>>,
@@ -743,13 +740,13 @@ impl GLayoutEditView {
         (*self.containers[2]).as_any_mut().downcast_mut::<NumberField>().unwrap().replace(root_layout_flex as i16);
     }
 }
-impl From<GLayoutEditView> for Box<dyn Container> {
-    fn from(container: GLayoutEditView) -> Self {
+impl From<GlyphLayoutEditView> for Box<dyn Container> {
+    fn from(container: GlyphLayoutEditView) -> Self {
         Box::new(container)
     }
 }
 
-impl Drawable for GLayoutEditView {
+impl Drawable for GlyphLayoutEditView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
@@ -798,7 +795,7 @@ impl Drawable for GLayoutEditView {
 
     }
 }
-fn evaluate_layout(me: &GLayoutOverview, area: Rect, buffer: &mut Buffer, layout: &crate::model::layout::Layout, depth: u16, at: Vec<usize>, theme: &dyn Theme) -> Vec<(u16, Rect)>{
+fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, layout: &crate::models::layout::Layout, depth: u16, at: Vec<usize>, theme: &dyn Theme) -> Vec<(u16, Rect)>{
     let mut target_section_text: String = "None".to_string();
     if let Some(position_target) = layout.section_index {
         target_section_text = position_target.to_string();
@@ -874,7 +871,7 @@ fn evaluate_layout(me: &GLayoutOverview, area: Rect, buffer: &mut Buffer, layout
     }
     areas
 }
-impl Interactable for GLayoutEditView {
+impl Interactable for GlyphLayoutEditView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         if self.focused_child_ref().is_none() {
             match key.kind {
@@ -933,7 +930,7 @@ impl Interactable for GLayoutEditView {
         }
     }
 }
-impl Focusable for GLayoutEditView {
+impl Focusable for GlyphLayoutEditView {
     fn is_focused(&self) -> bool {
         false
     }

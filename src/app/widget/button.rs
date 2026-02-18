@@ -1,20 +1,20 @@
-use std::any::Any;
-use crossterm::event::KeyEvent;
-use ratatui::Frame;
-use ratatui::layout::Rect;
-use color_eyre::eyre::Result;
-use ratatui::prelude::{Line, Stylize, Widget};
-use crate::app::{Command, Component};
-use crate::drawer::{DrawFlag, Drawable};
-use crate::event_handler::Interactable;
+use crate::app::{Command, Component, DrawFlag, Drawable, Interactable};
 use crate::theme::Theme;
+use color_eyre::eyre::Result;
+use crossterm::event::KeyEvent;
+use ratatui::layout::Rect;
+use ratatui::prelude::Line;
+use ratatui::style::Stylize;
+use ratatui::widgets::Widget;
+use ratatui::Frame;
+use std::any::Any;
 
-pub struct LineButton {
+pub struct Button {
     pub label: String,
 
     pub on_interact: Option<Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
-impl LineButton {
+impl Button {
     pub fn new(label: &str) -> Self {
         Self {
             label: label.to_string(),
@@ -28,37 +28,31 @@ impl LineButton {
         self.on_interact = Some(f);
         self
     }
-
-    pub fn as_line(&self, draw_flag: DrawFlag) -> Line<'_> {
-        let text = self.label.clone().to_string();
-        match draw_flag {
-            DrawFlag::HIGHLIGHTING => Line::from(["[", text.as_str(), "]"].concat()).bold(),
-            _ => Line::from([" ", text.as_str(), " "].concat()),
-        }
-    }
 }
-impl From<LineButton> for Box<dyn Component> {
-    fn from(component: LineButton) -> Self {
+impl From<Button> for Box<dyn Component> {
+    fn from(component: Button) -> Self {
         Box::new(component)
     }
 }
 
-impl Drawable for LineButton {
+impl Drawable for Button {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
-        let text = self.label.clone().to_string();
         match draw_flag {
             DrawFlag::HIGHLIGHTING => {
-                Line::from(["> ", text.as_str(), "  "].concat()).render(area, frame.buffer_mut());
+                Line::from(["> ", self.label.as_str(), "  "].concat())
+                    .bold()
+                    .centered()
+                    .render(area, frame.buffer_mut());
             }
             _ => {
-                Line::from(["  ", text.as_str(), "  "].concat())
-                    .bold()
+                Line::from(self.label.as_str())
+                    .centered()
                     .render(area, frame.buffer_mut());
             }
         }
     }
 }
-impl Interactable for LineButton {
+impl Interactable for Button {
     fn handle(
         &mut self,
         key: &KeyEvent,

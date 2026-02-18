@@ -1,41 +1,38 @@
-use ratatui::prelude::Stylize;
-use ratatui::text::Line;
-use ratatui::widgets::BorderType;
-use std::any::Any;
-use std::path::PathBuf;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use ratatui::Frame;
-use ratatui::layout::{Constraint, Flex, Layout, Rect};
-use ratatui::widgets::{Block, Widget};
-use crate::app::{Command, Component, Container};
+use crate::app::page::glyph_page::GlyphPage;
+use crate::app::widget::button::Button;
+use crate::app::widget::directory_list::{DirectoryList, DirectoryListState};
 use crate::app::AppCommand::{PopPage, PushPage};
 use crate::app::Command::{AppCommand, PageCommand};
 use crate::app::PageCommand::{PopDialog, PushDialog};
+use crate::app::{get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable};
 use crate::block;
 use crate::db::GlyphRepository;
-use crate::dialog::text_input_dialog::{TextInputDialog, TextInputDialogState};
-use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
-use crate::event_handler::{is_cycle_backward_hover_key, is_cycle_forward_hover_key, Interactable};
-use crate::focus_handler::Focusable;
-use crate::page::glyph_page::GlyphPage;
 use crate::theme::Theme;
 use crate::utils::cycle_offset;
-use crate::widget::button::Button;
-use crate::widget::directory_list::{DirectoryList, DirectoryListState};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use ratatui::layout::{Constraint, Flex, Layout, Rect};
+use ratatui::prelude::Stylize;
+use ratatui::text::Line;
+use ratatui::widgets::BorderType;
+use ratatui::widgets::{Block, Widget};
+use ratatui::Frame;
+use std::any::Any;
+use std::path::PathBuf;
+use crate::app::dialog::text_input_dialog::{TextInputDialog, TextInputDialogState};
 
-pub struct CreateGlyphPageState {
+pub struct GlyphCreatePageState {
     pub is_focused: bool,
     pub is_hovered: bool,
     pub hovered_index: Option<usize>,
     pub path_to_create: PathBuf,
 }
-pub struct GCreatePage {
+pub struct GlyphCreatePage {
     pub dialogs: Vec<Box<dyn Container>>,
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
-    pub state: CreateGlyphPageState,
+    pub state: GlyphCreatePageState,
 }
-impl GCreatePage {
+impl GlyphCreatePage {
     pub fn new() -> Self {
         Self {
             dialogs: Vec::new(),
@@ -44,7 +41,7 @@ impl GCreatePage {
                     .on_exit(
                         Box::new(
                             |parent_state, state| {
-                                let _parent_state = parent_state.unwrap().downcast_mut::<CreateGlyphPageState>().unwrap();
+                                let _parent_state = parent_state.unwrap().downcast_mut::<GlyphCreatePageState>().unwrap();
                                 let _state = state.unwrap().downcast_mut::<DirectoryListState>().unwrap();
                                 _parent_state.path_to_create = _state.selected_file_path.clone().unwrap();
                                 Ok(Vec::new())
@@ -57,7 +54,7 @@ impl GCreatePage {
                 Button::new("Back").on_interact(Box::new(|_| Ok(vec![AppCommand(PopPage)]))).into(),
                 Button::new("Create").on_interact(Box::new(|_| { Ok(Vec::new()) } )).into(),
             ],
-            state: CreateGlyphPageState {
+            state: GlyphCreatePageState {
                 is_focused: true,
                 is_hovered: false,
                 hovered_index: None,
@@ -74,12 +71,12 @@ impl GCreatePage {
         }
     }
 }
-impl From<GCreatePage> for Box<dyn Container> {
-    fn from(page: GCreatePage) -> Self {
+impl From<GlyphCreatePage> for Box<dyn Container> {
+    fn from(page: GlyphCreatePage) -> Self {
         Box::new(page)
     }
 }
-impl Drawable for GCreatePage {
+impl Drawable for GlyphCreatePage {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Outer Frame
@@ -135,7 +132,7 @@ impl Drawable for GCreatePage {
         }
     }
 }
-impl Interactable for GCreatePage {
+impl Interactable for GlyphCreatePage {
     fn handle(
         &mut self,
         key: &KeyEvent,
@@ -203,7 +200,7 @@ impl Interactable for GCreatePage {
                                         TextInputDialog::new( "Glyph Name", "untitled_glyph", Box::new(|value|{!value.is_empty()}))
                                             .on_submit( Box::new(|parent_state, state| {
 
-                                                let _parent_state = parent_state.unwrap().downcast_mut::<CreateGlyphPageState>().unwrap();
+                                                let _parent_state = parent_state.unwrap().downcast_mut::<GlyphCreatePageState>().unwrap();
                                                 let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
 
                                                 let connection = GlyphRepository::init_glyph_db(&_parent_state.path_to_create.join(_state.text_input.clone()+".glyph"));
@@ -237,7 +234,7 @@ impl Interactable for GCreatePage {
         }
     }
 }
-impl Focusable for GCreatePage {
+impl Focusable for GlyphCreatePage {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }

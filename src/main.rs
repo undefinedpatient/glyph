@@ -14,23 +14,14 @@ use ratatui::Terminal;
 use rusqlite::Connection;
 
 mod app;
-mod drawer;
-mod event_handler;
-mod focus_handler;
-mod state;
 mod utils;
-mod model;
+mod models;
 mod theme;
-mod markdown_renderer;
 mod services;
 mod db;
-mod popup;
-mod dialog;
-mod widget;
-mod page;
 
 use app::Application;
-use drawer::draw;
+use crate::app::{draw, handle_key_events};
 use crate::db::GlyphRepository;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -72,7 +63,7 @@ fn run<B: Backend>(terminal: &mut Terminal<B>, app: &mut Application) -> io::Res
     loop {
         terminal.draw(|frame| draw(frame, app));
         if let Event::Key(key) = crossterm::event::read()? {
-            event_handler::handle_key_events(&key, app);
+            handle_key_events(&key, app);
         }
         if app.state.should_quit {
             break;

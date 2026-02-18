@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 use color_eyre::Report;
 use rusqlite::{params, Connection, Row, Rows, Statement};
-use crate::model::entry::Entry;
-use crate::model::layout::Layout;
-use crate::model::section::Section;
+use crate::models::entry::Entry;
+use crate::models::layout::Layout;
+use crate::models::section::Section;
 
 pub struct GlyphRepository {}
 

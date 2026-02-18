@@ -3,6 +3,8 @@ use std::fs;
 use std::fs::DirEntry;
 use std::path::{Path, PathBuf};
 
+pub mod markdown_renderer;
+
 pub fn cycle_add(value:u16, offset: u16, max: u16) -> u16 {
     if max == 0 {
         return 0;

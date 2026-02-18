@@ -1,8 +1,8 @@
 /*
     Entry
  */
-use crate::model::layout::Layout;
-use crate::model::section::Section;
+use crate::models::layout::Layout;
+use crate::models::section::Section;
 
 pub struct Entry {
     pub entry_name: String,

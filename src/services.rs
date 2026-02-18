@@ -2,8 +2,8 @@ use crate::db::{EntryRepository, SectionRepository};
 use std::collections::HashSet;
 use color_eyre::Report;
 use rusqlite::Connection;
-use crate::model::entry::Entry;
-use crate::model::section::Section;
+use crate::models::entry::Entry;
+use crate::models::section::Section;
 
 pub struct LocalEntryState {
     /// All entries in the database.

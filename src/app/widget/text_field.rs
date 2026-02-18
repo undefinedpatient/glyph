@@ -1,48 +1,45 @@
-use ratatui::widgets::BorderType;
-use std::any::Any;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use ratatui::Frame;
-use ratatui::layout::{Constraint, Offset, Position, Rect};
-use ratatui::prelude::Line;
-use ratatui::widgets::{Block, Widget};
-use color_eyre::eyre::Result;
-use ratatui::style::Stylize;
-use crate::app::{Command, Container};
+use crate::app::{Command, Container, DrawFlag, Drawable, Focusable, Interactable};
 use crate::block;
-use crate::drawer::{DrawFlag, Drawable};
-use crate::event_handler::Interactable;
-use crate::focus_handler::Focusable;
 use crate::theme::Theme;
+use color_eyre::eyre::Result;
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use ratatui::layout::{Offset, Position, Rect};
+use ratatui::prelude::Line;
+use ratatui::prelude::Stylize;
+use ratatui::widgets::{Block, Paragraph, Wrap};
+use ratatui::widgets::{BorderType, Widget};
+use ratatui::Frame;
+use std::any::Any;
 
-pub struct NumberFieldState {
+pub struct TextFieldState {
     pub is_focused: bool,
     pub label: String,
     pub chars: Vec<char>,
     pub cursor_index: usize,
     pub is_valid: bool,
 }
-pub struct NumberField {
-    pub state: NumberFieldState,
+pub struct TextField {
+    pub state: TextFieldState,
     pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
     pub validate: Box<dyn Fn(&str) -> bool>
 }
 
-impl NumberField {
-    pub fn new(label: &str, default: i16, validate: Box<dyn Fn(&str)->bool>) -> Self {
+impl TextField {
+    pub fn new(label: &str, default: &str, validate: Box<dyn Fn(&str)->bool>) -> Self {
         Self {
-            state: NumberFieldState {
+            state: TextFieldState {
                 is_focused: false,
                 label: label.to_string(),
-                chars: default.to_string().chars().collect(),
-                cursor_index: default.to_string().len(),
+                chars: default.chars().collect(),
+                cursor_index: default.len(),
                 is_valid: true,
             },
             on_exit: None,
-            validate,
+            validate
         }
     }
-    pub fn replace(&mut self, content: i16) -> () {
-        self.state.chars = content.to_string().chars().collect();
+    pub fn replace(&mut self, content: String) -> () {
+        self.state.chars = content.chars().collect();
         self.state.cursor_index = self.state.chars.len();
     }
     pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
@@ -69,34 +66,34 @@ impl NumberField {
     }
 }
 
-impl From<NumberField> for Box<dyn Container> {
-    fn from(component: NumberField) -> Self {
+impl From<TextField> for Box<dyn Container> {
+    fn from(component: TextField) -> Self {
         Box::new(component)
     }
 }
-
-impl Drawable for NumberField {
+impl Drawable for TextField {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
-        let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
-        let text = self.state.chars.iter().collect::<String>();
-        let text_line: Line = Line::from(text);
-        let mut number_field_block: Block = block!(self.state.label.as_str(),draw_flag,theme);
+        // let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
+        let content = self.state.chars.iter().collect::<String>();
+        let content_paragraph: Paragraph = Paragraph::new(Line::from(content)).wrap(Wrap{trim: true});
+        let mut text_field_block: Block = block!(self.state.label.as_str(),draw_flag,theme);
         if !self.state.is_valid {
-            number_field_block = number_field_block.red().title_bottom("Invalid Input");
+            text_field_block = text_field_block.red().title_bottom("Invalid Input");
         }
-        let text_line_area: Rect = number_field_block.inner(text_field_area);
+        let content_area: Rect = text_field_block.inner(area);
         if self.is_focused() {
-            let cursor_position: Position = text_field_area.as_position().offset(Offset {
-                x: 1 + self.state.cursor_index as i32,
-                y: 1,
+            let cursor_position: Position = area.as_position().offset(Offset {
+                x: 1 + (self.state.cursor_index % content_area.width as usize) as i32,
+                y: 1 + (self.state.cursor_index /content_area.width as usize) as i32 ,
             });
             frame.set_cursor_position(cursor_position);
         }
-        number_field_block.render(text_field_area, frame.buffer_mut());
-        text_line.render(text_line_area, frame.buffer_mut());
+        // Clear.render(area, frame.buffer_mut());
+        text_field_block.render(area, frame.buffer_mut());
+        content_paragraph.render(content_area, frame.buffer_mut());
     }
 }
-impl Interactable for NumberField {
+impl Interactable for TextField {
     fn handle(
         &mut self,
         key: &KeyEvent,
@@ -118,10 +115,8 @@ impl Interactable for NumberField {
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Char(c) = key.code {
-                        if c.is_numeric() {
-                            self.insert_char(c);
-                            self.move_to_next_char();
-                        }
+                        self.insert_char(c);
+                        self.move_to_next_char();
                     }
                     if let KeyCode::Left = key.code {
                         self.move_to_previous_char();
@@ -142,7 +137,8 @@ impl Interactable for NumberField {
         }
     }
 }
-impl Focusable for NumberField {
+
+impl Focusable for TextField {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }

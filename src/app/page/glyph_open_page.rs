@@ -1,45 +1,42 @@
-use ratatui::prelude::Stylize;
-use ratatui::widgets::BorderType;
-use ratatui::text::Line;
-use std::any::Any;
-use std::path::PathBuf;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use ratatui::Frame;
-use ratatui::layout::{Constraint, Flex, Layout, Rect};
-use ratatui::widgets::{Block, Widget};
-use crate::app::{Command, Component, Container};
+use crate::app::page::glyph_page::GlyphPage;
+use crate::app::widget::button::Button;
+use crate::app::widget::directory_list::{DirectoryList, DirectoryListState};
 use crate::app::AppCommand::{PopPage, PushPage};
 use crate::app::Command::AppCommand;
+use crate::app::{get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable};
 use crate::block;
 use crate::db::GlyphRepository;
-use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
-use crate::event_handler::{is_cycle_backward_hover_key, is_cycle_forward_hover_key, Interactable};
-use crate::focus_handler::Focusable;
-use crate::page::glyph_page::GlyphPage;
 use crate::theme::Theme;
 use crate::utils::cycle_offset;
-use crate::widget::button::Button;
-use crate::widget::directory_list::{DirectoryList, DirectoryListState};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use ratatui::layout::{Constraint, Flex, Layout, Rect};
+use ratatui::prelude::Stylize;
+use ratatui::text::Line;
+use ratatui::widgets::BorderType;
+use ratatui::widgets::{Block, Widget};
+use ratatui::Frame;
+use std::any::Any;
+use std::path::PathBuf;
 
-pub struct OpenGlyphPageState {
+pub struct GlyphOpenPageState {
     pub is_focused: bool,
     pub is_hovered: bool,
     pub hovered_index: Option<usize>,
     pub path_to_open: PathBuf,
 }
-pub struct GOpenPage {
+pub struct GlyphOpenPage {
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
-    pub state: OpenGlyphPageState,
+    pub state: GlyphOpenPageState,
 }
-impl GOpenPage {
+impl GlyphOpenPage {
     pub fn new() -> Self {
         Self {
             containers: vec![Box::new(DirectoryList::new("Directory", true,false)
                 .on_exit(
                     Box::new(
                         |parent_state, state| {
-                            let _parent_state = parent_state.unwrap().downcast_mut::<OpenGlyphPageState>().unwrap();
+                            let _parent_state = parent_state.unwrap().downcast_mut::<GlyphOpenPageState>().unwrap();
                             let _state = state.unwrap().downcast_mut::<DirectoryListState>().unwrap();
                             _parent_state.path_to_open = _state.selected_file_path.clone().unwrap();
                             Ok(Vec::new())
@@ -55,7 +52,7 @@ impl GOpenPage {
                         {
                             let _parent_state = parent_state
                                 .unwrap()
-                                .downcast_mut::<OpenGlyphPageState>()
+                                .downcast_mut::<GlyphOpenPageState>()
                                 .unwrap();
                             let connection = GlyphRepository::init_glyph_db(&_parent_state.path_to_open)?;
                             Ok(vec![
@@ -70,7 +67,7 @@ impl GOpenPage {
                 ),
                 ).into(),
             ],
-            state: OpenGlyphPageState {
+            state: GlyphOpenPageState {
                 is_focused: true,
                 is_hovered: false,
                 hovered_index: None,
@@ -87,12 +84,12 @@ impl GOpenPage {
         }
     }
 }
-impl From<GOpenPage> for Box<dyn Container> {
-    fn from(page: GOpenPage) -> Self {
+impl From<GlyphOpenPage> for Box<dyn Container> {
+    fn from(page: GlyphOpenPage) -> Self {
         Box::new(page)
     }
 }
-impl Drawable for GOpenPage {
+impl Drawable for GlyphOpenPage {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Outer Frame
@@ -136,7 +133,7 @@ impl Drawable for GOpenPage {
         );
     }
 }
-impl Interactable for GOpenPage {
+impl Interactable for GlyphOpenPage {
     fn handle(
         &mut self,
         key: &KeyEvent,
@@ -185,7 +182,7 @@ impl Interactable for GOpenPage {
         }
     }
 }
-impl Focusable for GOpenPage {
+impl Focusable for GlyphOpenPage {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }

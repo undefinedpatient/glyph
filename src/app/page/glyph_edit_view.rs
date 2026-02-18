@@ -1,27 +1,23 @@
-use std::any::Any;
-use std::cell::{Ref, RefCell, RefMut};
-use std::rc::Rc;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use ratatui::Frame;
-use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::prelude::{Line, Stylize};
-use ratatui::widgets::{Block, BorderType, Widget};
+use crate::app::dialog::text_input_dialog::{TextInputDialog, TextInputDialogState};
+use crate::app::page::glyph_page::GlyphPageState;
+use crate::app::widget::text_editor::{TextEditor, TextEditorState};
 use crate::app::Command::{GlyphCommand, PageCommand};
-use crate::app::{Command, Container};
 use crate::app::GlyphCommand::{RefreshEditSectionEditor, SetEntryUnsavedState};
 use crate::app::PageCommand::PushDialog;
-use crate::dialog::text_input_dialog::{TextInputDialog, TextInputDialogState};
-use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
-use crate::event_handler::{is_cycle_backward_hover_key, is_cycle_forward_hover_key, Interactable};
-use crate::focus_handler::Focusable;
-use crate::markdown_renderer::MarkdownRenderer;
-use crate::model::section::Section;
-use crate::page::glyph_layout_view::GlyphLayoutState;
-use crate::page::glyph_page::GlyphPageState;
+use crate::app::{get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Container, DrawFlag, Drawable, Focusable, Interactable};
+use crate::models::section::Section;
 use crate::services::LocalEntryState;
 use crate::theme::Theme;
 use crate::utils::cycle_offset;
-use crate::widget::text_editor::{TextEditor, TextEditorState};
+use crate::utils::markdown_renderer::MarkdownRenderer;
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::prelude::{Line, Stylize};
+use ratatui::widgets::{Block, BorderType, Widget};
+use ratatui::Frame;
+use std::any::Any;
+use std::cell::{Ref, RefCell, RefMut};
+use std::rc::Rc;
 
 pub struct GlyphEditState {
     pub shared_focus: Rc<RefCell<bool>>, // Shared state across all view
@@ -52,16 +48,16 @@ impl GlyphEditState{
 }
 
 
-pub struct GEditView {
+pub struct GlyphEditView {
     pub containers: Vec<Box<dyn Container>>,
     pub state: GlyphEditState,
 }
-impl From<GEditView> for Box<dyn Container> {
-    fn from(container: GEditView) -> Self {
+impl From<GlyphEditView> for Box<dyn Container> {
+    fn from(container: GlyphEditView) -> Self {
         Box::new(container)
     }
 }
-impl GEditView {
+impl GlyphEditView {
     pub fn new(shared_focus: Rc<RefCell<bool>>, entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         let editing_sid : Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(None));
         let is_editing: bool = false;
@@ -124,7 +120,7 @@ impl GEditView {
         }
     }
 }
-impl Drawable for GEditView {
+impl Drawable for GlyphEditView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
@@ -155,7 +151,7 @@ impl Drawable for GEditView {
     }
 }
 
-impl Interactable for GEditView {
+impl Interactable for GlyphEditView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         if self.state.is_editing {
             self.containers[1].handle(key, Some(&mut self.state))
@@ -205,7 +201,7 @@ impl Interactable for GEditView {
     }
 }
 
-impl Focusable for GEditView {
+impl Focusable for GlyphEditView {
 
     fn is_focused(&self) -> bool {
         self.state.shared_focus.borrow().clone()

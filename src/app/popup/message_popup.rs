@@ -1,18 +1,15 @@
-use std::any::Any;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use ratatui::prelude::{Color, Line, Span};
-use color_eyre::eyre::Result;
-use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Rect};
-use ratatui::style::Stylize;
-use ratatui::widgets::{Block, BorderType, Clear, Padding, Paragraph, Widget, Wrap};
-use crate::app::{Command, Container};
 use crate::app::AppCommand::PopPopup;
 use crate::app::Command::AppCommand;
-use crate::drawer::{DrawFlag, Drawable};
-use crate::event_handler::Interactable;
-use crate::focus_handler::Focusable;
+use crate::app::{Command, Container, DrawFlag, Drawable, Focusable, Interactable};
 use crate::theme::Theme;
+use color_eyre::eyre::Result;
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use ratatui::layout::{Alignment, Constraint, Rect};
+use ratatui::prelude::{Color, Line, Span};
+use ratatui::style::Stylize;
+use ratatui::widgets::{Block, BorderType, Clear, Padding, Paragraph, Widget, Wrap};
+use ratatui::Frame;
+use std::any::Any;
 
 pub struct MessagePopup {
     pub is_focused: bool,

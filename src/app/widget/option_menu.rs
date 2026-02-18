@@ -1,15 +1,13 @@
-use std::any::Any;
+use crate::app::{Command, Component, DrawFlag, Drawable, Interactable};
+use crate::theme::Theme;
+use color_eyre::eyre::Result;
 use crossterm::event::KeyEvent;
-use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::prelude::Line;
-use color_eyre::eyre::Result;
 use ratatui::style::Stylize;
 use ratatui::widgets::Widget;
-use crate::app::{Command, Component};
-use crate::drawer::{DrawFlag, Drawable};
-use crate::event_handler::Interactable;
-use crate::theme::Theme;
+use ratatui::Frame;
+use std::any::Any;
 
 pub struct OptionMenuState {
     pub current_index: u8,

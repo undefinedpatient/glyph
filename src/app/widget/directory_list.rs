@@ -1,20 +1,17 @@
-use ratatui::prelude::Stylize;
-use ratatui::widgets::{BorderType, Widget};
-use std::any::Any;
-use std::path::PathBuf;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use ratatui::Frame;
-use ratatui::layout::{Offset, Rect};
-use ratatui::prelude::{Line, Span};
-use ratatui::widgets::Block;
-use color_eyre::eyre::Result;
-use crate::app::{Command, Container};
+use crate::app::{is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Container, DrawFlag, Drawable, Focusable, Interactable};
 use crate::block;
-use crate::drawer::{DrawFlag, Drawable};
-use crate::event_handler::{is_cycle_backward_hover_key, is_cycle_forward_hover_key, Interactable};
-use crate::focus_handler::Focusable;
 use crate::theme::Theme;
 use crate::utils::{cycle_offset, get_dir_names, get_file_names};
+use color_eyre::eyre::Result;
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use ratatui::layout::{Offset, Rect};
+use ratatui::prelude::Stylize;
+use ratatui::prelude::{Line, Span};
+use ratatui::widgets::Block;
+use ratatui::widgets::{BorderType, Widget};
+use ratatui::Frame;
+use std::any::Any;
+use std::path::PathBuf;
 
 pub struct DirectoryListState {
     pub is_focused: bool,

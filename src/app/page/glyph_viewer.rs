@@ -1,25 +1,22 @@
+use crate::app::page::glyph_edit_view::GlyphEditView;
+use crate::app::page::glyph_layout_view::{GlyphLayoutEditView, GlyphLayoutView};
+use crate::app::page::glyph_read_view::GlyphReadView;
+use crate::app::Command::GlyphCommand;
+use crate::app::GlyphCommand::SetEntryUnsavedState;
+use crate::app::{Command, Container, DrawFlag, Drawable, Focusable, Interactable};
+use crate::block;
+use crate::services::LocalEntryState;
+use crate::theme::Theme;
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use ratatui::layout::{Alignment, Constraint, Rect};
+use ratatui::prelude::Line;
 use ratatui::prelude::Stylize;
 use ratatui::widgets::BorderType;
+use ratatui::widgets::{Block, Paragraph, Widget};
+use ratatui::Frame;
 use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Rect};
-use ratatui::prelude::Line;
-use ratatui::widgets::{Block, Paragraph, Widget};
-use crate::app::{Command, Container};
-use crate::app::Command::GlyphCommand;
-use crate::app::GlyphCommand::SetEntryUnsavedState;
-use crate::block;
-use crate::drawer::{DrawFlag, Drawable};
-use crate::event_handler::Interactable;
-use crate::focus_handler::Focusable;
-use crate::page::glyph_edit_view::GEditView;
-use crate::page::glyph_layout_view::{GLayoutEditView, GLayoutView};
-use crate::page::glyph_read_view::GReadView;
-use crate::services::LocalEntryState;
-use crate::theme::Theme;
 
 pub enum GlyphMode {
     Read,
@@ -53,25 +50,25 @@ impl GlyphViewerState{
     }
 }
 
-pub struct GViewer {
+pub struct GlyphViewer {
     pub(crate) state: GlyphViewerState,
     pub(crate) containers: [Box<dyn Container>; 3],
 }
 
-impl From<GViewer> for Box<dyn Container> {
-    fn from(container: GViewer) -> Self {
+impl From<GlyphViewer> for Box<dyn Container> {
+    fn from(container: GlyphViewer) -> Self {
         Box::new(container)
     }
 }
 
-impl GViewer {
+impl GlyphViewer {
     pub fn new(entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         let shared_focus: Rc<RefCell<bool>> = Rc::new(RefCell::new(false));
         Self {
             containers: [
-                GReadView::new(shared_focus.clone(), entry_state.clone()).into(),
-                GEditView::new(shared_focus.clone(), entry_state.clone()).into(),
-                GLayoutView::new(shared_focus.clone(), entry_state.clone()).into(),
+                GlyphReadView::new(shared_focus.clone(), entry_state.clone()).into(),
+                GlyphEditView::new(shared_focus.clone(), entry_state.clone()).into(),
+                GlyphLayoutView::new(shared_focus.clone(), entry_state.clone()).into(),
             ],
             state: GlyphViewerState {
                 is_focused: shared_focus,
@@ -81,7 +78,7 @@ impl GViewer {
         }
     }
 }
-impl Drawable for GViewer {
+impl Drawable for GlyphViewer {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
@@ -124,7 +121,7 @@ impl Drawable for GViewer {
         }
     }
 }
-impl Interactable for GViewer {
+impl Interactable for GlyphViewer {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
@@ -147,8 +144,8 @@ impl Interactable for GViewer {
 
                                         // Dangerous Cheating here
                                         (*(*self.containers[2])
-                                            .as_any_mut().downcast_mut::<GLayoutView>().unwrap().containers[1])
-                                            .as_any_mut().downcast_mut::<GLayoutEditView>().unwrap().refresh_layout_edit_panel();
+                                            .as_any_mut().downcast_mut::<GlyphLayoutView>().unwrap().containers[1])
+                                            .as_any_mut().downcast_mut::<GlyphLayoutEditView>().unwrap().refresh_layout_edit_panel();
                                     }
                                     GlyphMode::Layout => {
                                         self.state.mode = GlyphMode::Read;
@@ -244,7 +241,7 @@ impl Interactable for GViewer {
         }
     }
 }
-impl Focusable for GViewer {
+impl Focusable for GlyphViewer {
     fn is_focused(&self) -> bool {
         self.state.is_focused.borrow().clone()
     }

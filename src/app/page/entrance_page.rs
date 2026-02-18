@@ -1,26 +1,23 @@
-use ratatui::prelude::Stylize;
-use ratatui::widgets::{BorderType, Widget};
-use std::any::Any;
-use std::rc::Rc;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use ratatui::Frame;
-use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect};
-use ratatui::prelude::Line;
-use ratatui::widgets::Block;
-use tui_big_text::{BigText, PixelSize};
+use crate::app::page::glyph_create_page::GlyphCreatePage;
+use crate::app::page::glyph_open_page::GlyphOpenPage;
+use crate::app::popup::confirm_popup::ConfirmPopup;
+use crate::app::widget::button::Button;
 use crate::app::AppCommand::{PushPage, PushPopup};
 use crate::app::Command::AppCommand;
-use crate::app::{AppState, Command, Component, Container};
+use crate::app::{is_cycle_backward_hover_key, is_cycle_forward_hover_key, AppState, Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable};
 use crate::block;
-use crate::drawer::{DrawFlag, Drawable};
-use crate::event_handler::{is_cycle_backward_hover_key, is_cycle_forward_hover_key, Interactable};
-use crate::focus_handler::Focusable;
-use crate::page::create_glyph_page::GCreatePage;
-use crate::page::open_glyph_page::GOpenPage;
-use crate::popup::confirm_popup::ConfirmPopup;
 use crate::theme::Theme;
 use crate::utils::cycle_offset;
-use crate::widget::button::Button;
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use ratatui::layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect};
+use ratatui::prelude::Line;
+use ratatui::prelude::Stylize;
+use ratatui::widgets::Block;
+use ratatui::widgets::{BorderType, Widget};
+use ratatui::Frame;
+use std::any::Any;
+use std::rc::Rc;
+use tui_big_text::{BigText, PixelSize};
 
 pub struct EntrancePageState {
     pub is_focused: bool,
@@ -40,7 +37,7 @@ impl EntrancePage {
                         vec![
                             AppCommand(
                                 PushPage(
-                                    GCreatePage::new().into()
+                                    GlyphCreatePage::new().into()
                                 )
 
                             )
@@ -52,7 +49,7 @@ impl EntrancePage {
                         vec![
                             AppCommand(
                                 PushPage(
-                                    GOpenPage::new().into()
+                                    GlyphOpenPage::new().into()
                                 )
                             )
                         ]
