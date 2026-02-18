@@ -2,9 +2,11 @@ use crate::app::popup::ConfirmPopup;
 use crate::app::widget::{Button, DirectoryList, NumberField, OptionMenu, TextEditor, TextField};
 use crate::app::AppCommand::{PopPage, PushPage, PushPopup};
 use crate::app::Command::{AppCommand, GlyphCommand};
-use crate::app::GlyphCommand::{RefreshEditSectionEditor, RefreshLayoutEditPanel, SetEntryUnsavedState};
+use crate::app::GlyphCommand::{RefreshLayoutEditPanel, SetEntryUnsavedState};
 use crate::app::{Component, Container, Convertible};
-use crate::model::{BorderMode, Entry, GlyphRepository, Layout, LocalEntryState, Section, SizeMode};
+use crate::model::entry::Entry;
+use crate::model::layout::{BorderMode, Layout, SizeMode};
+use crate::model::section::Section;
 use crate::state::page::{CreateGlyphPageState, EntrancePageState, GlyphEditOrderState, GlyphEditState, GlyphLayoutEditState, GlyphLayoutOverviewState, GlyphLayoutState, GlyphMode, GlyphNavigationBarState, GlyphPageState, GlyphReadState, GlyphViewerState, OpenGlyphPageState};
 use crate::state::widget::{DirectoryListState, NumberFieldState, OptionMenuState, TextEditorState, TextFieldState};
 use crate::state::AppState;
@@ -15,6 +17,8 @@ use rusqlite::Connection;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use tui_scrollview::ScrollViewState;
+use crate::db::GlyphRepository;
+use crate::services::LocalEntryState;
 
 pub struct EntrancePage {
     pub components: Vec<Box<dyn Component>>,

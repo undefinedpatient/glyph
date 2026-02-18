@@ -1,13 +1,13 @@
-use color_eyre::owo_colors::OwoColorize;
 use crate::app::dialog::{ConfirmDialog, NumberInputDialog, TextInputDialog};
 use crate::app::widget::LineButton;
 use crate::app::Convertible;
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::theme::Theme;
+use color_eyre::owo_colors::OwoColorize;
 use ratatui::layout::{Alignment, Constraint, Rect};
+use ratatui::style::Stylize;
 use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Widget};
 use ratatui::Frame;
-use ratatui::style::Stylize;
 
 impl Drawable for TextInputDialog {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {

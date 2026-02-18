@@ -1,4 +1,4 @@
-use crate::app::page::{GCreatePage, EntrancePage, GSectionNavBar, GEditView, GLayoutEditView, GLayoutOverview, GLayoutView, GNavBar, GPage, GReadView, GViewer, GOpenPage};
+use crate::app::page::{EntrancePage, GCreatePage, GEditView, GLayoutEditView, GLayoutOverview, GLayoutView, GNavBar, GOpenPage, GPage, GReadView, GSectionNavBar, GViewer};
 use crate::app::Container;
 use crate::event_handler::Focusable;
 

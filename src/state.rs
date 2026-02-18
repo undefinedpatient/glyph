@@ -1,5 +1,4 @@
 use crate::theme::{Iceberg, Theme};
-
 pub mod dialog;
 pub mod page;
 pub mod widget;

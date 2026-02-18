@@ -1,8 +1,8 @@
-use crate::model::{LocalEntryState, Section};
 use std::cell::{Ref, RefCell, RefMut};
 use std::path::PathBuf;
 use std::rc::Rc;
 use tui_scrollview::ScrollViewState;
+use crate::services::LocalEntryState;
 
 pub struct EntrancePageState {
     pub is_focused: bool,

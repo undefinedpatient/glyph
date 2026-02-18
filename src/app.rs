@@ -1,19 +1,18 @@
-use std::any::Any;
-use std::path::{Path, PathBuf};
 use rusqlite::Connection;
+use std::any::Any;
+use std::path::PathBuf;
 
 pub mod dialog;
 pub mod page;
 pub mod popup;
 pub mod widget;
 
+use crate::app::page::GPage;
 use crate::drawer::Drawable;
 use crate::event_handler::{Focusable, Interactable};
 use crate::state::AppState;
 use crate::theme::Iceberg;
 use page::EntrancePage;
-use crate::app::page::GPage;
-use crate::model::GlyphRepository;
 
 pub enum Command {
     AppCommand(AppCommand),

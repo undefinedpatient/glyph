@@ -1,12 +1,12 @@
+use crate::theme::Theme;
 use bitflags::bitflags;
 use color_eyre::owo_colors::OwoColorize;
-use crate::theme::Theme;
 use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Offset, Rect, Size};
-use ratatui::style::{Color, Style, Stylize};
+use ratatui::layout::{Offset, Rect};
+use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{Block, Borders, Widget};
+use ratatui::widgets::Widget;
 use tui_big_text::{BigText, PixelSize};
 
 /// This is a customized Markdown Drawer powered by pulldown-cmark.

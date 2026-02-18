@@ -1,4 +1,5 @@
 use crate::app::widget::{Button, DirectoryList, LineButton, NumberField, OptionMenu, TextEditor, TextField};
+use crate::block;
 use crate::drawer::{DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use crate::state::widget::EditMode;
@@ -7,9 +8,8 @@ use crate::utils::{get_dir_names, get_file_names};
 use ratatui::layout::{Constraint, Offset, Position, Rect, Rows};
 use ratatui::prelude::Stylize;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Widget, Wrap};
+use ratatui::widgets::{Block, BorderType, Paragraph, Widget, Wrap};
 use ratatui::Frame;
-use crate::block;
 
 impl Drawable for Button {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {

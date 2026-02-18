@@ -1,24 +1,24 @@
-use crate::app::page::{GCreatePage, EntrancePage, GSectionNavBar, GEditView, GLayoutEditView, GLayoutOverview, GLayoutView, GNavBar, GPage, GReadView, GViewer, GOpenPage};
+use crate::app::page::{EntrancePage, GCreatePage, GEditView, GLayoutEditView, GLayoutOverview, GLayoutView, GNavBar, GOpenPage, GPage, GReadView, GSectionNavBar, GViewer};
 use crate::drawer::{get_draw_flag, DrawFlag, Drawable};
 use crate::event_handler::Focusable;
 use crate::markdown_renderer::MarkdownRenderer;
-use crate::{block, model};
-use crate::model::{BorderMode, LayoutOrientation, LocalEntryState, Section, SizeMode};
+use crate::model::layout::*;
+use crate::model::section::*;
 use crate::state::page::GlyphMode;
 use crate::theme::Theme;
+use crate::{block, model};
 use color_eyre::owo_colors::OwoColorize;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Flex, HorizontalAlignment, Layout, Offset, Rect, Size};
 use ratatui::style::{Style, Stylize};
-use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{Block, BorderType, Padding, Paragraph, StatefulWidget, Widget, Wrap};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, BorderType, Padding, Paragraph, StatefulWidget, Widget};
 use ratatui::Frame;
 use std::cell::Ref;
 use std::rc::Rc;
 use tui_big_text::{BigText, PixelSize};
 use tui_scrollview::{ScrollView, ScrollbarVisibility};
-
-
+use crate::services::LocalEntryState;
 
 impl Drawable for EntrancePage {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
@@ -392,7 +392,7 @@ impl Drawable for GReadView {
 
     }
 }
-fn evaluate_read_areas(me: &GReadView, area: Rect, layout: &model::Layout, depth: u16, at: usize) -> Vec<(u16, Rect, BorderMode)> {
+fn evaluate_read_areas(me: &GReadView, area: Rect, layout: &crate::model::layout::Layout, depth: u16, at: usize) -> Vec<(u16, Rect, BorderMode)> {
     let mut target_section_text: String = "None".to_string();
     if let Some(position_target) = layout.section_index {
         target_section_text = position_target.to_string();
@@ -663,7 +663,7 @@ impl Drawable for GLayoutEditView {
 
     }
 }
-fn evaluate_layout(me: &GLayoutOverview, area: Rect, buffer: &mut Buffer, layout: &model::Layout, depth: u16, at: Vec<usize>, theme: &dyn Theme) -> Vec<(u16, Rect)>{
+fn evaluate_layout(me: &GLayoutOverview, area: Rect, buffer: &mut Buffer, layout: &crate::model::layout::Layout, depth: u16, at: Vec<usize>, theme: &dyn Theme) -> Vec<(u16, Rect)>{
     let mut target_section_text: String = "None".to_string();
     if let Some(position_target) = layout.section_index {
         target_section_text = position_target.to_string();

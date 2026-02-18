@@ -1,16 +1,16 @@
-use std::{fs, io};
-use std::path::PathBuf;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture, Event};
 use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
+use std::path::PathBuf;
+use std::{fs, io};
 
+use color_eyre::eyre::Result;
 use ratatui::backend::Backend;
 use ratatui::prelude::CrosstermBackend;
 use ratatui::style::Stylize;
 use ratatui::Terminal;
-use color_eyre::eyre::Result;
 use rusqlite::Connection;
 
 mod app;
@@ -22,10 +22,12 @@ mod utils;
 mod model;
 mod theme;
 mod markdown_renderer;
+mod services;
+mod db;
 
 use app::Application;
 use drawer::draw;
-use crate::model::GlyphRepository;
+use crate::db::GlyphRepository;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();

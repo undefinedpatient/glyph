@@ -1,6 +1,6 @@
 use crate::app::dialog::{ConfirmDialog, TextInputDialog};
-use crate::app::page::{GCreatePage, GLayoutEditView, GLayoutOverview, GNavBar, GPage, GOpenPage};
-use crate::app::page::{EntrancePage, GSectionNavBar, GEditView, GLayoutView, GReadView, GViewer};
+use crate::app::page::{EntrancePage, GEditView, GLayoutView, GReadView, GSectionNavBar, GViewer};
+use crate::app::page::{GCreatePage, GLayoutEditView, GLayoutOverview, GNavBar, GOpenPage, GPage};
 use crate::app::popup::ConfirmPopup;
 
 use crate::app::AppCommand::*;
@@ -10,7 +10,9 @@ use crate::app::PageCommand::*;
 
 use crate::app::Convertible;
 use crate::event_handler::{is_cycle_backward_hover_key, is_cycle_forward_hover_key, Focusable, Interactable};
-use crate::model::{Entry, GlyphRepository, Layout, LayoutOrientation, LocalEntryState, Section};
+use crate::model::entry::*;
+use crate::model::section::*;
+use crate::model::layout::*;
 use crate::state::dialog::TextInputDialogState;
 use crate::state::page::{CreateGlyphPageState, GlyphEditState, GlyphLayoutState, GlyphMode, GlyphPageState};
 use crate::state::AppState;
@@ -19,6 +21,8 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use rusqlite::fallible_iterator::FallibleIterator;
 use std::any::Any;
 use std::cell::{Ref, RefMut};
+use crate::db::GlyphRepository;
+use crate::services::LocalEntryState;
 
 impl Interactable for EntrancePage {
     fn handle(
