@@ -2,17 +2,13 @@ use rusqlite::Connection;
 use std::any::Any;
 use std::path::PathBuf;
 
-pub mod dialog;
-pub mod page;
-pub mod popup;
-pub mod widget;
 
-use crate::app::page::GPage;
 use crate::drawer::Drawable;
-use crate::event_handler::{Focusable, Interactable};
-use crate::state::AppState;
+use crate::event_handler::Interactable;
 use crate::theme::Iceberg;
-use page::EntrancePage;
+use crate::focus_handler::Focusable;
+use crate::page::entrance_page::EntrancePage;
+use crate::page::glyph_page::GlyphPage;
 
 pub enum Command {
     AppCommand(AppCommand),
@@ -156,6 +152,11 @@ impl Application {
         Some(self.popup_states.len()-1)
     }
 }
+// Global State of the Application
+pub struct AppState {
+    pub theme: Iceberg,
+    pub should_quit: bool,
+}
 pub struct Application {
     pub page_states: Vec<Box<dyn Container>>,
     pub popup_states: Vec<Box<dyn Container>>,
@@ -176,7 +177,7 @@ impl Application {
     }
     pub fn from(connection: Connection) -> Application {
         Application {
-            page_states: vec![EntrancePage::new().into(), GPage::new(connection).into()],
+            page_states: vec![EntrancePage::new().into(), GlyphPage::new(connection).into()],
             popup_states: Vec::new(),
             state: AppState {
                 theme: Iceberg,

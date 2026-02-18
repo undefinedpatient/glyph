@@ -1,9 +1,4 @@
-mod dialog;
-mod page;
-mod popup;
-mod widget;
 
-use crate::app::popup::MessagePopup;
 use crate::app::AppCommand::*;
 use crate::app::Command::*;
 use crate::app::{Application, Command, Container, Convertible};
@@ -12,6 +7,7 @@ use color_eyre::owo_colors::OwoColorize;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::style::Color;
 use std::any::Any;
+use crate::popup::message_popup::MessagePopup;
 
 pub trait Interactable: Convertible {
     fn handle(
@@ -19,13 +15,6 @@ pub trait Interactable: Convertible {
         key: &KeyEvent,
         parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>>;
-}
-pub trait Focusable {
-    fn is_focused(&self) -> bool;
-    fn set_focus(&mut self, value: bool) -> ();
-    fn focused_child_ref(&self) -> Option<&dyn Container>;
-    fn focused_child_mut(&mut self) -> Option<&mut dyn Container>;
-    fn focused_child_index(&self) -> Option<usize>;
 }
 pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
     handle_global_events(key, app);

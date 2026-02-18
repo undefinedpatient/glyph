@@ -1,8 +1,3 @@
-mod dialog;
-mod page;
-mod popup;
-mod widget;
-
 use crate::app::Application;
 use crate::theme::Theme;
 use color_eyre::owo_colors::OwoColorize;
@@ -57,7 +52,7 @@ pub fn draw(frame: &mut Frame, app: &mut Application) {
 */
 
 // Get draw flag for components/containers.
-fn get_draw_flag(
+pub(crate) fn get_draw_flag(
     current_hover_index: Option<usize>,
     widget_index: usize,
     focused: Option<bool>,

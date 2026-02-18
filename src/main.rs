@@ -24,6 +24,10 @@ mod theme;
 mod markdown_renderer;
 mod services;
 mod db;
+mod popup;
+mod dialog;
+mod widget;
+mod page;
 
 use app::Application;
 use drawer::draw;
