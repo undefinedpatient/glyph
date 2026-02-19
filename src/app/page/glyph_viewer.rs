@@ -240,6 +240,30 @@ impl Interactable for GlyphViewer {
             }
         }
     }
+    fn keymap(&self) -> Vec<(&str, &str)>{
+        match self.state.mode {
+            GlyphMode::Read => {
+                [
+                    ("up/down/pageup/pagedown", "Scroll")
+                ].into()
+            }
+            GlyphMode::Edit => {
+                [
+                    ("e","Edit Active Section"),
+                    ("R","Rename Active Section"),
+                    ("A","Create Default Section"),
+                ].into()
+
+            }
+            GlyphMode::Layout => {
+                [
+                    ("up/down/pageup/pagedown", "Scroll"),
+                    ("e", "Edit (With Active Layout)"),
+                ].into()
+
+            }
+        }
+    }
 }
 impl Focusable for GlyphViewer {
     fn is_focused(&self) -> bool {

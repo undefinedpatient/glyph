@@ -233,6 +233,12 @@ impl Interactable for GlyphCreatePage {
             result
         }
     }
+    fn keymap(&self) -> Vec<(&str, &str)>{
+        [
+            ("j/k/up/down/tab/backtab","Navigate"),
+            ("Enter","Interact"),
+        ].into()
+    }
 }
 impl Focusable for GlyphCreatePage {
     fn is_focused(&self) -> bool {

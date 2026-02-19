@@ -16,6 +16,7 @@ use ratatui::widgets::Block;
 use ratatui::widgets::{BorderType, Widget};
 use ratatui::Frame;
 use std::any::Any;
+use std::collections::HashMap;
 use std::rc::Rc;
 use tui_big_text::{BigText, PixelSize};
 
@@ -177,6 +178,12 @@ impl Interactable for EntrancePage {
             _ => {}
         }
         Ok(Vec::new())
+    }
+    fn keymap(&self) -> Vec<(&str, &str)>{
+        [
+            ("j/k/up/down/tab/backtab","Navigate"),
+            ("Enter","Interact"),
+        ].into()
     }
 }
 impl Focusable for EntrancePage {

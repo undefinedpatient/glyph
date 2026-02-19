@@ -569,6 +569,7 @@ dependencies = [
  "bitflags 2.10.0",
  "color-eyre",
  "crossterm",
+ "log",
  "pulldown-cmark",
  "ratatui",
  "rusqlite",

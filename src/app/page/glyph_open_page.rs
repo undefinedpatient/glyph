@@ -16,6 +16,7 @@ use ratatui::widgets::BorderType;
 use ratatui::widgets::{Block, Widget};
 use ratatui::Frame;
 use std::any::Any;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 pub struct GlyphOpenPageState {
@@ -180,6 +181,12 @@ impl Interactable for GlyphOpenPage {
                 self.containers[index].handle(key, Some(&mut self.state));
             result
         }
+    }
+    fn keymap(&self) -> Vec<(&str, &str)>{
+        [
+            ("j/k/up/down/tab/backtab".into(),"Navigate".into()),
+            ("Enter".into(),"Interact".into()),
+        ].into()
     }
 }
 impl Focusable for GlyphOpenPage {

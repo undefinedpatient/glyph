@@ -1,22 +1,25 @@
 use rusqlite::Connection;
 use std::any::Any;
+use std::collections::HashMap;
 use std::path::PathBuf;
+use color_eyre::owo_colors::OwoColorize;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::Frame;
-use ratatui::layout::Rect;
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::prelude::{Color, Stylize};
-use ratatui::widgets::Block;
+use ratatui::widgets::{Block, Paragraph, Widget};
+use log::info;
+use ratatui::text::{Line, Span};
 use crate::theme::{Iceberg, Theme};
 use page::entrance_page::EntrancePage;
 use page::glyph_page::GlyphPage;
-use crate::app::AppCommand::PushPopup;
-use crate::app::Command::*;
 use crate::app::popup::message_popup::MessagePopup;
 
 pub mod popup;
 pub mod dialog;
 pub mod widget;
 pub mod page;
+
 pub enum Command {
     AppCommand(AppCommand),
     GlyphCommand(GlyphCommand),
@@ -37,12 +40,13 @@ pub enum GlyphCommand {
     CreateEntry(String),
     SetEntryUnsavedState(i64, bool),
     RefreshEditSectionEditor,
-    RefreshLayoutEditPanel
+    RefreshLayoutEditPanel,
 }
 pub enum PageCommand {
     PushDialog(Box<dyn Container>),
     PopDialog,
 }
+
 #[macro_export]
 macro_rules! block {
     ($title: expr, $flag: expr, $theme: expr) => {
@@ -65,15 +69,7 @@ pub enum DrawFlag {
     FOCUSED = 0b0000_0010,
     // DISABLED = 0b0000_0100,
 }
-pub trait Drawable {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme);
-}
 
-/*
-   Helper Functions
-*/
-
-// Get draw flag for components/containers.
 pub(crate) fn get_draw_flag(
     current_hover_index: Option<usize>,
     widget_index: usize,
@@ -95,6 +91,24 @@ pub(crate) fn get_draw_flag(
     }
 }
 
+pub trait Drawable {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme);
+}
+pub trait Interactable: Convertible {
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        parent_state: Option<&mut dyn Any>,
+    ) -> color_eyre::Result<Vec<Command>>;
+
+
+    /// Get a descriptive key bindings action, default to none,
+    /// It does nothing but telling users the key available.
+    fn keymap(&self) -> Vec<(&str, &str)>{
+        Vec::new()
+    }
+
+}
 pub trait Focusable {
     fn is_focused(&self) -> bool;
     fn set_focus(&mut self, value: bool) -> ();
@@ -248,27 +262,44 @@ impl Application {
         }
         Some(self.popup_states.len()-1)
     }
+
+    /// Recursively find the bottom container user is interacting.
+    pub(crate) fn focused_container_ref(&self) -> Option<&dyn Container> {
+        let mut temp: Option<&dyn Container> = None;
+        if let Some(view) = self.view_to_focus_ref() {
+            temp = Some(view);
+            while temp.unwrap().focused_child_ref().is_some() {
+                temp = Some(temp.unwrap().focused_child_ref().unwrap());
+            }
+        }
+        temp
+    }
 }
 pub fn draw(frame: &mut Frame, app: &mut Application) {
     let background: Block = Block::default().bg(app.state.theme.background());
     frame.render_widget(background, frame.area());
-    for page in (*app.page_states).iter_mut().rev() {
-        page.as_drawable_mut()
-            .render(frame, frame.area(), DrawFlag::DEFAULT, &app.state.theme);
-        break;
+    let vertical_constraints = Layout::vertical([Constraint::Fill(1), Constraint::Length(1)]);
+    let [app_area, info_area]: [Rect;2] = vertical_constraints.areas(frame.area());
+    let latest_page = (*app.page_states).last().unwrap();
+    latest_page.as_drawable_ref().render(frame, app_area, DrawFlag::DEFAULT, &app.state.theme);
+    if let Some(focused_container) = app.focused_container_ref() {
+        keymap_to_line(focused_container.keymap()).render(info_area, frame.buffer_mut());
     }
     for popup in (*app.popup_states).iter_mut() {
         popup
             .as_drawable_mut()
-            .render(frame, frame.area(), DrawFlag::DEFAULT, &app.state.theme);
+            .render(frame, app_area, DrawFlag::DEFAULT, &app.state.theme);
     }
 }
-pub trait Interactable: Convertible {
-    fn handle(
-        &mut self,
-        key: &KeyEvent,
-        parent_state: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>>;
+pub fn keymap_to_line<'a>(key_map: Vec<(&'a str, &'a str)>) -> Line<'a> {
+    let mut line: Line = Line::default();
+    for (key, value) in key_map {
+        line.push_span(Span::from(key).bold());
+        line.push_span(Span::from(": "));
+        line.push_span(Span::from(value));
+        line.push_span(Span::from("    "));
+    }
+    line.dim()
 }
 pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
     handle_global_events(key, app);
@@ -281,25 +312,28 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
     if let Some(popup_index) = (*app).focused_popup_index() {
         commands = (*app).popup_states[popup_index].handle(key, Some(&mut app.state)).unwrap_or_else(
             |report|{
-                return vec![AppCommand(PushPopup(
+                return vec![Command::AppCommand(AppCommand::PushPopup(
                     MessagePopup::new( report.to_string().as_str(), Color::Red).into()
                 ))]}
         );
     } else if let Some(page_index) = (*app).focused_page_index() {
         commands = (*app).page_states[page_index].handle(key, Some(&mut app.state)).unwrap_or_else(
             |report|{
-                return vec![AppCommand(PushPopup(
+                return vec![Command::AppCommand(AppCommand::PushPopup(
                     MessagePopup::new( report.to_string().as_str(), Color::Red).into()
                 ))]}
         );
     }
     app.q_commands.append(&mut commands);
 
+    process_command(app);
+}
+fn process_command(app: &mut Application) {
     // Process the Command
     while app.q_commands.len() > 0 {
         let command: Command = app.q_commands.pop().unwrap();
         match command {
-            AppCommand(app_command)=> {
+            Command::AppCommand(app_command)=> {
                 match app_command {
                     AppCommand::PushPage(view) => {
                         app.page_states.push(view);
@@ -326,6 +360,7 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
             }
         }
     }
+
 }
 fn handle_global_events(key: &KeyEvent, app: &mut Application) -> () {
     match (*key).kind {

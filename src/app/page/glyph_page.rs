@@ -20,6 +20,7 @@ use ratatui::Frame;
 use rusqlite::Connection;
 use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
+use std::collections::HashMap;
 use std::rc::Rc;
 
 pub struct GlyphPageState {
@@ -98,16 +99,12 @@ impl Drawable for GlyphPage {
         let page_frame: Block = block!("Glyph", draw_flag, theme);
 
 
-        let chunks= Layout::vertical([
-            Constraint::Fill(1),
-            Constraint::Length(2)
-        ]).split(area);
 
-        let page_area: Rect = page_frame.inner(chunks[0]);
+        let page_area: Rect = page_frame.inner(area);
         let content_areas = Layout::horizontal([Constraint::Length(24), Constraint::Min(24)]).split(page_area);
 
 
-        page_frame.render(chunks[0], frame.buffer_mut());
+        page_frame.render(area, frame.buffer_mut());
         self.containers[0].render(frame, content_areas[0], get_draw_flag(self.state.hovered_index, 0, Some(self.containers[0].is_focused())), theme);
         self.containers[1].render(frame, content_areas[1], get_draw_flag(self.state.hovered_index, 1, Some(self.containers[1].is_focused())), theme);
 
@@ -235,6 +232,13 @@ impl Interactable for GlyphPage {
                 Ok(processed_commands)
             }
         }
+    }
+
+    fn keymap(&self) -> Vec<(&str, &str)>{
+        [
+            ("j/k/up/down/tab/backtab".into(),"Navigate".into()),
+            ("Enter".into(),"Interact".into()),
+        ].into()
     }
 }
 
@@ -440,6 +444,7 @@ impl Drawable for GlyphNavigationBar {
             );
         }
     }
+
 }
 impl Interactable for GlyphNavigationBar {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
@@ -574,6 +579,12 @@ impl Interactable for GlyphNavigationBar {
             }
             Ok(Vec::new())
         }
+    }
+    fn keymap(&self) -> Vec<(&str, &str)> {
+        [
+            ("R","Rename Active Entry"),
+            ("A","Create Entry"),
+        ].into()
     }
 }
 impl Focusable for GlyphNavigationBar {
