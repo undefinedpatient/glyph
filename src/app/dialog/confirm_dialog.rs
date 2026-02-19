@@ -144,6 +144,12 @@ impl Interactable for ConfirmDialog {
         }
     }
 
+    fn keymap(&self) -> Vec<(&str, &str)>{
+        [
+            ("j/k/up/down/tab/backtab","Navigate"),
+            ("Enter","Interact"),
+        ].into()
+    }
 }
 impl Focusable for ConfirmDialog {
     fn is_focused(&self) -> bool {

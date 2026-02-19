@@ -202,6 +202,12 @@ impl Interactable for TextInputDialog {
             result
         }
     }
+    fn keymap(&self) -> Vec<(&str, &str)>{
+        [
+            ("j/k/up/down/tab/backtab","Navigate"),
+            ("Enter","Interact"),
+        ].into()
+    }
 
 }
 impl Focusable for TextInputDialog {

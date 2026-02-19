@@ -119,6 +119,12 @@ impl Interactable for ConfirmPopup {
             _ => Ok(Vec::new()),
         };
     }
+    fn keymap(&self) -> Vec<(&str, &str)>{
+        [
+            ("j/k/up/down/tab/backtab","Navigate"),
+            ("Enter","Interact"),
+        ].into()
+    }
 }
 impl Focusable for ConfirmPopup {
     fn is_focused(&self) -> bool {

@@ -201,6 +201,12 @@ impl Interactable for NumberInputDialog {
             result
         }
     }
+    fn keymap(&self) -> Vec<(&str, &str)>{
+        [
+            ("j/k/up/down/tab/backtab","Navigate"),
+            ("Enter","Interact"),
+        ].into()
+    }
 
 }
 
