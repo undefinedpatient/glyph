@@ -294,9 +294,9 @@ pub fn draw(frame: &mut Frame, app: &mut Application) {
 pub fn keymap_to_line<'a>(key_map: Vec<(&'a str, &'a str)>) -> Line<'a> {
     let mut line: Line = Line::default();
     for (key, value) in key_map {
-        line.push_span(Span::from(key).bold());
+        line.push_span(Span::from(key));
         line.push_span(Span::from(": "));
-        line.push_span(Span::from(value));
+        line.push_span(Span::from(value).bold());
         line.push_span(Span::from("    "));
     }
     line.dim()

@@ -247,6 +247,12 @@ impl Interactable for DirectoryList {
             }
         }
     }
+    fn keymap(&self) -> Vec<(&str, &str)> {
+        [
+            ("Enter","Change Directory"),
+            ("Space","Select File/Directory"),
+        ].into()
+    }
 }
 
 impl Focusable for DirectoryList {

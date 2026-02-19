@@ -584,6 +584,7 @@ impl Interactable for GlyphNavigationBar {
         [
             ("R","Rename Active Entry"),
             ("A","Create Entry"),
+            ("Enter","Open Entry"),
         ].into()
     }
 }
