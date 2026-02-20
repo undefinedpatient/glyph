@@ -252,6 +252,7 @@ impl Interactable for GlyphViewer {
                     ("e","Edit Active Section"),
                     ("R","Rename Active Section"),
                     ("A","Create Default Section"),
+                    ("+/-", "Change Section Position"),
                 ].into()
 
             }
@@ -259,6 +260,8 @@ impl Interactable for GlyphViewer {
                 [
                     ("up/down/pageup/pagedown", "Scroll"),
                     ("e", "Edit (With Active Layout)"),
+                    ("t", "Change Layout Orientation"),
+                    ("+/-", "Change Targeted Section Position"),
                 ].into()
 
             }

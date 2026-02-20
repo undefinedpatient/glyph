@@ -10,7 +10,7 @@ use crate::models::entry::Entry;
 use crate::services::LocalEntryState;
 use crate::theme::Theme;
 use crate::utils::cycle_offset;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Layout, Offset, Rect};
 use ratatui::prelude::{Line, Span, Widget};
 use ratatui::style::Stylize;
@@ -20,13 +20,14 @@ use ratatui::Frame;
 use rusqlite::Connection;
 use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 pub struct GlyphPageState {
     pub is_focused: bool,
     pub is_hovered: bool,
     pub hovered_index: Option<usize>,
+    pub hidden_container_index: HashSet<u8>,
 
     // Shared Data
     pub entry_state: Rc<RefCell<LocalEntryState>>,
@@ -64,12 +65,12 @@ impl GlyphPage {
             containers: vec![
                 GlyphNavigationBar::new(entry_state.clone()).into(),
                 GlyphViewer::new(entry_state.clone()).into(),
-                // GlyphOldViewer::new(entry_state.clone()).into()
             ],
             components: Vec::new(),
             state: GlyphPageState {
                 is_focused: false,
                 is_hovered: false,
+                hidden_container_index: HashSet::new(),
                 hovered_index: None,
                 entry_state
             }
@@ -101,7 +102,10 @@ impl Drawable for GlyphPage {
 
 
         let page_area: Rect = page_frame.inner(area);
-        let content_areas = Layout::horizontal([Constraint::Length(24), Constraint::Min(24)]).split(page_area);
+        let mut content_areas = Layout::horizontal([Constraint::Length(24), Constraint::Min(24)]).split(page_area);
+        if self.state.hidden_container_index.contains(&0u8) {
+            content_areas = Layout::horizontal([Constraint::Length(0), Constraint::Min(24)]).split(page_area);
+        }
 
 
         page_frame.render(area, frame.buffer_mut());
@@ -157,6 +161,7 @@ impl Interactable for GlyphPage {
             }
         }
 
+
         /*
             Process Page
          */
@@ -175,7 +180,7 @@ impl Interactable for GlyphPage {
                                 ConfirmDialog::new(
                                     "You have unsaved change! Exit anyway?"
                                 ).on_submit(
-                                    Box::new(|_,_| {
+                                    Box::new(|_, _| {
                                         Ok(vec![AppCommand(PopPage)])
                                     })
                                 )
@@ -193,6 +198,15 @@ impl Interactable for GlyphPage {
                                     self.containers[1].set_focus(true)
                                 }
                                 _ => {}
+                            }
+                        }
+                    }
+                    if let KeyCode::Char('b') = key.code {
+                        if key.modifiers.contains(KeyModifiers::CONTROL) {
+                            if self.state.hidden_container_index.contains(&0u8) {
+                                self.state.hidden_container_index.remove(&0u8);
+                            } else {
+                                self.state.hidden_container_index.insert(0);
                             }
                         }
                     }
@@ -236,12 +250,12 @@ impl Interactable for GlyphPage {
 
     fn keymap(&self) -> Vec<(&str, &str)>{
         [
-            ("j/k/up/down/tab/backtab".into(),"Navigate".into()),
-            ("Enter".into(),"Interact".into()),
+            ("j/k/up/down/tab/backtab","Navigate"),
+            ("c-B", "Fold Navigation Bar"),
+            ("Enter","Interact"),
         ].into()
     }
 }
-
 
 impl Focusable for GlyphPage {
     fn is_focused(&self) -> bool {
@@ -275,13 +289,6 @@ impl Focusable for GlyphPage {
         None
     }
 }
-
-
-
-
-
-
-
 
 
 
