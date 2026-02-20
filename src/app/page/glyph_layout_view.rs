@@ -14,7 +14,7 @@ use crate::utils::cycle_offset;
 use color_eyre::Report;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Rect, Size};
+use ratatui::layout::{Constraint, Margin, Rect, Size};
 use ratatui::prelude::Stylize;
 use ratatui::prelude::{Line, Style};
 use ratatui::widgets::{Block, BorderType, Padding, StatefulWidget, Widget};
@@ -303,7 +303,6 @@ impl Drawable for GlyphLayoutOverview {
 
     }
 }
-
 impl Interactable for GlyphLayoutOverview {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         match key.kind {
@@ -467,9 +466,6 @@ impl Interactable for GlyphLayoutOverview {
         }
     }
 }
-
-
-
 impl Focusable for GlyphLayoutOverview {
     fn is_focused(&self) -> bool {
         false
@@ -487,6 +483,89 @@ impl Focusable for GlyphLayoutOverview {
     }
 }
 
+fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, layout: &crate::models::layout::Layout, depth: u16, at: Vec<usize>, theme: &dyn Theme) -> Vec<(u16, Rect)>{
+    let mut target_section_text: String = "None".to_string();
+    if let Some(position_target) = layout.section_index {
+        target_section_text = position_target.to_string();
+    }
+
+    let focused_coordinate = &me.state.selected_coordinate.borrow().clone();
+
+
+    // Generate Border to render visualization.
+    let mut block: Block = Block::bordered().title(layout.label.as_str()).padding(Padding::uniform(layout.details.padding)).style(theme.on_surface()).bg(theme.background());
+    if at == *focused_coordinate {
+        block = block.border_type(BorderType::Thick).title_style(Style::new().bold());
+
+    } else if let Some(hovered_index) = me.state.hovered_index {
+        let mut hover_coordinate = me.state.selected_coordinate.borrow().clone();
+        hover_coordinate.push(hovered_index);
+        if hover_coordinate == at {
+            block = block.border_type(BorderType::Double);
+        }
+    }
+
+    // Determine the section index render.
+    if !layout.sub_layouts.is_empty() {
+        block = block.title(Line::from("(Disabled)").dim());
+    } else {
+        block = block.title(Line::from(format!("(Target Pos: {})",target_section_text)));
+    }
+
+    // Process the child
+    let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
+        |(index, sub)| {
+            match sub.details.size_mode {
+                SizeMode::Flex => {
+                    Constraint::Fill(sub.details.flex)
+                }
+                SizeMode::Length => {
+                    Constraint::Length(sub.details.length)
+                }
+            }
+        }
+    ).collect();
+
+    let intermediate_area: Rect = Block::default().padding(Padding::uniform(
+        if depth == 0 {
+            0
+        } else {
+            layout.details.margin
+        }
+    )).inner(area);
+    let recursive_area: Rect = block.inner(intermediate_area);
+    block.render(intermediate_area, buffer);
+
+
+    let sub_areas =
+        match layout.details.orientation {
+            LayoutOrientation::Vertical => {
+                ratatui::layout::Layout::vertical(constraints).split(recursive_area)
+            }
+            LayoutOrientation::Horizontal => {
+                ratatui::layout::Layout::horizontal(constraints).split(recursive_area)
+            }
+        };
+
+    let mut areas: Vec<(u16, Rect)> = vec![];
+    if let Some(section_index) = layout.section_index {
+        areas.push((section_index, recursive_area));
+    }
+    for (i, sub_layout) in layout.sub_layouts.iter().enumerate() {
+        let mut sub_at = at.clone();
+        sub_at.push(i);
+        areas = [areas, evaluate_layout(
+            me,
+            sub_areas[i],
+            buffer,
+            sub_layout,
+            depth + 1,
+            sub_at,
+            theme
+        )].concat()
+    }
+    areas
+}
 
 
 
@@ -597,6 +676,62 @@ impl GlyphLayoutEditView {
                             let new_value: u16 = _state.chars.iter().collect::<String>().parse().unwrap();
                             if sublayout_to_update.details.flex != new_value{
                                 sublayout_to_update.details.flex = new_value;
+                                return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
+                            }
+                            Ok(Vec::new())
+                        }
+                    )
+                ).into(),
+                NumberField::new("Padding", 0, Box::new(|value| {
+                    let parse = value.parse::<i64>();
+                    if let Ok(value) = parse {
+                        !value.is_negative()
+                    } else {
+                        false
+                    }
+                }
+                )).on_exit(
+                    Box::new(
+                        |parent_state, state| {
+                            let _parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();
+                            let _state = state.unwrap().downcast_mut::<NumberFieldState>().unwrap();
+
+                            let coor: Vec<usize> = _parent_state.selected_coordinate.borrow().clone();
+                            let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
+                            let eid: i64 = local_entry_state.active_entry_id.unwrap();
+                            let entry: &mut Entry = local_entry_state.get_entry_mut(&eid).unwrap();
+                            let sublayout_to_update = entry.layout.get_layout_at_mut(&coor).unwrap();
+                            let new_value: u16 = _state.chars.iter().collect::<String>().parse().unwrap();
+                            if sublayout_to_update.details.padding != new_value{
+                                sublayout_to_update.details.padding = new_value;
+                                return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
+                            }
+                            Ok(Vec::new())
+                        }
+                    )
+                ).into(),
+                NumberField::new("Margin", 0, Box::new(|value| {
+                    let parse = value.parse::<i64>();
+                    if let Ok(value) = parse {
+                        !value.is_negative()
+                    } else {
+                        false
+                    }
+                }
+                )).on_exit(
+                    Box::new(
+                        |parent_state, state| {
+                            let _parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();
+                            let _state = state.unwrap().downcast_mut::<NumberFieldState>().unwrap();
+
+                            let coor: Vec<usize> = _parent_state.selected_coordinate.borrow().clone();
+                            let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
+                            let eid: i64 = local_entry_state.active_entry_id.unwrap();
+                            let entry: &mut Entry = local_entry_state.get_entry_mut(&eid).unwrap();
+                            let sublayout_to_update = entry.layout.get_layout_at_mut(&coor).unwrap();
+                            let new_value: u16 = _state.chars.iter().collect::<String>().parse().unwrap();
+                            if sublayout_to_update.details.margin != new_value{
+                                sublayout_to_update.details.margin = new_value;
                                 return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
                             }
                             Ok(Vec::new())
@@ -733,11 +868,22 @@ impl GlyphLayoutEditView {
             BorderMode::Dashed => 2,
             BorderMode::Rounded => 3,
         };
+        let root_layout_padding: u16 = sub_layout.details.padding;
+        let root_layout_margin: u16 = sub_layout.details.margin;
+        // Label
         (*self.containers[0]).as_any_mut().downcast_mut::<TextField>().unwrap().replace(root_layout_label);
+        // Size
         (*self.components[0]).as_any_mut().downcast_mut::<OptionMenu>().unwrap().replace(root_layout_size_mode);
+        // Border Type
         (*self.components[1]).as_any_mut().downcast_mut::<OptionMenu>().unwrap().replace(root_layout_border_mode);
+        // Length
         (*self.containers[1]).as_any_mut().downcast_mut::<NumberField>().unwrap().replace(root_layout_length as i16);
+        // Flex
         (*self.containers[2]).as_any_mut().downcast_mut::<NumberField>().unwrap().replace(root_layout_flex as i16);
+        // Padding
+        (*self.containers[3]).as_any_mut().downcast_mut::<NumberField>().unwrap().replace(root_layout_padding as i16);
+        // Margin
+        (*self.containers[4]).as_any_mut().downcast_mut::<NumberField>().unwrap().replace(root_layout_margin as i16);
     }
 }
 impl From<GlyphLayoutEditView> for Box<dyn Container> {
@@ -757,8 +903,8 @@ impl Drawable for GlyphLayoutEditView {
 
         let chunks = ratatui::layout::Layout::vertical([Constraint::Percentage(100), Constraint::Length(1)]).split(inner_area);
         let field_areas = ratatui::layout::Layout::vertical([
-            Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Length(3)
-        ]).split(chunks[0]);
+            Constraint::Length(3)
+        ].repeat(7)).split(chunks[0]);
 
         // Label Field
         self.containers[0].render(frame, field_areas[0],
@@ -785,6 +931,16 @@ impl Drawable for GlyphLayoutEditView {
                                   get_draw_flag(self.state.hovered_index, 4, Some(self.containers[2].is_focused())),
                                   theme
         );
+        // Padding Field
+        self.containers[3].render(frame, field_areas[5],
+                                  get_draw_flag(self.state.hovered_index, 5, Some(self.containers[3].is_focused())),
+                                  theme
+        );
+        // Margin Field
+        self.containers[4].render(frame, field_areas[6],
+                                  get_draw_flag(self.state.hovered_index, 6, Some(self.containers[4].is_focused())),
+                                  theme
+        );
 
 
         // Revert Button
@@ -795,82 +951,7 @@ impl Drawable for GlyphLayoutEditView {
 
     }
 }
-fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, layout: &crate::models::layout::Layout, depth: u16, at: Vec<usize>, theme: &dyn Theme) -> Vec<(u16, Rect)>{
-    let mut target_section_text: String = "None".to_string();
-    if let Some(position_target) = layout.section_index {
-        target_section_text = position_target.to_string();
-    }
 
-    let focused_coordinate = &me.state.selected_coordinate.borrow().clone();
-
-
-    // Generate Border to render visualization.
-    let mut block: Block = Block::bordered().title(layout.label.as_str()).padding(Padding {left: 1, right: 1, top: 1, bottom: 1}).style(theme.on_surface()).bg(theme.background());
-    if at == *focused_coordinate {
-        block = block.border_type(BorderType::Thick).title_style(Style::new().bold());
-
-    } else if let Some(hovered_index) = me.state.hovered_index {
-        let mut hover_coordinate = me.state.selected_coordinate.borrow().clone();
-        hover_coordinate.push(hovered_index);
-        if hover_coordinate == at {
-            block = block.border_type(BorderType::Double);
-        }
-    }
-
-    // Determine the section index render.
-    if !layout.sub_layouts.is_empty() {
-        block = block.title_bottom(Line::from("(Disabled)").dim());
-    } else {
-        block = block.title_bottom(Line::from(target_section_text));
-    }
-
-    // Process the child
-    let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
-        |(index, sub)| {
-            match sub.details.size_mode {
-                SizeMode::Flex => {
-                    Constraint::Fill(sub.details.flex)
-                }
-                SizeMode::Length => {
-                    Constraint::Length(sub.details.length)
-                }
-            }
-        }
-    ).collect();
-
-    let recursive_area: Rect = block.inner(area);
-    block.render(area, buffer);
-
-
-    let sub_areas =
-        match layout.details.orientation {
-            LayoutOrientation::Vertical => {
-                ratatui::layout::Layout::vertical(constraints).split(recursive_area)
-            }
-            LayoutOrientation::Horizontal => {
-                ratatui::layout::Layout::horizontal(constraints).split(recursive_area)
-            }
-        };
-
-    let mut areas: Vec<(u16, Rect)> = vec![];
-    if let Some(section_index) = layout.section_index {
-        areas.push((section_index, recursive_area));
-    }
-    for (i, sub_layout) in layout.sub_layouts.iter().enumerate() {
-        let mut sub_at = at.clone();
-        sub_at.push(i);
-        areas = [areas, evaluate_layout(
-            me,
-            sub_areas[i],
-            buffer,
-            sub_layout,
-            depth + 1,
-            sub_at,
-            theme
-        )].concat()
-    }
-    areas
-}
 impl Interactable for GlyphLayoutEditView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         if self.focused_child_ref().is_none() {
@@ -907,7 +988,15 @@ impl Interactable for GlyphLayoutEditView {
                                 4 => { // Flex Field
                                     self.containers[2].set_focus(true);
                                 }
-                                5 => {
+                                5 => { // Padding Field
+                                    self.containers[3].set_focus(true);
+
+                                }
+                                6 => { // Padding Field
+                                    self.containers[4].set_focus(true);
+
+                                }
+                                7 => {
                                     return self.components[2].handle(key, Some(&mut self.state));
                                 }
                                 _ => {

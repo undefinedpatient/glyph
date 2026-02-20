@@ -5,9 +5,9 @@ use crate::services::LocalEntryState;
 use crate::theme::Theme;
 use crate::utils::markdown_renderer::MarkdownRenderer;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use ratatui::layout::{Constraint, Layout, Rect, Size};
+use ratatui::layout::{Constraint, Layout, Margin, Rect, Size};
 use ratatui::style::Stylize;
-use ratatui::widgets::{Block, BorderType, StatefulWidget, Widget};
+use ratatui::widgets::{Block, BorderType, Padding, StatefulWidget, Widget};
 use ratatui::Frame;
 use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
@@ -74,11 +74,11 @@ impl Drawable for GlyphReadView {
         let layout = &entry_state.get_entry_ref(&eid).unwrap().layout;
         match layout.details.size_mode {
             SizeMode::Flex => {
-                let areas: Vec<(u16, Rect, BorderMode)> = evaluate_read_areas(self, area, layout, 0,0);
+                let areas: Vec<(u16, Rect, BorderMode, u16)> = evaluate_read_areas(self, area, layout, 0,0);
                 let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
                 for (sid, section) in ref_sections {
-                    if let Some((position, area, border_mode)) = areas.iter().find(
-                        |(position, area, border_mode)|{
+                    if let Some((position, area, border_mode, padding)) = areas.iter().find(
+                        |(position, area, border_mode, _padding)|{
                             *position as i64 == section.position
                         }
                     ) {
@@ -95,7 +95,7 @@ impl Drawable for GlyphReadView {
                             BorderMode::Rounded => {
                                 Block::bordered().border_type(BorderType::Rounded).title(section.title.clone().bold())
                             }
-                        };
+                        }.padding(Padding::uniform(*padding));
                         let inner_area: Rect = block.inner(*area);
                         block.render(*area, frame.buffer_mut());
                         MarkdownRenderer::render_markdown(section.content.as_str(), &inner_area, frame.buffer_mut(), theme);
@@ -110,11 +110,11 @@ impl Drawable for GlyphReadView {
                 }).scrollbars_visibility(ScrollbarVisibility::Never);
                 let background: Block = Block::new().bg(theme.background());
                 background.render(scroll_view.area(), scroll_view.buf_mut());
-                let areas: Vec<(u16, Rect, BorderMode)> = evaluate_read_areas(self, scroll_view.area(), layout, 0,0);
+                let areas: Vec<(u16, Rect, BorderMode, u16)> = evaluate_read_areas(self, scroll_view.area(), layout, 0,0);
                 let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
                 for (sid, section) in ref_sections {
-                    if let Some((position, area, border_mode)) = areas.iter().find(
-                        |(position, area, border_mode)|{
+                    if let Some((position, area, border_mode, padding)) = areas.iter().find(
+                        |(position, area, border_mode, _padding)|{
                             *position as i64 == section.position
                         }
                     ) {
@@ -131,7 +131,7 @@ impl Drawable for GlyphReadView {
                             BorderMode::Rounded => {
                                 Block::bordered().border_type(BorderType::Rounded).title(section.title.clone().bold())
                             }
-                        };
+                        }.padding(Padding::uniform(*padding));
                         let inner_area: Rect = block.inner(*area);
                         block.render(*area, scroll_view.buf_mut());
                         MarkdownRenderer::render_markdown(section.content.as_str(), &inner_area, scroll_view.buf_mut(), theme);
@@ -143,13 +143,14 @@ impl Drawable for GlyphReadView {
 
     }
 }
-fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &crate::models::layout::Layout, depth: u16, at: usize) -> Vec<(u16, Rect, BorderMode)> {
+fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &crate::models::layout::Layout, depth: u16, at: usize) -> Vec<(u16, Rect, BorderMode, u16)> {
     let mut target_section_text: String = "None".to_string();
     if let Some(position_target) = layout.section_index {
         target_section_text = position_target.to_string();
     }
 
-    let mut recursive_area: Rect = area;
+    let mut recursive_area: Rect = Block::default().inner(area);
+
     // Process the child
     let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
         |(index, sub)| {
@@ -173,10 +174,10 @@ fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &crate::models::l
             }
         };
 
-    let mut areas: Vec<(u16, Rect, BorderMode)> = vec![];
+    let mut areas: Vec<(u16, Rect, BorderMode, u16)> = vec![];
     if let Some(section_index) = layout.section_index {
         if layout.sub_layouts.is_empty() {
-            areas.push((section_index, area, layout.details.border_mode.clone()));
+            areas.push((section_index, area.inner(Margin::new(layout.details.margin, layout.details.margin)), layout.details.border_mode.clone(), layout.details.padding));
         }
     }
     for (i, sub_layout) in layout.sub_layouts.iter().enumerate() {

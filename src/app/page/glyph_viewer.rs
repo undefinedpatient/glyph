@@ -249,6 +249,7 @@ impl Interactable for GlyphViewer {
             }
             GlyphMode::Edit => {
                 [
+                    ("pageup/pagedown", "Scroll"),
                     ("e","Edit Active Section"),
                     ("R","Rename Active Section"),
                     ("A","Create Default Section"),

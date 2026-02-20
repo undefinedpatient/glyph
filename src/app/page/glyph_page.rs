@@ -78,6 +78,14 @@ impl GlyphPage {
     }
     pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {
         let max: u16 = (self.containers.len() + self.components.len()) as u16;
+
+        // Quick fix for focus
+        if !self.state.hidden_container_index.is_empty() {
+            self.state.hovered_index = Some(1);
+            return;
+        }
+
+
         if let Some(hover_index) = self.state.hovered_index {
             self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, max) as usize);
         } else {
@@ -207,6 +215,11 @@ impl Interactable for GlyphPage {
                                 self.state.hidden_container_index.remove(&0u8);
                             } else {
                                 self.state.hidden_container_index.insert(0);
+                                self.state.hovered_index = if self.state.hovered_index.is_some() {
+                                    Some(1)
+                                } else {
+                                    None
+                                };
                             }
                         }
                     }

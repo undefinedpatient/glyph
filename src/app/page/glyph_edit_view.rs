@@ -361,7 +361,7 @@ impl Drawable for GlyphEditOrderView {
             }
             let mut border_type = BorderType::Plain;
             if let Some(hovered_index) = self.state.hovered_index {
-                if index == hovered_index {
+                if index as isize == hovered_index as isize - self.state.scroll_offset as isize {
                     border_type = BorderType::Double;
                 }
             }

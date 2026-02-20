@@ -101,8 +101,10 @@ pub enum BorderMode {
 pub struct LayoutDetails {
     pub size_mode: SizeMode,
     pub border_mode: BorderMode,
-    pub length: u16, // Describe Self
-    pub flex: u16, // Describe Self
+    pub length: u16,
+    pub flex: u16,
+    pub padding: u16,
+    pub margin: u16,
 
     pub orientation: LayoutOrientation, // Describing orientation main axis for the children
 }
@@ -116,6 +118,8 @@ impl LayoutDetails {
             border_mode: BorderMode::None,
             length: 42,
             flex: 1,
+            padding: 0,
+            margin: 0,
 
             orientation: LayoutOrientation::Vertical,
         }

@@ -1,6 +1,7 @@
 use rusqlite::Connection;
 use std::any::Any;
 use std::collections::HashMap;
+use std::ops::Add;
 use std::path::PathBuf;
 use color_eyre::owo_colors::OwoColorize;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
