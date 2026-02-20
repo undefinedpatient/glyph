@@ -237,6 +237,7 @@ impl Focusable for GlyphEditView {
 
 pub struct GlyphEditOrderState {
     pub hovered_index: Option<usize>,
+    pub scroll_offset: usize,
 
 
     // Shared Data
@@ -272,6 +273,7 @@ impl GlyphEditOrderView {
         Self {
             state: GlyphEditOrderState {
                 hovered_index: None,
+                scroll_offset: 0,
 
                 active_sid: editing_sid,
                 entry_state
@@ -332,12 +334,12 @@ impl Drawable for GlyphEditOrderView {
 
          */
         let state = self.state.entry_state.borrow();
-        let eid = state.active_entry_id.unwrap();
+        let eid: i64 = state.active_entry_id.unwrap();
         let section_list: &Vec<(i64, Section)> = state.get_sections_ref(&eid);
-        let edit_area = inner_area.centered_horizontally(Constraint::Percentage(90));
+        let edit_area: Rect = inner_area.centered_horizontally(Constraint::Percentage(90));
 
         let mut stack_height = 0;
-        let section_constraints: Vec<Constraint> = section_list.iter().take_while(
+        let section_constraints: Vec<Constraint> = section_list.iter().skip(self.state.scroll_offset).take_while(
             |(i64, section)|{
                 if stack_height>inner_area.height {
                     return false;
@@ -353,7 +355,7 @@ impl Drawable for GlyphEditOrderView {
         ).collect();
         let section_areas = Layout::vertical(section_constraints).split(edit_area);
 
-        for (index, (sid ,section)) in section_list.iter().enumerate() {
+        for (index, (sid ,section)) in section_list.iter().skip(self.state.scroll_offset).enumerate() {
             if index >= section_areas.len() {
                 break;
             }
@@ -379,7 +381,7 @@ impl Drawable for GlyphEditOrderView {
                     section.title.as_str().not_dim()
 
                 }
-            ).title_top(Line::from(String::from("Position: ") + format!("{}", section.position).as_str()).right_aligned())
+            ).title_top(Line::from(String::from("Pos: ") + format!("{}", section.position).as_str()).right_aligned())
                 .render(section_areas[index], frame.buffer_mut());
             MarkdownRenderer::render_markdown(section.content.as_str(), &inner_area, frame.buffer_mut(), theme);
         }
@@ -394,6 +396,12 @@ impl Interactable for GlyphEditOrderView {
                 }
                 if is_cycle_backward_hover_key(key) {
                     self.cycle_section_hover(-1);
+                }
+                if let KeyCode::PageUp = key.code {
+                    self.state.scroll_offset = self.state.scroll_offset.saturating_sub(1);
+                }
+                if let KeyCode::PageDown = key.code {
+                    self.state.scroll_offset = self.state.scroll_offset.saturating_add(1);
                 }
                 if let KeyCode::Enter = key.code {
                     if let Some(index) = self.state.hovered_index {
