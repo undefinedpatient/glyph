@@ -29,7 +29,21 @@ impl MarkdownRenderer {
             level: u32,
             is_ordered: bool,
             item_index: u32,
-            bullet: char
+        }
+        impl ListState {
+            fn get_bullet(&self) -> char {
+                match self.level {
+                    1 => {
+                        '•'
+                    }
+                    2 => {
+                        '◦'
+                    }
+                    _ => {
+                        '•'
+                    }
+                }
+            }
         }
         struct QuoteState {
             level: u32,
@@ -61,12 +75,10 @@ impl MarkdownRenderer {
                         }
                         Tag::List(is_ordered) => {
                             let level = list_stack.len() as u32 + 1;
-                            let bullet = if is_ordered.is_some() {'?'} else {'•'};
                             list_stack.push(ListState {
                                 level,
                                 is_ordered: is_ordered.is_some(),
                                 item_index: is_ordered.unwrap_or(1) as u32,
-                                bullet
                             })
                         }
                         Tag::BlockQuote(quote_type) => {
@@ -87,7 +99,7 @@ impl MarkdownRenderer {
                                     current_line.push(Span::raw(format!("{}. ", state.item_index)));
                                     state.item_index += 1;
                                 } else {
-                                    current_line.push(Span::raw(format!("{} ", state.bullet)));
+                                    current_line.push(Span::raw(format!("{} ", state.get_bullet())));
                                 }
                             }
                         }
