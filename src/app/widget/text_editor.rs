@@ -311,7 +311,7 @@ impl From<TextEditor> for Box<dyn Container> {
 }
 impl Drawable for TextEditor {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
-        let mut border: Block = block!(self.state.label.as_str(),draw_flag,theme);
+        let mut border: Block = block!(self.state.label.as_str(),draw_flag,theme).bg(theme.surface_low());
         match self.state.mode {
             EditMode::Normal => {
                 border = border.title(Line::from("NORMAL").bold())
@@ -349,9 +349,9 @@ impl Drawable for TextEditor {
                         Span::from(line.iter().skip(horizontal_offset).collect::<String>())
                     ]);
                 if line_number == self.state.cursor_line_index {
-                    line = line.bg(theme.surface_low());
+                    line = line.bg(theme.surface_low_highlight());
                 } else {
-                    line = line.bg(theme.background());
+                    line = line.bg(theme.surface_low());
                 }
                 line
             }

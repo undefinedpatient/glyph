@@ -104,7 +104,7 @@ impl Drawable for DirectoryList {
             .unwrap_or("Invalid Path")
             .to_string();
         let widget_frame: Block = block!(self.state.label.as_str(),draw_flag,theme)
-            .title_top(Span::from(current_path.as_str()).into_right_aligned_line());
+            .title_top(Span::from(current_path.as_str()).into_right_aligned_line()).bg(theme.surface_low());
 
         /*
            Directory Widget
@@ -137,6 +137,9 @@ impl Drawable for DirectoryList {
                 let mut line = Line::from(content);
                 if is_selected {
                     line = line.bold();
+                }
+                if is_hovered {
+                    line = line.bg(theme.surface_low_highlight());
                 }
                 line
             })

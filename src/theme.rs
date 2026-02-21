@@ -12,22 +12,24 @@ pub trait Theme {
     /// This determines the background of the surface. Normally used in panel/pages.
     fn surface_low(&self) -> Color;
 
+    /// Used for highlighting on surface_low
+    fn surface_low_highlight(&self) -> Color;
+
     /// This determines the background of the surface. Normally used in popups/dialogs.
     fn surface_high(&self) -> Color;
 
-    /// Style of Markdown Headers.
-    fn header(&self, level: u8) -> Style;
+    fn surface_high_highlight(&self) -> Color;
 
-    /// Style of Markdown bolded text.
+    /// Style of bolded text.
     fn bold(&self) -> Style;
 
-    /// Style of Markdown italic text.
+    /// Style of italic text.
     fn italic(&self) -> Style;
 
-    /// Style of Markdown underline text.
+    /// Style of underline text.
     fn underline(&self) -> Style;
 
-    /// Style of Markdown strikethrough text.
+    /// Style of strikethrough text.
     fn strikethrough(&self) -> Style;
 }
 pub struct Iceberg;
@@ -42,26 +44,18 @@ impl Theme for Iceberg {
         Color::Rgb(189, 211, 236)
     }
     fn surface_low(&self) -> Color {
-        Color::Rgb(34, 41, 47)
+        Color::Rgb(29, 36, 42)
     }
+
+    fn surface_low_highlight(&self) -> Color {
+        Color::Rgb(51, 58, 64)
+    }
+
     fn surface_high(&self) -> Color {
         Color::Rgb(117, 151, 181)
     }
-    fn header(&self, level: u8) -> Style {
-        match level {
-            0 => {
-                Style::default().add_modifier(Modifier::BOLD)
-            }
-            1 => {
-                Style::default().add_modifier(Modifier::BOLD)
-            }
-            2 => {
-                Style::default().add_modifier(Modifier::BOLD)
-            }
-            _ => {
-                Style::default().add_modifier(Modifier::BOLD)
-            }
-        }
+    fn surface_high_highlight(&self) -> Color {
+        Color::Rgb(127, 161, 191)
     }
     fn bold(&self) -> Style{
         Style::default().add_modifier(Modifier::BOLD)
