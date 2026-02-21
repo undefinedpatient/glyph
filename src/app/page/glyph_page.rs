@@ -22,6 +22,8 @@ use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
+use rusqlite::fallible_iterator::FallibleIterator;
+use crate::app::dialog::search_entry_dialog::SearchEntryDialog;
 
 pub struct GlyphPageState {
     pub is_focused: bool,
@@ -208,6 +210,16 @@ impl Interactable for GlyphPage {
                                 _ => {}
                             }
                         }
+                    }
+                    if let KeyCode::Char('F') = key.code {
+                        let entries_name = self.state.local_entry_state_ref().unwrap().entries.iter().map(
+                            |(id, entry)| {
+                                entry.entry_name.clone()
+                            }
+                        ).collect();
+                        self.dialogs.push(
+                            SearchEntryDialog::new(entries_name).into()
+                        );
                     }
                     if let KeyCode::Char('b') = key.code {
                         if key.modifiers.contains(KeyModifiers::CONTROL) {
