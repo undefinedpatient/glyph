@@ -77,6 +77,7 @@ impl LocalEntryState {
 
         let current_entry: &mut Entry = self.get_entry_mut(&eid).unwrap();
         current_entry.update_name(&entry);
+        self.reconstruct_entry_order();
         Ok(())
     }
 
@@ -278,6 +279,11 @@ impl LocalEntryState {
         self.ordered_entries = new_ordered_entries;
     }
 
+    /// Reload layout
+    pub fn reload_layout(&mut self, eid: &i64) -> () {
+        let item = EntryRepository::read_by_id(&self.connection, eid).unwrap();
+        self.get_entry_mut(eid).unwrap().layout = item.1.layout;
+    }
 
     /*
 
@@ -316,4 +322,5 @@ impl LocalEntryState {
         }
         min
     }
+    
 }

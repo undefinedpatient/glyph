@@ -79,12 +79,11 @@ impl From<TextField> for Box<dyn Container> {
 }
 impl Drawable for TextField {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
-        // let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
         let content = self.state.chars.iter().collect::<String>();
         let content_paragraph: Paragraph = Paragraph::new(Line::from(content)).wrap(Wrap{trim: true});
-        let mut text_field_block: Block = block!(self.state.label.as_str(),draw_flag,theme);
+        let mut text_field_block: Block = block!(self.state.label.as_str(),draw_flag,theme).bg(theme.surface_low());
         if !self.state.is_valid {
-            text_field_block = text_field_block.red().title_bottom("Invalid Input");
+            text_field_block = text_field_block.red().title_bottom("Invalid Input").bg(theme.surface_low());
         }
         let content_area: Rect = text_field_block.inner(area);
         if self.is_focused() {

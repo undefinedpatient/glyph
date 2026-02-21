@@ -493,7 +493,7 @@ fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, la
 
 
     // Generate Border to render visualization.
-    let mut block: Block = Block::bordered().title(layout.label.as_str()).padding(Padding::uniform(layout.details.padding)).style(theme.on_surface()).bg(theme.background());
+    let mut block: Block = Block::bordered().title(layout.label.as_str()).padding(Padding::uniform(layout.details.padding)).style(theme.on_surface()).bg(theme.surface_low());
     if at == *focused_coordinate {
         block = block.border_type(BorderType::Thick).title_style(Style::new().bold());
 
@@ -820,11 +820,14 @@ impl GlyphLayoutEditView {
                         }
                     )
                 ).into(),
-                Button::new("Revert")
+                Button::new("Revert All")
                     .on_interact(Box::new(
                         |parent_state| {
                             let _parent_state: &mut GlyphLayoutEditState= parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();
-                            Ok(vec![GlyphCommand(RefreshLayoutEditPanel)])
+                            let eid: i64 = _parent_state.local_entry_state_mut().unwrap().active_entry_id.unwrap();
+                            _parent_state.local_entry_state_mut().unwrap().reload_layout(&eid);
+                            // Ok(vec![GlyphCommand(RefreshLayoutEditPanel)])
+                            Ok(Vec::new())
                         }
                     ))
                     .into(),
@@ -897,7 +900,7 @@ impl Drawable for GlyphLayoutEditView {
         /*
            Container Frame
         */
-        let mut widget_frame: Block = block!("Setting", draw_flag, theme);
+        let mut widget_frame: Block = block!("Setting", draw_flag, theme).bg(theme.surface_low());
         let inner_area = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
 
@@ -945,7 +948,7 @@ impl Drawable for GlyphLayoutEditView {
 
         // Revert Button
         self.components[2].render(frame, chunks[1],
-                                  get_draw_flag(self.state.hovered_index, 5, None),
+                                  get_draw_flag(self.state.hovered_index, 7, None),
                                   theme
         );
 

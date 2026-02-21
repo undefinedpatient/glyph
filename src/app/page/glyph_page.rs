@@ -418,16 +418,11 @@ impl Drawable for GlyphNavigationBar {
         /*
            Container Frame
         */
-        let widget_frame: Block = block!("Entries", draw_flag, theme);
+        let widget_frame: Block = block!("Entries", draw_flag, theme).bg(theme.surface_low());
         /*
             List Items (Entry)
          */
         let ref_entry_state = self.state.entry_state.borrow();
-        // let plain_entries: Vec<(i64, String)> = ref_entry_state.entries.iter().map(
-        //     |(id,entry)| {
-        //         (id.clone(), entry.entry_name.clone())
-        //     }
-        // ).collect();
         let plain_entries: &Vec<(i64, String)> = &ref_entry_state.ordered_entries;
         let mut list_items: Vec<Line> = plain_entries
             .iter()
@@ -449,6 +444,9 @@ impl Drawable for GlyphNavigationBar {
                 let mut line = Line::from(content);
                 if is_selected {
                     line = line.bold();
+                }
+                if is_hovered {
+                    line = line.bg(theme.surface_low_highlight());
                 }
                 if self.state.local_entry_state_ref().unwrap().updated_entries.contains(&id) {
                     line.push_span(Span::from(String::from(" (Unsaved)")).italic().not_bold());

@@ -314,7 +314,7 @@ impl Drawable for GlyphEditOrderView {
         /*
            Container Frame
         */
-        let mut block: Block = Block::bordered();
+        let mut block: Block = Block::bordered().bg(theme.surface_low());
         match draw_flag {
             DrawFlag::DEFAULT => {
 
