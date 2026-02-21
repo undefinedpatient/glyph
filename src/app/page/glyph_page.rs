@@ -212,13 +212,8 @@ impl Interactable for GlyphPage {
                         }
                     }
                     if let KeyCode::Char('F') = key.code {
-                        let entries_name = self.state.local_entry_state_ref().unwrap().entries.iter().map(
-                            |(id, entry)| {
-                                entry.entry_name.clone()
-                            }
-                        ).collect();
                         self.dialogs.push(
-                            SearchEntryDialog::new(entries_name).into()
+                            SearchEntryDialog::new(self.state.entry_state.clone()).into()
                         );
                     }
                     if let KeyCode::Char('b') = key.code {
@@ -277,6 +272,7 @@ impl Interactable for GlyphPage {
         [
             ("j/k/up/down/tab/backtab","Navigate"),
             ("c-B", "Fold Navigation Bar"),
+            ("F", "Find Entry"),
             ("Enter","Interact"),
         ].into()
     }

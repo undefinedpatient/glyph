@@ -21,6 +21,7 @@ pub struct TextFieldState {
 pub struct TextField {
     pub state: TextFieldState,
     pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+    pub on_update: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
     pub validate: Box<dyn Fn(&str) -> bool>
 }
 
@@ -35,6 +36,7 @@ impl TextField {
                 is_valid: true,
             },
             on_exit: None,
+            on_update: None,
             validate
         }
     }
@@ -44,6 +46,10 @@ impl TextField {
     }
     pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
         self.on_exit = Some(on_exit);
+        self
+    }
+    pub fn on_update(mut self, on_update: Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
+        self.on_update = Some(on_update);
         self
     }
     pub fn move_to_next_char(&mut self) {
@@ -117,6 +123,11 @@ impl Interactable for TextField {
                     if let KeyCode::Char(c) = key.code {
                         self.insert_char(c);
                         self.move_to_next_char();
+                        if let Some(mut on_update) = self.on_update.take() {
+                            let result = (*on_update)(parent_state, Some(&mut self.state));
+                            self.on_update = Some(on_update);
+                            return result;
+                        };
                     }
                     if let KeyCode::Left = key.code {
                         self.move_to_previous_char();
@@ -127,6 +138,11 @@ impl Interactable for TextField {
                     if let KeyCode::Backspace = key.code {
                         self.move_to_previous_char();
                         self.delete_char();
+                        if let Some(mut on_update) = self.on_update.take() {
+                            let result = (*on_update)(parent_state, Some(&mut self.state));
+                            self.on_update = Some(on_update);
+                            return result;
+                        };
                     }
                     // Validation
                     self.state.is_valid = (*self.validate)(self.state.chars.iter().collect::<String>().as_str());
