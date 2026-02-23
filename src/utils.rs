@@ -67,3 +67,64 @@ pub fn get_dir_names(path: &Path) -> Result<Vec<String>> {
     Ok(file_names)
 }
 
+/// Covert from integer number (0-3999] to roman numeral representation.
+pub fn number_to_roman(mut num: u16) -> String {
+    if num > 3999 || num == 0 {
+        return "E".to_string();
+    }
+    let mut roman: Vec<String> = Vec::new();
+    while num > 0 {
+         if num / 10 == 0 {
+            match num {
+                1 => roman.push("I".to_string()),
+                2 => roman.push("II".to_string()),
+                3 => roman.push("III".to_string()),
+                4 => roman.push("IV".to_string()),
+                5 => roman.push("V".to_string()),
+                6 => roman.push("VI".to_string()),
+                7 => roman.push("VII".to_string()),
+                8 => roman.push("VIII".to_string()),
+                9 => roman.push("IX".to_string()),
+                _ => return "E".to_string(),
+            }
+        }
+        else if num / 100 == 0 {
+            match num / 10 {
+                1 => roman.push("X".to_string()),
+                2 => roman.push("XX".to_string()),
+                3 => roman.push("XXX".to_string()),
+                4 => roman.push("XL".to_string()),
+                5 => roman.push("L".to_string()),
+                6 => roman.push("LX".to_string()),
+                7 => roman.push("LXX".to_string()),
+                8 => roman.push("LXXX".to_string()),
+                9 => roman.push("XC".to_string()),
+                _ => return "E".to_string(),
+            }
+        } else if num / 100 == 0 {
+            match num/100 {
+                1 => roman.push("C".to_string()),
+                2 => roman.push("CC".to_string()),
+                3 => roman.push("CCC".to_string()),
+                4 => roman.push("CD".to_string()),
+                5 => roman.push("D".to_string()),
+                6 => roman.push("DC".to_string()),
+                7 => roman.push("DCC".to_string()),
+                8 => roman.push("DCCC".to_string()),
+                9 => roman.push("CM".to_string()),
+                _ => return "E".to_string(),
+            }
+        } else {
+            match num/1000 {
+                1 => roman.push("M".to_string()),
+                2 => roman.push("MM".to_string()),
+                3 => roman.push("MMM".to_string()),
+                _ => {
+                    return "E".to_string();
+                }
+            }
+        }
+        num /= 10;
+    }
+    roman.join("")
+}

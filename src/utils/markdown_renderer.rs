@@ -8,6 +8,7 @@ use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::Widget;
 use tui_big_text::{BigText, PixelSize};
+use crate::utils::number_to_roman;
 
 /// This is a customized Markdown Drawer powered by pulldown-cmark.
 pub struct MarkdownRenderer;
@@ -31,16 +32,24 @@ impl MarkdownRenderer {
             item_index: u32,
         }
         impl ListState {
-            fn get_bullet(&self) -> char {
-                match self.level {
-                    1 => {
-                        '•'
+            fn get_prefix(&self) -> String{
+                if self.is_ordered {
+                    match self.level {
+                        2 => {
+                            format!("{:>4}",number_to_roman(self.item_index as u16))
+                        }
+                        _ => {
+                            format!("{:>4}",self.item_index.to_string())
+                        }
                     }
-                    2 => {
-                        '◦'
-                    }
-                    _ => {
-                        '•'
+                } else {
+                    match self.level {
+                        2 => {
+                            "◦".to_string()
+                        }
+                        _ => {
+                            "•".to_string()
+                        }
                     }
                 }
             }
@@ -96,10 +105,10 @@ impl MarkdownRenderer {
 
                                 // Add marker
                                 if state.is_ordered {
-                                    current_line.push(Span::raw(format!("{}. ", state.item_index)));
+                                    current_line.push(Span::raw(format!("{}. ", state.get_prefix())));
                                     state.item_index += 1;
                                 } else {
-                                    current_line.push(Span::raw(format!("{} ", state.get_bullet())));
+                                    current_line.push(Span::raw(format!("{} ", state.get_prefix())));
                                 }
                             }
                         }

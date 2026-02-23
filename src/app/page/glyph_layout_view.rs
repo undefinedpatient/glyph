@@ -197,15 +197,6 @@ impl Focusable for GlyphLayoutView {
 
 
 
-
-
-
-
-
-
-
-
-
 pub struct GlyphLayoutOverviewState {
     pub hovered_index: Option<usize>, // Note this is the hovered index for sub-layouts, not widgets.
     pub scroll_state: RefCell<ScrollViewState>,
