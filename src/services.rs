@@ -4,6 +4,7 @@ use color_eyre::Report;
 use rusqlite::Connection;
 use crate::models::entry::Entry;
 use crate::models::section::Section;
+use crate::utils::auto_increment_name;
 
 pub struct LocalEntryState {
     /// All entries in the database.
@@ -21,18 +22,15 @@ impl LocalEntryState {
     /// Create new LocalEntryState from connection.
     pub fn new(c: Connection) -> Self {
         let entries = EntryRepository::read_all(&c).unwrap();
-        let ordered_entries: Vec<(i64, String)> = entries.iter().map(
-            |(id,entry)| {
-                (id.clone(), entry.entry_name.clone())
-            }
-        ).collect();
-        Self {
+        let mut me = Self {
             entries,
             connection: c,
             active_entry_id: None,
-            ordered_entries,
+            ordered_entries: Vec::new(),
             updated_entries: HashSet::new(),
-        }
+        };
+        me.reconstruct_entry_order();
+        me
     }
 
     /// Create New Entry, return Entry ID.
@@ -57,7 +55,9 @@ impl LocalEntryState {
 
     /// Create a default entry in the database, this function interact and update database.
     pub fn create_default_entry_db(&mut self, entry_name: &str) -> color_eyre::Result<i64> {
-        let entry_id: i64 = EntryRepository::create_default_entry(&self.connection, entry_name)?;
+        let name_list: Vec<&str> = self.ordered_entries.iter().map(|(eid, name)|{name.as_str()}).collect::<Vec<&str>>();
+        let new_entry_name: String = auto_increment_name(entry_name, name_list.as_slice());
+        let entry_id: i64 = EntryRepository::create_default_entry(&self.connection, new_entry_name.as_str())?;
         let entry_result = EntryRepository::read_by_id(&self.connection, &entry_id);
         match entry_result {
             Ok((eid, entry)) => {
@@ -69,10 +69,28 @@ impl LocalEntryState {
         }
     }
 
+    /// Insert a new entry to db, perform name duplication check.
+    pub fn insert_entry(&mut self, mut new_entry: Entry) -> color_eyre::Result<i64> {
+        let name_list: Vec<&str> = self.ordered_entries.iter().map(|(eid, name)|{name.as_str()}).collect::<Vec<&str>>();
+        new_entry.entry_name = auto_increment_name(new_entry.entry_name.as_str(), name_list.as_slice());
+        let entry_id: i64 = EntryRepository::insert(&self.connection, &new_entry)?;
+        let entry_result = EntryRepository::read_by_id(&self.connection, &entry_id);
+        match entry_result {
+            Ok((eid, entry)) => {
+                self.entries.push((eid, entry));
+                self.reconstruct_entry_order();
+                Ok(eid)
+            }
+            Err(e) => Err(e)
+        }
+
+    }
+
     /// Update entry's name by its id, this function interact and update database.
     pub fn update_entry_name_db(&mut self, eid: &i64, new_name: &str) -> color_eyre::Result<()> {
-
-        EntryRepository::update_name(&self.connection, &eid, new_name)?;
+        let name_list: Vec<&str> = self.ordered_entries.iter().map(|(eid, name)|{name.as_str()}).collect::<Vec<&str>>();
+        let corrected_name: String = auto_increment_name(new_name, name_list.as_slice());
+        EntryRepository::update_name(&self.connection, &eid, corrected_name.as_str())?;
         let (eid, entry) = EntryRepository::read_by_id(&self.connection, &eid)?;
 
         let current_entry: &mut Entry = self.get_entry_mut(&eid).unwrap();
@@ -84,14 +102,14 @@ impl LocalEntryState {
     /// Update the database using the corresponding Entry in local state pointed by the eid parameter.
     pub fn save_entry_db(&mut self, eid: &i64) -> color_eyre::Result<()> {
         let entry: &Entry = self.get_entry_ref(eid).unwrap();
-        EntryRepository::update_entry(&self.connection, eid, entry)?;
+        EntryRepository::update(&self.connection, eid, entry)?;
         Ok(())
     }
 
     /// Update the database by deleting corresponding Entry pointed by the eid parameter.
     pub fn delete_active_entry_db(&mut self) -> color_eyre::Result<usize> {
         if let Some(id) = self.active_entry_id {
-            let result = crate::db::EntryRepository::delete_by_id(&self.connection, &id);
+            let result = crate::db::EntryRepository::delete(&self.connection, &id);
             let mut remove_index: i8 = -1;
             for (index, entry) in self.entries.iter().enumerate() {
                 if (*entry).0 == id {
@@ -184,7 +202,7 @@ impl LocalEntryState {
     pub fn create_section_to_active_entry_db(&mut self, title: &str, content: &str) -> color_eyre::Result<i64> {
         if let Some(eid) = self.active_entry_id {
             let new_section: Section = Section::new(title, content, self.get_max_position_section(&eid)+1);
-            let sid: i64 = SectionRepository::create_section(&self.connection, &eid, &new_section)?;
+            let sid: i64 = SectionRepository::insert(&self.connection, &eid, &new_section)?;
             let active_entry = self.get_entry_mut(&eid).unwrap();
             active_entry.sections.push((sid, new_section));
             Ok(sid)
@@ -195,7 +213,7 @@ impl LocalEntryState {
 
     /// Update the Section specified by its id in the database, update the local state as well.
     pub fn update_section_by_sid_db(&mut self, sid: &i64, section: Section) -> color_eyre::Result<()> {
-        let _sid = SectionRepository::update_section(&self.connection, sid, &section)?;
+        let _sid = SectionRepository::update(&self.connection, sid, &section)?;
         let (eid, sid, section) = SectionRepository::read_by_id(&self.connection, sid)?.unwrap();
         // Update all entry having the same layout
         let sections: &mut Vec<(i64, Section)> = &mut self.get_entry_mut(&eid).unwrap().sections;
@@ -218,7 +236,7 @@ impl LocalEntryState {
     /// Delete the corresponding Section in the database specified by the sid.
     pub fn delete_section_db(&mut self, sid: &i64) -> color_eyre::Result<()> {
         let (eid, sid, section) = SectionRepository::read_by_id(&self.connection, sid)?.unwrap();
-        SectionRepository::delete_section(&self.connection, &sid)?;
+        SectionRepository::delete(&self.connection, &sid)?;
         if let Some(entry) = self.get_entry_mut(&eid) {
             let mut index_of_section: usize = usize::MAX;
             for (index, item) in &mut entry.sections.iter().enumerate() {
@@ -290,12 +308,28 @@ impl LocalEntryState {
         Helpers
 
      */
+
+    /// Fetch local entry to new sorted list of entry_order
     fn reconstruct_entry_order(&mut self) -> () {
-        self.ordered_entries = self.entries.iter().map(
+        let mut new_ordered_entries: Vec<(i64, String)> = self.entries.iter().map(
             |(id,entry)| {
                 (id.clone(), entry.entry_name.clone())
             }
         ).collect();
+        if new_ordered_entries.len() <= 1 {
+            self.ordered_entries = new_ordered_entries;
+            return;
+        }
+        for i in 0..new_ordered_entries.len()-1 {
+            for j in i..new_ordered_entries.len()-1 {
+                if new_ordered_entries[j].1 > new_ordered_entries[j+1].1 {
+                    let temp: (i64, String) = new_ordered_entries[j].clone();
+                    new_ordered_entries[j] = new_ordered_entries[j+1].clone();
+                    new_ordered_entries[j+1] = temp;
+                }
+            }
+        }
+        self.ordered_entries = new_ordered_entries;
     }
 
 

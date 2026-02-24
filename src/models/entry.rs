@@ -4,6 +4,7 @@
 use crate::models::layout::Layout;
 use crate::models::section::Section;
 
+#[derive(Clone)]
 pub struct Entry {
     pub entry_name: String,
     pub sections: Vec<(i64, Section)>,

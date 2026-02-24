@@ -16,7 +16,7 @@ impl GlyphRepository {
             "
         CREATE TABLE IF NOT EXISTS entries (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            entry_name  TEXT NOT NULL,
+            entry_name  TEXT NOT NULL UNIQUE,
             layout      TEXT NOT NULL DEFAULT ''
         )
         "
@@ -29,7 +29,6 @@ impl GlyphRepository {
             position    INTEGER NOT NULL,
             title       TEXT NOT NULL DEFAULT '',
             content     TEXT NOT NULL DEFAULT ''
-
         )
         "
             // UNIQUE (entry_id, position)
@@ -47,7 +46,17 @@ impl EntryRepository {
         let eid: i64 = c.last_insert_rowid();
         return Ok(eid);
     }
-    pub fn update_entry(c: &Connection, eid: &i64, entry: &Entry) -> color_eyre::Result<(i64)> {
+
+    /// Insert an Entry to db, does not perform duplicated name check.
+    pub fn insert(c: &Connection, entry: &Entry) -> color_eyre::Result<i64> {
+        c.execute(
+            "INSERT INTO entries (entry_name, layout) VALUES (?1, ?2)",
+            params![entry.entry_name, serde_json::to_string(&entry.layout)?]
+        )?;
+        let eid: i64 = c.last_insert_rowid();
+        return Ok(eid);
+    }
+    pub fn update(c: &Connection, eid: &i64, entry: &Entry) -> color_eyre::Result<(i64)> {
         c.execute(
             "
                 UPDATE entries
@@ -60,7 +69,7 @@ impl EntryRepository {
         )?;
         let id: i64 = c.last_insert_rowid();
         for (sid, section) in &entry.sections {
-            SectionRepository::update_section(c, sid, section)?;
+            SectionRepository::update(c, sid, section)?;
         }
 
         return Ok(id);
@@ -80,7 +89,7 @@ impl EntryRepository {
         return Ok(());
     }
 
-    pub fn delete_by_id(c: &Connection, eid: &i64) -> color_eyre::Result<usize> {
+    pub fn delete(c: &Connection, eid: &i64) -> color_eyre::Result<usize> {
         let num_of_row_deleted = c.execute( "DELETE FROM entries WHERE id = ?1",
                                             params![eid],
         )?;
@@ -90,7 +99,7 @@ impl EntryRepository {
     pub fn read_by_id(c: &Connection, id: &i64) -> color_eyre::Result<(i64, Entry)> {
         let mut stmt = c.prepare("SELECT id, entry_name, layout FROM entries WHERE id = ?1")?;
         let mut rows: Rows = stmt.query(params![*id])?;
-        Self::map_row_to_eid_entry(c, rows.next()?.unwrap())
+        Self::map_row(c, rows.next()?.unwrap())
     }
 
     pub fn read_all(c: &Connection) -> color_eyre::Result<Vec<(i64, Entry)>> {
@@ -98,22 +107,22 @@ impl EntryRepository {
         let mut rows: Rows = stmt.query(params![])?;
         let mut entries: Vec<(i64, Entry)> = Vec::new();
         while let Some(row) = rows.next()? {
-            let entry = Self::map_row_to_eid_entry(c, row)?;
+            let entry = Self::map_row(c, row)?;
             entries.push(entry);
         }
         Ok(entries)
     }
 
 
-    // Expecting row (id, entry_name, layout)
-    fn map_row_to_eid_entry(c: &Connection, row: &Row) -> color_eyre::Result<(i64, Entry)> {
+    // Returning (eid, entry_name, layout)
+    fn map_row(c: &Connection, row: &Row) -> color_eyre::Result<(i64, Entry)> {
         let id: i64 = row.get(0)?;
         let layout_string: String = row.get(2)?;
         Ok((
             id,
             Entry {
                 entry_name: row.get(1)?,
-                sections: SectionRepository::read_by_entry_id(c, &id)?,
+                sections: SectionRepository::read_all_by_eid(c, &id)?,
                 layout: serde_json::from_str(layout_string.as_str()).unwrap_or(Layout::new("")),
             }
         )
@@ -122,17 +131,7 @@ impl EntryRepository {
 }
 pub(crate) struct SectionRepository {}
 impl SectionRepository {
-    pub fn read_by_entry_id(c: &Connection, entry_id: &i64) -> color_eyre::Result<Vec<(i64, Section)>> {
-        let mut stmt = c.prepare("SELECT id, entry_id, position, title, content FROM sections WHERE entry_id = ?1 ORDER BY position ASC")?;
-        let mut rows: Rows = stmt.query(params![*entry_id])?;
-        let mut sections: Vec<(i64, Section)> = Vec::new();
-        while let Some(row) = rows.next()? {
-            let section = Self::map_row_to_id_section(row)?;
-            sections.push((section.1, section.2));
-        }
-        Ok(sections)
-    }
-    pub fn create_section(c: &Connection, eid:&i64, section: &Section) -> color_eyre::Result<i64> {
+    pub fn insert(c: &Connection, eid:&i64, section: &Section) -> color_eyre::Result<i64> {
         c.execute(
             "
                 INSERT INTO sections (entry_id, position, title, content) VALUES (?1, ?2, ?3, ?4)
@@ -156,7 +155,7 @@ impl SectionRepository {
         }
         return Ok(());
     }
-    pub fn update_section(c: &Connection, sid: &i64, section: &Section) -> color_eyre::Result<i64> {
+    pub fn update(c: &Connection, sid: &i64, section: &Section) -> color_eyre::Result<i64> {
         c.execute(
             "
                 UPDATE sections
@@ -172,7 +171,7 @@ impl SectionRepository {
         return Ok(id);
     }
 
-    pub fn delete_section(c: &Connection, sid: &i64) -> color_eyre::Result<usize> {
+    pub fn delete(c: &Connection, sid: &i64) -> color_eyre::Result<usize> {
         let num_of_row_deleted = c.execute( "DELETE FROM sections WHERE id = ?1",
                                             params![sid],
         )?;
@@ -187,9 +186,22 @@ impl SectionRepository {
     pub fn read_by_id(c: &Connection, id: &i64) -> color_eyre::Result<Option<(i64, i64, Section)>> {
         let mut stmt = c.prepare("SELECT id, entry_id, position, title, content FROM sections WHERE id = ?1")?;
         let mut rows: Rows = stmt.query(params![*id])?;
-        rows.next()?.map(|row| {Self::map_row_to_id_section(row)}).transpose()
+        rows.next()?.map(|row| {Self::map_row(row)}).transpose()
     }
-    pub fn map_row_to_id_section(row: &Row) -> color_eyre::Result<(i64, i64, Section)> {
+    /// Read a Section by corresponding Entry ID.
+    pub fn read_all_by_eid(c: &Connection, entry_id: &i64) -> color_eyre::Result<Vec<(i64, Section)>> {
+        let mut stmt = c.prepare("SELECT id, entry_id, position, title, content FROM sections WHERE entry_id = ?1 ORDER BY position ASC")?;
+        let mut rows: Rows = stmt.query(params![*entry_id])?;
+        let mut sections: Vec<(i64, Section)> = Vec::new();
+        while let Some(row) = rows.next()? {
+            let section = Self::map_row(row)?;
+            sections.push((section.1, section.2));
+        }
+        Ok(sections)
+    }
+
+    /// Return (eid, sid, Section).
+    pub fn map_row(row: &Row) -> color_eyre::Result<(i64, i64, Section)> {
         let eid: i64 = row.get(1)?;
         let sid: i64 = row.get(0)?;
         Ok(

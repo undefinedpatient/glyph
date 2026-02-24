@@ -521,13 +521,7 @@ impl Interactable for GlyphNavigationBar {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                                         let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
                                                         let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-
-                                                        let name_list: Vec<&str> = local_entry_state.ordered_entries.iter().map(|(eid, name)|{name.as_str()}).collect::<Vec<&str>>();
-                                                        let new_entry_name: String = auto_increment_name(_state.text_input.as_str(), name_list.as_slice());
-
-                                                        let id = local_entry_state.create_default_entry_db(new_entry_name.as_str())?;
-
-                                                        // Reconstruct the list of entry display
+                                                        let id = local_entry_state.create_default_entry_db(_state.text_input.as_str())?;
                                                         Ok(vec![])
                                                     })
                                                 ).into()
@@ -583,6 +577,16 @@ impl Interactable for GlyphNavigationBar {
                                     ]
                                 );
                             }
+                            // Clone Entry
+                            'D' => {
+                                if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
+                                    return Ok(Vec::new());
+                                }
+                                let mut local_entry_state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
+                                let active_entry: Entry = local_entry_state.get_active_entry_ref().unwrap().clone();
+                                local_entry_state.insert_entry(active_entry)?;
+                                return Ok(Vec::new())
+                            }
                             'x' => {
                                 if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
                                     return Ok(Vec::new());
@@ -622,6 +626,7 @@ impl Interactable for GlyphNavigationBar {
         [
             ("R","Rename Active Entry"),
             ("A","Create Entry"),
+            ("D","Duplicate Active Entry"),
             ("Enter","Open Entry"),
         ].into()
     }
