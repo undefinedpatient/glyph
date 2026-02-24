@@ -87,6 +87,7 @@ pub fn number_to_roman(mut num: u16) -> String {
                 9 => roman.push("IX".to_string()),
                 _ => return "E".to_string(),
             }
+             return roman.join("");
         }
         else if num / 100 == 0 {
             match num / 10 {
@@ -101,7 +102,8 @@ pub fn number_to_roman(mut num: u16) -> String {
                 9 => roman.push("XC".to_string()),
                 _ => return "E".to_string(),
             }
-        } else if num / 100 == 0 {
+            num %= 10;
+        } else if num / 1000 == 0 {
             match num/100 {
                 1 => roman.push("C".to_string()),
                 2 => roman.push("CC".to_string()),
@@ -114,6 +116,7 @@ pub fn number_to_roman(mut num: u16) -> String {
                 9 => roman.push("CM".to_string()),
                 _ => return "E".to_string(),
             }
+            num %= 100;
         } else {
             match num/1000 {
                 1 => roman.push("M".to_string()),
@@ -123,8 +126,50 @@ pub fn number_to_roman(mut num: u16) -> String {
                     return "E".to_string();
                 }
             }
+            num %= 1000;
         }
-        num /= 10;
     }
     roman.join("")
+}
+
+/// Auto-increment a name with suffix format ".00x"
+pub fn auto_increment_name(name: &str, existing_names: &[&str]) -> String {
+    let mut new_name = name.to_string();
+    let (raw_name, suffix) = name.rsplit_once('.').unwrap_or((&name, ""));
+    let mut count: u16 = 0;
+    while existing_names.contains(&new_name.as_str()) {
+        count += 1;
+        new_name = format!("{0}.{1:0>num_digit$}",raw_name, count, num_digit = 3);
+    }
+    new_name
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn test_number_to_roman() {
+        assert_eq!(number_to_roman(1), "I");
+        assert_eq!(number_to_roman(2), "II");
+        assert_eq!(number_to_roman(3), "III");
+        assert_eq!(number_to_roman(4), "IV");
+        assert_eq!(number_to_roman(5), "V");
+        assert_eq!(number_to_roman(16), "XVI");
+        assert_eq!(number_to_roman(19), "XIX");
+        assert_eq!(number_to_roman(219), "CCXIX");
+        assert_eq!(number_to_roman(3999), "MMMCMXCIX");
+    }
+    #[test]
+    fn test_auto_increment_name() {
+        assert_eq!(
+            auto_increment_name("name", &["name"]), "name.001"
+        );
+        assert_eq!(
+            auto_increment_name("name", &["name", "name.001"]), "name.002"
+        );
+        assert_eq!(
+            auto_increment_name("name", &[]), "name"
+        );
+
+    }
 }

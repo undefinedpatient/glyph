@@ -9,7 +9,7 @@ use crate::block;
 use crate::models::entry::Entry;
 use crate::services::LocalEntryState;
 use crate::theme::Theme;
-use crate::utils::cycle_offset;
+use crate::utils::{auto_increment_name, cycle_offset};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Layout, Offset, Rect};
 use ratatui::prelude::{Line, Span, Widget};
@@ -369,6 +369,10 @@ impl GlyphNavigationBar {
     pub fn next_entry(&mut self) -> () {
         if let Ok(state) = self.state.entry_state.try_borrow() {
             let num_entries = state.ordered_entries.len();
+            if self.state.local_entry_state_ref().unwrap().entries.is_empty() {
+                self.state.hovered_index = None;
+                return;
+            }
             if let Some(index) = self.state.hovered_index {
                 self.state.hovered_index = Some(cycle_offset(index as u16, 1, num_entries as u16) as usize);
             } else {
@@ -379,6 +383,10 @@ impl GlyphNavigationBar {
     pub fn previous_entry(&mut self) -> () {
         if let Ok(state) = self.state.entry_state.try_borrow() {
             let num_entries = state.ordered_entries.len();
+            if self.state.local_entry_state_ref().unwrap().entries.is_empty() {
+                self.state.hovered_index = None;
+                return;
+            }
             if let Some(index) = self.state.hovered_index {
                 self.state.hovered_index = Some(cycle_offset(index as u16, -1, num_entries as u16) as usize);
             } else {
@@ -513,7 +521,11 @@ impl Interactable for GlyphNavigationBar {
                                                         let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
                                                         let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
                                                         let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                        let id = local_entry_state.create_default_entry_db(_state.text_input.as_str())?;
+
+                                                        let name_list: Vec<&str> = local_entry_state.ordered_entries.iter().map(|(eid, name)|{name.as_str()}).collect::<Vec<&str>>();
+                                                        let new_entry_name: String = auto_increment_name(_state.text_input.as_str(), name_list.as_slice());
+
+                                                        let id = local_entry_state.create_default_entry_db(new_entry_name.as_str())?;
 
                                                         // Reconstruct the list of entry display
                                                         Ok(vec![])
