@@ -46,7 +46,7 @@ impl ConfirmDialog {
     }
 
     pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {
-        let max: u16 = (self.components.len()) as u16;
+        let max: u16 = self.components.len() as u16;
         if let Some(hover_index) = self.state.hovered_index {
             self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, max) as usize);
         } else {
@@ -100,11 +100,11 @@ impl Interactable for ConfirmDialog {
         &mut self,
         key: &KeyEvent,
         parent_state: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>> {
+    ) -> Result<Vec<Command>> {
         match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Esc = key.code {
-                    return Ok(vec![Command::PageCommand(crate::app::PageCommand::PopDialog)]);
+                    return Ok(vec![PageCommand(PopDialog)]);
                 }
                 if is_cycle_forward_hover_key(key) {
                     self.cycle_hover(1)
@@ -127,7 +127,7 @@ impl Interactable for ConfirmDialog {
                                         callback_result
                                     } else {
                                         let mut commands = callback_result?;
-                                        commands.push(Command::PageCommand(crate::app::PageCommand::PopDialog));
+                                        commands.push(PageCommand(PopDialog));
                                         Ok(commands)
                                     }
                                 } else {

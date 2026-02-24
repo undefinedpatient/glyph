@@ -38,7 +38,7 @@ impl From<MessagePopup> for Box<dyn Container>{
     }
 }
 impl Drawable for MessagePopup {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
+    fn render(&self, frame: &mut Frame, area: Rect, _draw_flag: DrawFlag, theme: &dyn Theme) {
         let ratio: f64 = 1.0/2.0;
         let width: u16 =  (((self.message.len().isqrt() as f64 + 1f64)  / ratio) as u16).clamp(42, area.width)+6;
         let height: u16 =  (((self.message.len().isqrt() as f64 + 1f64) * ratio) as u16).clamp(6, area.height)+6;
@@ -73,9 +73,9 @@ impl Interactable for MessagePopup {
     fn handle(
         &mut self,
         key: &KeyEvent,
-        parent_state: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>> {
-        return match key.kind {
+        _parent_state: Option<&mut dyn Any>,
+    ) -> Result<Vec<Command>> {
+        match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Enter = key.code {
                     return Ok(vec![AppCommand(PopPopup)]);
@@ -86,7 +86,7 @@ impl Interactable for MessagePopup {
                 Ok(Vec::new())
             }
             _ => Ok(Vec::new()),
-        };
+        }
     }
     fn keymap(&self) -> Vec<(&str, &str)>{
         [

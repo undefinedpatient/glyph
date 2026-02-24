@@ -64,7 +64,7 @@ impl GlyphEditView {
         Self {
             containers: vec![
                 GlyphEditOrderView::new(editing_sid.clone(), entry_state.clone()).into(),
-                TextEditor::new("Editor", "")
+                TextEditor::new("Editor")
                     .on_exit(Box::new(
                         |parent_state, state| {
                             let _parent_state: &mut GlyphEditState = parent_state.unwrap().downcast_mut::<GlyphEditState>().unwrap();
@@ -95,7 +95,7 @@ impl GlyphEditView {
                     .into()
             ],
             state: GlyphEditState {
-                shared_focus: shared_focus,
+                shared_focus,
                 is_editing,
                 hovered_index: None,
 
@@ -109,7 +109,6 @@ impl GlyphEditView {
             Some(sid) => {
                 let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
                 let eid: i64 = state.active_entry_id.unwrap();
-                let sections: &Vec<(i64, Section)> = state.get_sections_ref(&eid);
                 let section: Section = state.get_section_ref(&eid, &sid).unwrap().clone();
                 drop(state);
                 (*self.containers[1]).as_any_mut().downcast_mut::<TextEditor>().unwrap().replace(section.content.clone());
@@ -121,7 +120,7 @@ impl GlyphEditView {
     }
 }
 impl Drawable for GlyphEditView {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
+    fn render(&self, frame: &mut Frame, area: Rect, _draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
         */
@@ -152,7 +151,7 @@ impl Drawable for GlyphEditView {
 }
 
 impl Interactable for GlyphEditView {
-    fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(&mut self, key: &KeyEvent, _parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         if self.state.is_editing {
             self.containers[1].handle(key, Some(&mut self.state))
         } else {
@@ -172,7 +171,7 @@ impl Interactable for GlyphEditView {
             }
 
             let result = self.containers[0].as_mut().handle(key, Some(&mut self.state));
-            return if result.is_err() {
+            if result.is_err() {
                 result
             } else {
                 let mut processed_commands: Vec<Command> = Vec::new();
@@ -340,7 +339,7 @@ impl Drawable for GlyphEditOrderView {
 
         let mut stack_height = 0;
         let section_constraints: Vec<Constraint> = section_list.iter().skip(self.state.scroll_offset).take_while(
-            |(i64, section)|{
+            |(_i64, section)|{
                 if stack_height>inner_area.height {
                     return false;
                 }
@@ -348,7 +347,7 @@ impl Drawable for GlyphEditOrderView {
                 stack_height += estimate_num_of_lines as u16;
                 true
             }).map(
-            |(i64, section)| {
+            |(_i64, section)| {
                 let estimate_num_of_lines: usize = section.content.lines().count().clamp(3,12) + 2;
                 Constraint::Length(estimate_num_of_lines as u16)
             }
@@ -431,7 +430,7 @@ impl Interactable for GlyphEditOrderView {
                     return Ok(Vec::new());
                 }
                 if let KeyCode::Char(c) = key.code {
-                    match c {
+                    return match c {
                         '+' => {
                             if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
                                 return Ok(Vec::new());
@@ -447,7 +446,7 @@ impl Interactable for GlyphEditOrderView {
                             state.sort_sections_by_position(&eid);
                             drop(state);
 
-                            return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
+                            Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))])
                         }
                         '-' => {
                             if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
@@ -463,7 +462,7 @@ impl Interactable for GlyphEditOrderView {
                             let eid: i64 = state.active_entry_id.unwrap();
                             state.sort_sections_by_position(&eid);
                             drop(state);
-                            return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
+                            Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))])
                         }
                         'x' => {
                             if self.state.active_sid.borrow().is_none() {
@@ -472,9 +471,8 @@ impl Interactable for GlyphEditOrderView {
                             let sid: i64 = self.state.active_sid.borrow().as_ref().unwrap().clone();
                             self.state.active_sid.replace(None);
                             let mut state = self.state.local_entry_state_mut().unwrap();
-                            let eid: i64 = state.active_entry_id.unwrap();
                             state.delete_section_db(&sid)?;
-                            return Ok(Vec::new());
+                            Ok(Vec::new())
                         }
                         'A' => {
                             let mut local_entry_state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
@@ -482,7 +480,7 @@ impl Interactable for GlyphEditOrderView {
                                 "untitled",
                                 "Blank"
                             )?;
-                            return Ok(Vec::new());
+                            Ok(Vec::new())
                         }
                         'R' => {
                             let local_entry_state = self.state.local_entry_state_ref().unwrap();
@@ -492,11 +490,11 @@ impl Interactable for GlyphEditOrderView {
                             let sid = self.state.active_sid.borrow().as_ref().unwrap().clone();
                             let eid = local_entry_state.active_entry_id.unwrap();
                             let active_section_name: String = local_entry_state.get_section_ref(&eid, &sid).unwrap().title.clone();
-                            return Ok(
+                            Ok(
                                 vec![
                                     PageCommand(
                                         PushDialog(
-                                            TextInputDialog::new( "Rename Section Title", active_section_name.as_str(), Box::new(|value|{true})).on_submit(
+                                            TextInputDialog::new("Rename Section Title", active_section_name.as_str(), Box::new(|_value| { true })).on_submit(
                                                 // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
                                                 Box::new(move |parent_state, state| {
                                                     let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
@@ -510,14 +508,14 @@ impl Interactable for GlyphEditOrderView {
                                         )
                                     )
                                 ]
-                            );
+                            )
                         }
                         _ => {
-                            return Ok(Vec::new());
+                            Ok(Vec::new())
                         }
                     }
                 }
-                return Ok(Vec::new());
+                Ok(Vec::new())
             }
             _ => {
                 Ok(Vec::new())
@@ -529,7 +527,7 @@ impl Focusable for GlyphEditOrderView {
     fn is_focused(&self) -> bool {
         false
     }
-    fn set_focus(&mut self, value: bool) -> () {}
+    fn set_focus(&mut self, _value: bool) -> () {}
     fn focused_child_ref(&self) -> Option<&dyn Container> {
         None
     }

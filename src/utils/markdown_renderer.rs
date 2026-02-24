@@ -1,6 +1,6 @@
 use crate::theme::Theme;
+use crate::utils::number_to_roman;
 use bitflags::bitflags;
-use color_eyre::owo_colors::OwoColorize;
 use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Offset, Rect};
@@ -8,7 +8,6 @@ use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::Widget;
 use tui_big_text::{BigText, PixelSize};
-use crate::utils::number_to_roman;
 
 /// This is a customized Markdown Drawer powered by pulldown-cmark.
 pub struct MarkdownRenderer;
@@ -58,18 +57,14 @@ impl MarkdownRenderer {
             level: u32,
         }
 
-        struct HeaderState{
-            level: Option<HeadingLevel>
-        }
         let mut list_stack: Vec<ListState> = Vec::new();
         let mut quote_state: QuoteState = QuoteState { level: 0 };
-        let mut header_state: HeaderState = HeaderState { level: None };
 
         for event in parser {
             match event {
                 Event::Start(tag) => {
                     match tag {
-                        Tag::Heading { level: l, id: _, classes: _, attrs: _ } => {
+                        Tag::Heading { level: _l, id: _, classes: _, attrs: _ } => {
                         }
                         Tag::Paragraph => {
                         }
@@ -90,7 +85,7 @@ impl MarkdownRenderer {
                                 item_index: is_ordered.unwrap_or(1) as u32,
                             })
                         }
-                        Tag::BlockQuote(quote_type) => {
+                        Tag::BlockQuote(_quote_type) => {
                             quote_state.level += 1;
                         }
                         Tag::Item => {
@@ -218,9 +213,6 @@ impl MarkdownRenderer {
                                     lines.push(Line::default());
                                     render_offset += 2;
                                 }
-                                _ => {
-
-                                }
                             }
                         }
                         TagEnd::List(_) => {
@@ -238,7 +230,7 @@ impl MarkdownRenderer {
                                 render_offset+=1;
                             }
                         }
-                        TagEnd::BlockQuote(quote_type) => {
+                        TagEnd::BlockQuote(_quote_type) => {
                             quote_state.level = quote_state.level.saturating_sub(1);
                             if quote_state.level == 0 {
                                 lines.push(Line::default());
@@ -314,8 +306,5 @@ impl TextStyleBuilder {
             style = style.patch(theme.strikethrough());
         }
         style
-    }
-    pub fn reset_all(&mut self) -> () {
-        self.flags = TextStyleFlag::empty();
     }
 }

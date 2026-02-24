@@ -9,14 +9,14 @@ pub fn cycle_add(value:u16, offset: u16, max: u16) -> u16 {
     if max == 0 {
         return 0;
     }
-    return ((value as u32 + offset as u32)%max as u32) as u16;
+    ((value as u32 + offset as u32)%max as u32) as u16
 }
 pub fn cycle_sub(value:u16, offset: u16, max: u16) -> u16 {
     if max == 0 {
         return 0;
     }
     let offset = offset % max;
-    return if offset > value {
+    if offset > value {
         max - (offset - value)
     } else {
         value - offset
@@ -135,7 +135,7 @@ pub fn number_to_roman(mut num: u16) -> String {
 /// Auto-increment a name with suffix format ".00x"
 pub fn auto_increment_name(name: &str, existing_names: &[&str]) -> String {
     let mut new_name = name.to_string();
-    let (raw_name, suffix) = name.rsplit_once('.').unwrap_or((&name, ""));
+    let (raw_name, _suffix) = name.rsplit_once('.').unwrap_or((&name, ""));
     let mut count: u16 = 0;
     while existing_names.contains(&new_name.as_str()) {
         count += 1;

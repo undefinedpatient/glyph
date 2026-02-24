@@ -1,20 +1,16 @@
-use rusqlite::Connection;
-use std::any::Any;
-use std::collections::HashMap;
-use std::ops::Add;
-use std::path::PathBuf;
-use color_eyre::owo_colors::OwoColorize;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use ratatui::Frame;
-use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::prelude::{Color, Stylize};
-use ratatui::widgets::{Block, Paragraph, Widget};
-use log::info;
-use ratatui::text::{Line, Span};
+use crate::app::popup::message_popup::MessagePopup;
 use crate::theme::{Iceberg, Theme};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use page::entrance_page::EntrancePage;
 use page::glyph_page::GlyphPage;
-use crate::app::popup::message_popup::MessagePopup;
+use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::prelude::{Color, Stylize};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, Widget};
+use ratatui::Frame;
+use rusqlite::Connection;
+use std::any::Any;
+use std::path::PathBuf;
 
 pub mod popup;
 pub mod dialog;
@@ -247,7 +243,7 @@ impl Application {
             return Some(self.popup_states.last_mut().unwrap().as_view_mut());
         }
         if self.page_states.len() != 0 {
-            return Some((self.page_states).last_mut().unwrap().as_view_mut());
+            return Some(self.page_states.last_mut().unwrap().as_view_mut());
         }
         None
     }

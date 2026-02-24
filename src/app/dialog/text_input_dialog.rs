@@ -144,7 +144,7 @@ impl Interactable for TextInputDialog {
         &mut self,
         key: &KeyEvent,
         parent_state: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>> {
+    ) -> Result<Vec<Command>> {
         if self.focused_child_mut().is_none() {
             if is_cycle_forward_hover_key(key) {
                 self.cycle_hover(1)
@@ -155,7 +155,7 @@ impl Interactable for TextInputDialog {
             match key.kind {
                 KeyEventKind::Press => {
                     if let KeyCode::Esc = key.code {
-                        return Ok(vec![Command::PageCommand(crate::app::PageCommand::PopDialog)]);
+                        return Ok(vec![PageCommand(PopDialog)]);
                     }
                     if let KeyCode::Enter = key.code {
                         if let Some(index) = self.state.hovered_index {
@@ -180,7 +180,7 @@ impl Interactable for TextInputDialog {
                                             callback_result
                                         } else {
                                             let mut commands = callback_result?;
-                                            commands.push(Command::PageCommand(crate::app::PageCommand::PopDialog));
+                                            commands.push(PageCommand(PopDialog));
                                             Ok(commands)
                                         }
                                     } else {
@@ -197,7 +197,7 @@ impl Interactable for TextInputDialog {
             }
         } else {
             let index: usize = self.focused_child_index().unwrap();
-            let mut result =
+            let result =
                 self.containers[index].handle(key, Some(&mut self.state));
             result
         }

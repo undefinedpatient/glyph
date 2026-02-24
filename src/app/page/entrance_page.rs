@@ -16,7 +16,6 @@ use ratatui::widgets::Block;
 use ratatui::widgets::{BorderType, Widget};
 use ratatui::Frame;
 use std::any::Any;
-use std::collections::HashMap;
 use std::rc::Rc;
 use tui_big_text::{BigText, PixelSize};
 
@@ -144,7 +143,7 @@ impl Interactable for EntrancePage {
     fn handle(
         &mut self,
         key: &KeyEvent,
-        parent_state: Option<&mut dyn Any>,
+        _parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>> {
         match key.kind {
             KeyEventKind::Press => {

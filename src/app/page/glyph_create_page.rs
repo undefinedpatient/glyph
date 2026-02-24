@@ -1,3 +1,4 @@
+use crate::app::dialog::text_input_dialog::{TextInputDialog, TextInputDialogState};
 use crate::app::page::glyph_page::GlyphPage;
 use crate::app::widget::button::Button;
 use crate::app::widget::directory_list::{DirectoryList, DirectoryListState};
@@ -18,7 +19,6 @@ use ratatui::widgets::{Block, Widget};
 use ratatui::Frame;
 use std::any::Any;
 use std::path::PathBuf;
-use crate::app::dialog::text_input_dialog::{TextInputDialog, TextInputDialogState};
 
 pub struct GlyphCreatePageState {
     pub is_focused: bool,
@@ -136,7 +136,7 @@ impl Interactable for GlyphCreatePage {
     fn handle(
         &mut self,
         key: &KeyEvent,
-        parent_state: Option<&mut dyn Any>,
+        _parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>> {
         /*
             Page's Dialog
@@ -228,7 +228,7 @@ impl Interactable for GlyphCreatePage {
             Ok(Vec::new())
         } else {
             let index: usize = self.focused_child_index().unwrap();
-            let mut result =
+            let result =
                 self.containers[index].handle(key, Some(&mut self.state));
             result
         }

@@ -42,7 +42,7 @@ impl From<LineButton> for Box<dyn Component> {
 }
 
 impl Drawable for LineButton {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, _theme: &dyn Theme) {
         let text = self.label.clone().to_string();
         match draw_flag {
             DrawFlag::HIGHLIGHTING => {
@@ -59,9 +59,9 @@ impl Drawable for LineButton {
 impl Interactable for LineButton {
     fn handle(
         &mut self,
-        key: &KeyEvent,
+        _key: &KeyEvent,
         parent_state: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>> {
+    ) -> Result<Vec<Command>> {
         let Some(mut f) = self.on_interact.take() else {
             return Ok(Vec::new());
         };

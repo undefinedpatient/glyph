@@ -1,10 +1,10 @@
 use crate::db::{EntryRepository, SectionRepository};
-use std::collections::HashSet;
-use color_eyre::Report;
-use rusqlite::Connection;
 use crate::models::entry::Entry;
 use crate::models::section::Section;
 use crate::utils::auto_increment_name;
+use color_eyre::Report;
+use rusqlite::Connection;
+use std::collections::HashSet;
 
 pub struct LocalEntryState {
     /// All entries in the database.
@@ -55,7 +55,7 @@ impl LocalEntryState {
 
     /// Create a default entry in the database, this function interact and update database.
     pub fn create_default_entry_db(&mut self, entry_name: &str) -> color_eyre::Result<i64> {
-        let name_list: Vec<&str> = self.ordered_entries.iter().map(|(eid, name)|{name.as_str()}).collect::<Vec<&str>>();
+        let name_list: Vec<&str> = self.ordered_entries.iter().map(|(_eid, name)|{name.as_str()}).collect::<Vec<&str>>();
         let new_entry_name: String = auto_increment_name(entry_name, name_list.as_slice());
         let entry_id: i64 = EntryRepository::create_default_entry(&self.connection, new_entry_name.as_str())?;
         let entry_result = EntryRepository::read_by_id(&self.connection, &entry_id);
@@ -71,7 +71,7 @@ impl LocalEntryState {
 
     /// Insert a new entry to db, perform name duplication check.
     pub fn insert_entry(&mut self, mut new_entry: Entry) -> color_eyre::Result<i64> {
-        let name_list: Vec<&str> = self.ordered_entries.iter().map(|(eid, name)|{name.as_str()}).collect::<Vec<&str>>();
+        let name_list: Vec<&str> = self.ordered_entries.iter().map(|(_eid, name)|{name.as_str()}).collect::<Vec<&str>>();
         new_entry.entry_name = auto_increment_name(new_entry.entry_name.as_str(), name_list.as_slice());
         let entry_id: i64 = EntryRepository::insert(&self.connection, &new_entry)?;
         let entry_result = EntryRepository::read_by_id(&self.connection, &entry_id);
@@ -88,7 +88,7 @@ impl LocalEntryState {
 
     /// Update entry's name by its id, this function interact and update database.
     pub fn update_entry_name_db(&mut self, eid: &i64, new_name: &str) -> color_eyre::Result<()> {
-        let name_list: Vec<&str> = self.ordered_entries.iter().map(|(eid, name)|{name.as_str()}).collect::<Vec<&str>>();
+        let name_list: Vec<&str> = self.ordered_entries.iter().map(|(_eid, name)|{name.as_str()}).collect::<Vec<&str>>();
         let corrected_name: String = auto_increment_name(new_name, name_list.as_slice());
         EntryRepository::update_name(&self.connection, &eid, corrected_name.as_str())?;
         let (eid, entry) = EntryRepository::read_by_id(&self.connection, &eid)?;
@@ -109,7 +109,7 @@ impl LocalEntryState {
     /// Update the database by deleting corresponding Entry pointed by the eid parameter.
     pub fn delete_active_entry_db(&mut self) -> color_eyre::Result<usize> {
         if let Some(id) = self.active_entry_id {
-            let result = crate::db::EntryRepository::delete(&self.connection, &id);
+            let result = EntryRepository::delete(&self.connection, &id);
             let mut remove_index: i8 = -1;
             for (index, entry) in self.entries.iter().enumerate() {
                 if (*entry).0 == id {
@@ -169,7 +169,7 @@ impl LocalEntryState {
                     return Some(section);
                 }
             }
-            return None;
+            None
         } else {
             None
         }
@@ -221,7 +221,7 @@ impl LocalEntryState {
         let mut section_index_to_remove: usize = usize::MAX;
         for (index, item) in sections.iter().enumerate() {
             if (*item).0 == sid {
-                section_index_to_remove = index as usize;
+                section_index_to_remove = index;
             }
         }
         if section_index_to_remove == usize::MAX {
@@ -235,7 +235,7 @@ impl LocalEntryState {
 
     /// Delete the corresponding Section in the database specified by the sid.
     pub fn delete_section_db(&mut self, sid: &i64) -> color_eyre::Result<()> {
-        let (eid, sid, section) = SectionRepository::read_by_id(&self.connection, sid)?.unwrap();
+        let (eid, sid, _section) = SectionRepository::read_by_id(&self.connection, sid)?.unwrap();
         SectionRepository::delete(&self.connection, &sid)?;
         if let Some(entry) = self.get_entry_mut(&eid) {
             let mut index_of_section: usize = usize::MAX;
@@ -271,7 +271,7 @@ impl LocalEntryState {
     /// Return all section's id under an Entry specified by its id.
     pub fn get_sections_sid(&self, eid: &i64) -> Vec<i64> {
         self.get_entry_ref(eid).unwrap().sections.iter().map(
-            |(sid, section)| {
+            |(sid, _)| {
                 sid.clone()
             }
         ).collect()
@@ -337,24 +337,11 @@ impl LocalEntryState {
     fn get_max_position_section(&self, eid: &i64) -> i64 {
         let sections = &self.get_entry_ref(eid).unwrap().sections;
         let mut max: i64 = 0;
-        for (sid, section) in sections {
+        for (_sid, section) in sections {
             if section.position > max {
                 max = section.position;
             }
         }
         max
     }
-
-    /// Return the min. section position designated by the user.
-    fn get_min_position_section(&self, eid: &i64) -> i64 {
-        let sections = &self.get_entry_ref(eid).unwrap().sections;
-        let mut min: i64 = 0;
-        for (sid, section) in sections {
-            if section.position > min {
-                min = section.position;
-            }
-        }
-        min
-    }
-    
 }

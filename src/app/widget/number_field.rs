@@ -98,7 +98,7 @@ impl Interactable for NumberField {
         &mut self,
         key: &KeyEvent,
         parent_state: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>> {
+    ) -> Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
             Ok(Vec::new())

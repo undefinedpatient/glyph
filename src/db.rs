@@ -1,9 +1,9 @@
-use std::path::PathBuf;
-use color_eyre::Report;
-use rusqlite::{params, Connection, Row, Rows, Statement};
 use crate::models::entry::Entry;
 use crate::models::layout::Layout;
 use crate::models::section::Section;
+use color_eyre::Report;
+use rusqlite::{params, Connection, Row, Rows, Statement};
+use std::path::PathBuf;
 
 pub struct GlyphRepository {}
 
@@ -11,7 +11,7 @@ pub(crate) struct EntryRepository {}
 
 impl GlyphRepository {
     pub fn init_glyph_db(path_to_db: &PathBuf) -> color_eyre::Result<Connection> {
-        let mut c = Connection::open(path_to_db)?;
+        let c = Connection::open(path_to_db)?;
         c.execute(
             "
         CREATE TABLE IF NOT EXISTS entries (
@@ -44,7 +44,7 @@ impl EntryRepository {
             params![entry_name, serde_json::to_string(&Layout::new("Root"))?],
         )?;
         let eid: i64 = c.last_insert_rowid();
-        return Ok(eid);
+        Ok(eid)
     }
 
     /// Insert an Entry to db, does not perform duplicated name check.
@@ -54,9 +54,9 @@ impl EntryRepository {
             params![entry.entry_name, serde_json::to_string(&entry.layout)?]
         )?;
         let eid: i64 = c.last_insert_rowid();
-        return Ok(eid);
+        Ok(eid)
     }
-    pub fn update(c: &Connection, eid: &i64, entry: &Entry) -> color_eyre::Result<(i64)> {
+    pub fn update(c: &Connection, eid: &i64, entry: &Entry) -> color_eyre::Result<i64> {
         c.execute(
             "
                 UPDATE entries
@@ -72,7 +72,7 @@ impl EntryRepository {
             SectionRepository::update(c, sid, section)?;
         }
 
-        return Ok(id);
+        Ok(id)
     }
     pub fn update_name(c: &Connection, eid: &i64, new_name: &str) -> color_eyre::Result<()> {
         if c.execute(
@@ -86,7 +86,7 @@ impl EntryRepository {
         )? != 1 {
             return Err(Report::msg("Tried to update name but there is no entry"));
         }
-        return Ok(());
+        Ok(())
     }
 
     pub fn delete(c: &Connection, eid: &i64) -> color_eyre::Result<usize> {
@@ -139,7 +139,7 @@ impl SectionRepository {
             params![eid, section.position, section.title, section.content],
         )?;
         let id = c.last_insert_rowid();
-        return Ok(id);
+        Ok(id)
     }
     pub fn update_name(c: &Connection, sid: &i64, new_name: &str) -> color_eyre::Result<()> {
         if c.execute(
@@ -153,7 +153,7 @@ impl SectionRepository {
         )? != 1 {
             return Err(Report::msg("Tried to update name but there is no entry"));
         }
-        return Ok(());
+        Ok(())
     }
     pub fn update(c: &Connection, sid: &i64, section: &Section) -> color_eyre::Result<i64> {
         c.execute(
@@ -168,7 +168,7 @@ impl SectionRepository {
             params![sid, section.position, section.title, section.content],
         )?;
         let id = c.last_insert_rowid();
-        return Ok(id);
+        Ok(id)
     }
 
     pub fn delete(c: &Connection, sid: &i64) -> color_eyre::Result<usize> {

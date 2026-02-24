@@ -1,22 +1,20 @@
-use ratatui::widgets::BorderType;
-use std::any::Any;
-use std::cell::RefCell;
-use std::rc::Rc;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use ratatui::Frame;
-use ratatui::layout::{Constraint, Layout, Rect};
-use color_eyre::eyre::Result;
-use color_eyre::owo_colors::OwoColorize;
-use ratatui::prelude::Stylize;
-use ratatui::text::Line;
-use ratatui::widgets::{Block, Clear, Widget};
-use crate::app::{AppCommand, Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable, PageCommand};
-use crate::app::page::glyph_page::GlyphPage;
 use crate::app::widget::text_field::{TextField, TextFieldState};
+use crate::app::{Command, Container, DrawFlag, Drawable, Focusable, Interactable, PageCommand};
 use crate::block;
 use crate::services::LocalEntryState;
 use crate::theme::Theme;
 use crate::utils::cycle_offset;
+use color_eyre::eyre::Result;
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::prelude::Stylize;
+use ratatui::text::Line;
+use ratatui::widgets::BorderType;
+use ratatui::widgets::{Block, Clear, Widget};
+use ratatui::Frame;
+use std::any::Any;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct SearchEntryDialogState {
     pub is_focused: bool,
@@ -42,17 +40,17 @@ impl SearchEntryDialog {
             text_field:TextField::new(
                 "",
                 "",
-                Box::new(|value|{true})
+                Box::new(|_value|{true})
             ).on_update(Box::new(|parent_state, state| {
                 let mut _parent_state = parent_state.unwrap().downcast_mut::<SearchEntryDialogState>().unwrap();
                 let mut _state = state.unwrap().downcast_mut::<TextFieldState>().unwrap();
                 let mut ava_count: usize = 0;
-                for ((eid, name), ava) in _parent_state.entries_name.iter_mut() {
-                    if name.contains(_state.chars.iter().collect::<String>().as_str()) {
-                        *ava = true;
+                for ((_eid, _name), _ava) in _parent_state.entries_name.iter_mut() {
+                    if _name.contains(_state.chars.iter().collect::<String>().as_str()) {
+                        *_ava = true;
                         ava_count += 1;
                     } else {
-                        *ava = false;
+                        *_ava = false;
                     }
                 }
                 _parent_state.hovered_index = _parent_state.hovered_index.clamp(0, ava_count).saturating_sub(1);
@@ -85,27 +83,27 @@ impl Drawable for SearchEntryDialog {
         list_border.render(list_area, frame.buffer_mut());
 
         let rows = list_inner_area.rows().collect::<Vec<Rect>>();
-        for (index, (item, ava)) in self.state.entries_name.iter().filter(|(_, ava)| {*ava}).enumerate() {
-            if index >= rows.len() {
+        for (_index, (_item, _ava)) in self.state.entries_name.iter().filter(|(_, ava)| {*ava}).enumerate() {
+            if _index >= rows.len() {
                 break;
             }
-            let prefix = match index == self.state.hovered_index {
+            let prefix = match _index == self.state.hovered_index {
                 true => "> ",
                 false => "  "
             };
-            let mut line: Line = Line::from([prefix, (*item).1.as_str()].concat()).dim();
+            let mut line: Line = Line::from([prefix, (*_item).1.as_str()].concat()).dim();
 
-            if index == self.state.hovered_index {
+            if _index == self.state.hovered_index {
                 line = line.bold().not_dim();
             }
-            line.render(rows[index], frame.buffer_mut());
+            line.render(rows[_index], frame.buffer_mut());
 
         }
     }
 }
 
 impl Interactable for SearchEntryDialog {
-    fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
+    fn handle(&mut self, key: &KeyEvent, _parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
 
         match key.kind {
             KeyEventKind::Press => {
@@ -114,10 +112,10 @@ impl Interactable for SearchEntryDialog {
                 }
                 if key.modifiers.contains(KeyModifiers::CONTROL) {
                     if let KeyCode::Char('n') = key.code {
-                        self.state.hovered_index = cycle_offset(self.state.hovered_index as u16, 1, self.state.entries_name.iter().filter(|(name, ava)|{*ava}).count() as u16) as usize;
+                        self.state.hovered_index = cycle_offset(self.state.hovered_index as u16, 1, self.state.entries_name.iter().filter(|(_name, ava)|{*ava}).count() as u16) as usize;
                     }
                     if let KeyCode::Char('p') = key.code {
-                        self.state.hovered_index = cycle_offset(self.state.hovered_index as u16, -1, self.state.entries_name.iter().filter(|(name, ava)|{*ava}).count() as u16) as usize;
+                        self.state.hovered_index = cycle_offset(self.state.hovered_index as u16, -1, self.state.entries_name.iter().filter(|(_name, ava)|{*ava}).count() as u16) as usize;
                     }
                     return Ok(vec![]);
                 }
@@ -125,7 +123,7 @@ impl Interactable for SearchEntryDialog {
                     if self.state.entries_name.is_empty() {
                         return Ok(vec![]);
                     }
-                    let cloned_id = self.state.entries_name.iter().filter_map(|((eid, name),ava)|{
+                    let cloned_id = self.state.entries_name.iter().filter_map(|((eid, _name),ava)|{
                         if *ava {
                             return Some(*eid)
                         }

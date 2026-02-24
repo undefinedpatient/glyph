@@ -64,7 +64,7 @@ impl GlyphReadView {
     }
 }
 impl Drawable for GlyphReadView {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
+    fn render(&self, frame: &mut Frame, area: Rect, _draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
             Evaluate Page Layout via the root layout
          */
@@ -74,31 +74,31 @@ impl Drawable for GlyphReadView {
         let layout = &entry_state.get_entry_ref(&eid).unwrap().layout;
         match layout.details.size_mode {
             SizeMode::Flex => {
-                let areas: Vec<(u16, Rect, BorderMode, u16)> = evaluate_read_areas(self, area, layout, 0,0);
+                let areas: Vec<(u16, Rect, BorderMode, u16)> = evaluate_read_areas(self, area, layout, 0);
                 let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
-                for (sid, section) in ref_sections {
-                    if let Some((position, area, border_mode, padding)) = areas.iter().find(
-                        |(position, area, border_mode, _padding)|{
-                            *position as i64 == section.position
+                for (_sid, _section) in ref_sections {
+                    if let Some((_position, area, border_mode, padding)) = areas.iter().find(
+                        |(_position, _area, _border_mode, _padding)|{
+                            *_position as i64 == _section.position
                         }
                     ) {
                         let block = match border_mode {
                             BorderMode::None => {
-                                Block::new().title(section.title.clone().bold())
+                                Block::new().title(_section.title.clone().bold())
                             }
                             BorderMode::Plain => {
-                                Block::bordered().title(section.title.clone().bold())
+                                Block::bordered().title(_section.title.clone().bold())
                             }
                             BorderMode::Dashed => {
-                                Block::bordered().border_type(BorderType::LightDoubleDashed).title(section.title.clone().bold())
+                                Block::bordered().border_type(BorderType::LightDoubleDashed).title(_section.title.clone().bold())
                             }
                             BorderMode::Rounded => {
-                                Block::bordered().border_type(BorderType::Rounded).title(section.title.clone().bold())
+                                Block::bordered().border_type(BorderType::Rounded).title(_section.title.clone().bold())
                             }
                         }.padding(Padding::uniform(*padding));
                         let inner_area: Rect = block.inner(*area);
                         block.render(*area, frame.buffer_mut());
-                        MarkdownRenderer::render_markdown(section.content.as_str(), &inner_area, frame.buffer_mut(), theme);
+                        MarkdownRenderer::render_markdown(_section.content.as_str(), &inner_area, frame.buffer_mut(), theme);
                     }
                 }
             }
@@ -106,16 +106,16 @@ impl Drawable for GlyphReadView {
                 let height = layout.details.length;
                 let mut scroll_view: ScrollView = ScrollView::new(Size{
                     width: area.width,
-                    height: height
+                    height
                 }).scrollbars_visibility(ScrollbarVisibility::Never);
                 let background: Block = Block::new().bg(theme.background());
                 background.render(scroll_view.area(), scroll_view.buf_mut());
-                let areas: Vec<(u16, Rect, BorderMode, u16)> = evaluate_read_areas(self, scroll_view.area(), layout, 0,0);
+                let areas: Vec<(u16, Rect, BorderMode, u16)> = evaluate_read_areas(self, scroll_view.area(), layout, 0);
                 let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
-                for (sid, section) in ref_sections {
-                    if let Some((position, area, border_mode, padding)) = areas.iter().find(
-                        |(position, area, border_mode, _padding)|{
-                            *position as i64 == section.position
+                for (_sid, section) in ref_sections {
+                    if let Some((_position, area, border_mode, padding)) = areas.iter().find(
+                        |(_position, _area, _border_mode, _padding)|{
+                            *_position as i64 == section.position
                         }
                     ) {
                         let block = match border_mode {
@@ -143,17 +143,17 @@ impl Drawable for GlyphReadView {
 
     }
 }
-fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &crate::models::layout::Layout, depth: u16, at: usize) -> Vec<(u16, Rect, BorderMode, u16)> {
-    let mut target_section_text: String = "None".to_string();
-    if let Some(position_target) = layout.section_index {
-        target_section_text = position_target.to_string();
-    }
+fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &crate::models::layout::Layout, depth: u16) -> Vec<(u16, Rect, BorderMode, u16)> {
+    // let mut target_section_text: String = "None".to_string();
+    // if let Some(position_target) = layout.section_index {
+    //     target_section_text = position_target.to_string();
+    // }
 
-    let mut recursive_area: Rect = Block::default().inner(area);
+    let recursive_area: Rect = Block::default().inner(area);
 
     // Process the child
     let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
-        |(index, sub)| {
+        |(_index, sub)| {
             match sub.details.size_mode {
                 SizeMode::Flex => {
                     Constraint::Fill(sub.details.flex)
@@ -186,14 +186,13 @@ fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &crate::models::l
             sub_areas[i],
             sub_layout,
             depth + 1,
-            i,
         )].concat()
     }
     areas
 }
 
 impl Interactable for GlyphReadView {
-    fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(&mut self, key: &KeyEvent, _parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Esc = key.code {

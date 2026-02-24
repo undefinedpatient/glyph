@@ -47,7 +47,7 @@ impl From<OptionMenu> for Box<dyn Component> {
     }
 }
 impl Drawable for OptionMenu {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, _theme: &dyn Theme) {
         let current_index: usize = self.state.current_index as usize;
         let current_text: String = self.state.options.get(current_index).unwrap().0.clone();
         match draw_flag {
@@ -69,9 +69,9 @@ impl Drawable for OptionMenu {
 impl Interactable for OptionMenu {
     fn handle(
         &mut self,
-        key: &KeyEvent,
+        _key: &KeyEvent,
         parent_state: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>> {
+    ) -> Result<Vec<Command>> {
         let len: u8 = self.state.options.len() as u8;
         self.state.current_index = (self.state.current_index + 1) % len;
 

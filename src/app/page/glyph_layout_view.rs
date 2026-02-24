@@ -14,7 +14,7 @@ use crate::utils::cycle_offset;
 use color_eyre::Report;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Margin, Rect, Size};
+use ratatui::layout::{Constraint, Rect, Size};
 use ratatui::prelude::Stylize;
 use ratatui::prelude::{Line, Style};
 use ratatui::widgets::{Block, BorderType, Padding, StatefulWidget, Widget};
@@ -33,22 +33,6 @@ pub struct GlyphLayoutState {
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
 impl GlyphLayoutState{
-    pub(crate) fn local_entry_state_ref(&'_  self) -> Option<Ref<'_, LocalEntryState>> {
-        Ref::filter_map(
-            self.entry_state.try_borrow().ok()?,
-            |state| {
-                Some(state)
-            }
-        ).ok()
-    }
-    pub(crate) fn local_entry_state_mut(&'_ mut self) -> Option<RefMut<'_, LocalEntryState>> {
-        RefMut::filter_map(
-            self.entry_state.try_borrow_mut().ok()?,
-            |state| {
-                Some(state)
-            }
-        ).ok()
-    }
 }
 pub struct GlyphLayoutView {
     pub dialogs: Vec<Box<dyn Container>>,
@@ -84,7 +68,7 @@ impl From<GlyphLayoutView> for Box<dyn Container> {
 }
 
 impl Drawable for GlyphLayoutView {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
+    fn render(&self, frame: &mut Frame, area: Rect, _draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
         */
@@ -117,7 +101,7 @@ impl Drawable for GlyphLayoutView {
 
 }
 impl Interactable for GlyphLayoutView {
-    fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(&mut self, key: &KeyEvent, _parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         if self.state.is_editing {
             self.containers[1].as_mut().handle(key, Some(&mut self.state))
         } else {
@@ -134,7 +118,7 @@ impl Interactable for GlyphLayoutView {
                 }
             }
             let result = self.containers[0].as_mut().handle(key, Some(&mut self.state));
-            return if result.is_err() {
+            if result.is_err() {
                 result
             } else {
                 let mut processed_commands: Vec<Command> = Vec::new();
@@ -268,7 +252,7 @@ impl From<GlyphLayoutOverview> for Box<dyn Container> {
     }
 }
 impl Drawable for GlyphLayoutOverview {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
+    fn render(&self, frame: &mut Frame, area: Rect, _draw_flag: DrawFlag, theme: &dyn Theme) {
 
         /*
             Evaluate Page Layout via the root layout
@@ -285,7 +269,7 @@ impl Drawable for GlyphLayoutOverview {
                 let height = layout.details.length;
                 let mut scroll_view = ScrollView::new(Size{
                     width: area.width,
-                    height: height
+                    height
                 }).scrollbars_visibility(ScrollbarVisibility::Never);
                 evaluate_layout(self, scroll_view.area(), scroll_view.buf_mut(), layout, 0, Vec::new(), theme);
                 scroll_view.render(area, frame.buffer_mut(), &mut *self.state.scroll_state.borrow_mut());
@@ -350,7 +334,6 @@ impl Interactable for GlyphLayoutOverview {
                         'A' => {
                             let target_coor = self.state.selected_coordinate.borrow_mut().clone();
                             let mut state = self.state.local_entry_state_mut().unwrap();
-                            let entry = state.get_active_entry_ref().unwrap();
                             let eid = state.active_entry_id.unwrap();
                             let layout: &mut Layout = &mut state.get_entry_mut(&eid).unwrap().layout;
                             layout.insert_sublayout_under(
@@ -433,7 +416,7 @@ impl Interactable for GlyphLayoutOverview {
                             let entry: &mut Entry = state.get_active_entry_mut().unwrap();
                             // Update
                             let layout: &mut Layout = &mut entry.layout;
-                            let mut sublayout: &mut Layout = layout.get_layout_at_mut(&target_coor).unwrap();
+                            let sublayout: &mut Layout = layout.get_layout_at_mut(&target_coor).unwrap();
                             match sublayout.details.orientation {
                                 LayoutOrientation::Horizontal => {
                                     sublayout.details.orientation = LayoutOrientation::Vertical;
@@ -461,7 +444,7 @@ impl Focusable for GlyphLayoutOverview {
     fn is_focused(&self) -> bool {
         false
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, _value: bool) -> () {
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {
         None
@@ -474,7 +457,7 @@ impl Focusable for GlyphLayoutOverview {
     }
 }
 
-fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, layout: &crate::models::layout::Layout, depth: u16, at: Vec<usize>, theme: &dyn Theme) -> Vec<(u16, Rect)>{
+fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, layout: &Layout, depth: u16, at: Vec<usize>, theme: &dyn Theme) -> Vec<(u16, Rect)>{
     let mut target_section_text: String = "None".to_string();
     if let Some(position_target) = layout.section_index {
         target_section_text = position_target.to_string();
@@ -505,7 +488,7 @@ fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, la
 
     // Process the child
     let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
-        |(index, sub)| {
+        |(_index, sub)| {
             match sub.details.size_mode {
                 SizeMode::Flex => {
                     Constraint::Fill(sub.details.flex)
@@ -598,7 +581,7 @@ impl GlyphLayoutEditView {
     ) -> Self {
         Self {
             containers: vec![
-                TextField::new("Label", "", Box::new(|value|{true})).on_exit(
+                TextField::new("Label", "", Box::new(|_value|{true})).on_exit(
                     Box::new(
                         |parent_state, state| {
                             let _parent_state = parent_state.unwrap().downcast_mut::<GlyphLayoutEditState>().unwrap();
@@ -845,7 +828,6 @@ impl GlyphLayoutEditView {
     pub fn refresh_layout_edit_panel(&mut self) -> () {
         let coor: Vec<usize> = self.state.selected_coordinate.borrow().clone();
         let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
-        let eid = state.active_entry_id.unwrap();
         // let length: u16 = layout.
         let entry: &Entry = state.get_active_entry_ref().unwrap();
         let sub_layout: &Layout = entry.layout.get_layout_at_ref(&coor).unwrap();
@@ -891,7 +873,7 @@ impl Drawable for GlyphLayoutEditView {
         /*
            Container Frame
         */
-        let mut widget_frame: Block = block!("Setting", draw_flag, theme).bg(theme.surface_low());
+        let widget_frame: Block = block!("Setting", draw_flag, theme).bg(theme.surface_low());
         let inner_area = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
 
@@ -998,16 +980,16 @@ impl Interactable for GlyphLayoutEditView {
                             }
                         }
                     }
-                    return Ok(Vec::new());
+                    Ok(Vec::new())
                 }
                 _ => {
 
-                    return Ok(Vec::new());
+                    Ok(Vec::new())
                 }
             }
         } else {
             let index: usize = self.focused_child_index().unwrap();
-            let mut result =
+            let result =
                 self.containers[index].handle(key, Some(&mut self.state));
             result
         }
@@ -1017,7 +999,7 @@ impl Focusable for GlyphLayoutEditView {
     fn is_focused(&self) -> bool {
         false
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, _value: bool) -> () {
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {
         for container in &self.containers {

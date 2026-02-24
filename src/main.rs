@@ -9,7 +9,6 @@ use std::{fs, io};
 use color_eyre::eyre::Result;
 use ratatui::backend::Backend;
 use ratatui::prelude::CrosstermBackend;
-use ratatui::style::Stylize;
 use ratatui::Terminal;
 use rusqlite::Connection;
 
@@ -20,9 +19,9 @@ mod theme;
 mod services;
 mod db;
 
-use app::Application;
 use crate::app::{draw, handle_key_events};
 use crate::db::GlyphRepository;
+use app::Application;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
@@ -53,8 +52,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     terminal.show_cursor()?;
     // Process the result
     match result {
-        Ok(m) => println!("Navi Exit"),
-        Err(m) => println!("Navi Exit with Error."),
+        Ok(_m) => println!("Navi Exit"),
+        Err(_m) => println!("Navi Exit with Error."),
     }
     Ok(())
 }

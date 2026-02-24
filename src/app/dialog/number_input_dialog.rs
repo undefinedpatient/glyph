@@ -143,12 +143,12 @@ impl Interactable for NumberInputDialog {
         &mut self,
         key: &KeyEvent,
         parent_state: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>> {
+    ) -> Result<Vec<Command>> {
         if self.focused_child_mut().is_none() {
             match key.kind {
                 KeyEventKind::Press => {
                     if let KeyCode::Esc = key.code {
-                        return Ok(vec![Command::PageCommand(crate::app::PageCommand::PopDialog)]);
+                        return Ok(vec![PageCommand(PopDialog)]);
                     }
                     if is_cycle_forward_hover_key(key) {
                         self.cycle_hover(1)
@@ -179,7 +179,7 @@ impl Interactable for NumberInputDialog {
                                             callback_result
                                         } else {
                                             let mut commands = callback_result?;
-                                            commands.push(Command::PageCommand(crate::app::PageCommand::PopDialog));
+                                            commands.push(PageCommand(PopDialog));
                                             Ok(commands)
                                         }
                                     } else {
@@ -196,7 +196,7 @@ impl Interactable for NumberInputDialog {
             }
         } else {
             let index: usize = self.focused_child_index().unwrap();
-            let mut result =
+            let result =
                 self.containers[index].handle(key, Some(&mut self.state));
             result
         }

@@ -112,7 +112,7 @@ impl Drawable for DirectoryList {
         let inner_area: Rect = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
         let mut list: Vec<String> = get_dir_names(&self.state.current_path).unwrap_or(Vec::new());
-        let num_dir: usize = list.len();
+        list.len();
         if self.state.show_files {
             list.append(&mut get_file_names(&self.state.current_path).unwrap_or(Vec::new()))
         }
@@ -165,7 +165,7 @@ impl Interactable for DirectoryList {
         &mut self,
         key: &KeyEvent,
         parent_state: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>> {
+    ) -> Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
             Ok(Vec::new())

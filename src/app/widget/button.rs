@@ -36,7 +36,7 @@ impl From<Button> for Box<dyn Component> {
 }
 
 impl Drawable for Button {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
+    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, _theme: &dyn Theme) {
         match draw_flag {
             DrawFlag::HIGHLIGHTING => {
                 Line::from(["> ", self.label.as_str(), "  "].concat())
@@ -55,9 +55,9 @@ impl Drawable for Button {
 impl Interactable for Button {
     fn handle(
         &mut self,
-        key: &KeyEvent,
+        _key: &KeyEvent,
         parent_state: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>> {
+    ) -> Result<Vec<Command>> {
         let Some(mut f) = self.on_interact.take() else {
             return Ok(Vec::new());
         };

@@ -40,7 +40,7 @@ impl From<ConfirmPopup> for Box<dyn Container>{
     }
 }
 impl Drawable for ConfirmPopup {
-    fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
+    fn render(&self, frame: &mut Frame, area: Rect, _draw_flag: DrawFlag, theme: &dyn Theme) {
         let area: Rect = area.centered(Constraint::Length(42), Constraint::Length(6));
         let paragraph_message: Paragraph = Paragraph::new(self.message.clone())
             .wrap(Wrap { trim: true })
@@ -87,8 +87,8 @@ impl Interactable for ConfirmPopup {
         &mut self,
         key: &KeyEvent,
         parent_state: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>> {
-        return match key.kind {
+    ) -> Result<Vec<Command>> {
+        match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Tab = key.code {
                     self.focus_index = (self.focus_index + 1) % 2;
@@ -117,7 +117,7 @@ impl Interactable for ConfirmPopup {
                 Ok(Vec::new())
             }
             _ => Ok(Vec::new()),
-        };
+        }
     }
     fn keymap(&self) -> Vec<(&str, &str)>{
         [

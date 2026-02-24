@@ -16,7 +16,6 @@ use ratatui::widgets::BorderType;
 use ratatui::widgets::{Block, Widget};
 use ratatui::Frame;
 use std::any::Any;
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 pub struct GlyphOpenPageState {
@@ -138,7 +137,7 @@ impl Interactable for GlyphOpenPage {
     fn handle(
         &mut self,
         key: &KeyEvent,
-        parent_state: Option<&mut dyn Any>,
+        _parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>> {
         if self.focused_child_ref().is_none() {
             match key.kind {
@@ -177,7 +176,7 @@ impl Interactable for GlyphOpenPage {
             Ok(Vec::new())
         } else {
             let index: usize = self.focused_child_index().unwrap();
-            let mut result =
+            let result =
                 self.containers[index].handle(key, Some(&mut self.state));
             result
         }

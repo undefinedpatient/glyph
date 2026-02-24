@@ -36,7 +36,7 @@ pub struct TextEditor {
 
     pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
-impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
+impl TextEditor { pub fn new(label: &str) -> Self {
     Self {
         state: TextEditorState {
             is_focused: false,
@@ -142,22 +142,22 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
             self.state.cursor_index = self.state.cursor_index.clamp(0, current_line.len()).saturating_sub(1);
         }
     }
-    pub fn move_to_next_word(&mut self) -> color_eyre::Result<()> {
+    pub fn move_to_next_word(&mut self) -> Result<()> {
         self.move_to_next_char();
-        let _y: usize = self.state.cursor_line_index;
-        let _x: usize = self.state.cursor_index.clamp(0, self.state.lines[_y].len().saturating_sub(1));
-        if let Some((x, y)) = self.find_next(_x, _y,' ') {
+        let current_y: usize = self.state.cursor_line_index;
+        let current_x: usize = self.state.cursor_index.clamp(0, self.state.lines[current_y].len().saturating_sub(1));
+        if let Some((x, _y)) = self.find_next(current_x, current_y, ' ') {
             self.state.cursor_index = x;
         } else {
             self.move_to_end_of_line();
         }
         Ok(())
     }
-    pub fn move_to_previous_word(&mut self) -> color_eyre::Result<()> {
+    pub fn move_to_previous_word(&mut self) -> Result<()> {
         self.move_to_previous_char();
-        let _y: usize = self.state.cursor_line_index;
-        let _x: usize = self.state.cursor_index.clamp(0, self.state.lines[_y].len()-1);
-        if let Some((x, y)) = self.find_previous(_x.saturating_sub(1), _y,' ') {
+        let current_y: usize = self.state.cursor_line_index;
+        let current_x: usize = self.state.cursor_index.clamp(0, self.state.lines[current_y].len().saturating_sub(1));
+        if let Some((x, _y)) = self.find_previous(current_x.saturating_sub(1), current_y, ' ') {
             self.state.cursor_index = x;
             self.move_to_next_char();
         } else {
@@ -172,7 +172,7 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
         }
     }
     pub fn move_to_start_of_line(&mut self) {
-        if let Some(current_line) = self.state.lines.get(self.state.cursor_line_index) {
+        if let Some(_current_line) = self.state.lines.get(self.state.cursor_line_index) {
             self.state.cursor_index = 0;
         }
     }
@@ -250,7 +250,7 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
         }
         if let Some(current_line) = self.state.lines.get_mut(self.state.cursor_line_index) {
             let captured: Vec<char> = current_line[from..=to].to_vec();
-            for i in from..=to{
+            for _i in from..=to{
                 current_line.remove(from);
             }
             return captured;
@@ -264,7 +264,7 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
         to_line.append(&mut from_line);
     }
     fn delete_line(&mut self, at: usize) {
-        if let Some(current_line) = self.state.lines.get(at) {
+        if let Some(_current_line) = self.state.lines.get(at) {
             self.state.lines.remove(at);
         }
     }
@@ -289,7 +289,6 @@ impl TextEditor { pub fn new(label: &str, default: &str) -> Self {
     fn find_previous(&mut self, x: usize, y: usize, character: char) -> Option<(usize, usize)> {
         if let Some(current_line) = self.state.lines.get(y) {
             // If x exceed the len of the line, or the line is empty.
-            let len = current_line.len();
             if current_line.is_empty() || current_line.get(x).is_none() {
                 return None;
             }
@@ -337,7 +336,7 @@ impl Drawable for TextEditor {
 
         border.render(area, frame.buffer_mut());
         let lines: Vec<Line> = self.state.lines.iter().enumerate().skip_while(
-            |(line_number, line)| {
+            |(line_number, _line)| {
                 *line_number < self.state.scroll_offset.1
             }
         ).map(
@@ -382,7 +381,7 @@ impl Drawable for TextEditor {
 }
 
 impl Interactable for TextEditor {
-    fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
         match self.state.mode {
             EditMode::Normal => {
                 handle_normal_mode(self, key, parent_state)
@@ -399,7 +398,7 @@ impl Interactable for TextEditor {
         }
     }
 }
-fn handle_normal_mode(me: &mut TextEditor, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::eyre::Result<Vec<Command>> {
+fn handle_normal_mode(me: &mut TextEditor, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
     match key.kind {
         KeyEventKind::Press => {
             if let KeyCode::Esc = key.code {
@@ -518,7 +517,7 @@ fn handle_normal_mode(me: &mut TextEditor, key: &KeyEvent, parent_state: Option<
         _ => Ok(Vec::new()),
     }
 }
-fn handle_insert_mode(me: &mut TextEditor, key: &KeyEvent) -> color_eyre::eyre::Result<Vec<Command>> {
+fn handle_insert_mode(me: &mut TextEditor, key: &KeyEvent) -> Result<Vec<Command>> {
     match key.kind {
         KeyEventKind::Press => {
             if let KeyCode::Esc = key.code {
@@ -565,7 +564,7 @@ fn handle_insert_mode(me: &mut TextEditor, key: &KeyEvent) -> color_eyre::eyre::
     }
 
 }
-fn handle_visual_mode(me: &mut TextEditor, key: &KeyEvent) -> color_eyre::eyre::Result<Vec<Command>> {
+fn handle_visual_mode(me: &mut TextEditor, key: &KeyEvent) -> Result<Vec<Command>> {
     match key.kind {
         KeyEventKind::Press => {
             if let KeyCode::Esc = key.code {
@@ -614,7 +613,7 @@ fn handle_visual_mode(me: &mut TextEditor, key: &KeyEvent) -> color_eyre::eyre::
     }
 
 }
-fn handle_visual_line_mode(me: &mut TextEditor, key: &KeyEvent) -> color_eyre::eyre::Result<Vec<Command>> {
+fn handle_visual_line_mode(me: &mut TextEditor, key: &KeyEvent) -> Result<Vec<Command>> {
     match key.kind {
         KeyEventKind::Press => {
             if let KeyCode::Esc = key.code {

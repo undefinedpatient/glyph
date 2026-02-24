@@ -174,7 +174,7 @@ impl Interactable for GlyphViewer {
                 GlyphMode::Edit => {
                     let result = self.containers[1].as_mut().handle(key, parent_state);
                     if result.is_err() {
-                        return result;
+                        result
                     } else {
                         let mut processed_commands: Vec<Command> = Vec::new();
                         let mut commands = result?;
@@ -207,7 +207,7 @@ impl Interactable for GlyphViewer {
                 GlyphMode::Layout => {
                     let result = self.containers[2].as_mut().handle(key, parent_state);
                     if result.is_err() {
-                        return result;
+                        result
                     } else {
                         let mut processed_commands: Vec<Command> = Vec::new();
                         let mut commands = result?;
