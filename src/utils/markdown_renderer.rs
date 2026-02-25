@@ -1,7 +1,7 @@
 use crate::theme::Theme;
 use crate::utils::number_to_roman;
 use bitflags::bitflags;
-use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
+use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Offset, Rect};
 use ratatui::style::{Style, Stylize};
@@ -10,6 +10,39 @@ use ratatui::widgets::Widget;
 use tui_big_text::{BigText, PixelSize};
 
 /// This is a customized Markdown Drawer powered by pulldown-cmark.
+// List State
+struct ListState {
+    level: u32,
+    is_ordered: bool,
+    item_index: u32,
+}
+impl ListState {
+    fn get_prefix(&self) -> String{
+        if self.is_ordered {
+            match self.level {
+                2 => {
+                    format!("{:>4}",number_to_roman(self.item_index as u16))
+                }
+                _ => {
+                    format!("{:>4}",self.item_index.to_string())
+                }
+            }
+        } else {
+            match self.level {
+                2 => {
+                    "◦".to_string()
+                }
+                _ => {
+                    "•".to_string()
+                }
+            }
+        }
+    }
+}
+struct QuoteState {
+    level: u32,
+}
+
 pub struct MarkdownRenderer;
 
 impl MarkdownRenderer {
@@ -24,38 +57,6 @@ impl MarkdownRenderer {
 
         let mut style: TextStyleBuilder = TextStyleBuilder::new();
 
-        // List State
-        struct ListState {
-            level: u32,
-            is_ordered: bool,
-            item_index: u32,
-        }
-        impl ListState {
-            fn get_prefix(&self) -> String{
-                if self.is_ordered {
-                    match self.level {
-                        2 => {
-                            format!("{:>4}",number_to_roman(self.item_index as u16))
-                        }
-                        _ => {
-                            format!("{:>4}",self.item_index.to_string())
-                        }
-                    }
-                } else {
-                    match self.level {
-                        2 => {
-                            "◦".to_string()
-                        }
-                        _ => {
-                            "•".to_string()
-                        }
-                    }
-                }
-            }
-        }
-        struct QuoteState {
-            level: u32,
-        }
 
         let mut list_stack: Vec<ListState> = Vec::new();
         let mut quote_state: QuoteState = QuoteState { level: 0 };
@@ -67,6 +68,7 @@ impl MarkdownRenderer {
                         Tag::Heading { level: _l, id: _, classes: _, attrs: _ } => {
                         }
                         Tag::Paragraph => {
+                            current_line.push(Span::from("<p>"));
                         }
                         Tag::Strong => {
                             style.set_flag(TextStyleFlag::STRONG);
@@ -76,6 +78,9 @@ impl MarkdownRenderer {
                         }
                         Tag::Strikethrough => {
                             style.set_flag(TextStyleFlag::STRIKETHROUGH);
+                        }
+                        Tag::CodeBlock(_) => {
+                            style.set_flag(TextStyleFlag::HIGHLIGHT);
                         }
                         Tag::List(is_ordered) => {
                             let level = list_stack.len() as u32 + 1;
@@ -110,6 +115,10 @@ impl MarkdownRenderer {
                         _ => {}
                     }
                 },
+                Event::Code(text) => {
+                    // Have to directly use theme.
+                    current_line.push(Span::raw(text).bg(theme.surface_low_highlight()));
+                }
                 Event::HardBreak => {
                     if quote_state.level != 0 {
                         current_line.insert(0, Span::from("░ ".repeat(quote_state.level as usize)));
@@ -153,7 +162,6 @@ impl MarkdownRenderer {
                                     lines.push(Line::default());
                                     lines.push(Line::default());
                                     render_offset += 8;
-
                                 },
                                 HeadingLevel::H2 => {
                                     let text = BigText::builder().lines([Line::from(current_line)]).pixel_size(PixelSize::HalfWidth).build();
@@ -248,6 +256,9 @@ impl MarkdownRenderer {
                             }
                             render_offset+=1;
                         }
+                        TagEnd::CodeBlock => {
+                            style.remove_flag(TextStyleFlag::HIGHLIGHT);
+                        }
                         TagEnd::Strong => {
                             style.remove_flag(TextStyleFlag::STRONG);
                         }
@@ -277,6 +288,7 @@ bitflags! {
         const STRONG = 0b0000_0001;
         const EMPHASIS = 0b0000_0010;
         const STRIKETHROUGH = 0b0000_0100;
+        const HIGHLIGHT = 0b0000_1000;
     }
 }
 struct TextStyleBuilder{
@@ -304,6 +316,9 @@ impl TextStyleBuilder {
         }
         if self.flags.contains(TextStyleFlag::STRIKETHROUGH) {
             style = style.patch(theme.strikethrough());
+        }
+        if self.flags.contains(TextStyleFlag::HIGHLIGHT) {
+            style = style.bg(theme.surface_low_highlight());
         }
         style
     }

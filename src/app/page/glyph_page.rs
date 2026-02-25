@@ -1,7 +1,7 @@
 use crate::app::dialog::confirm_dialog::ConfirmDialog;
 use crate::app::dialog::search_entry_dialog::SearchEntryDialog;
 use crate::app::dialog::text_input_dialog::{TextInputDialog, TextInputDialogState};
-use crate::app::page::glyph_viewer::GlyphViewer;
+use crate::app::page::glyph_view::GlyphView;
 use crate::app::AppCommand::PopPage;
 use crate::app::Command::{AppCommand, PageCommand};
 use crate::app::PageCommand::{PopDialog, PushDialog};
@@ -66,7 +66,7 @@ impl GlyphPage {
             dialogs: Vec::new(),
             containers: vec![
                 GlyphNavigationBar::new(entry_state.clone()).into(),
-                GlyphViewer::new(entry_state.clone()).into(),
+                GlyphView::new(entry_state.clone()).into(),
             ],
             components: Vec::new(),
             state: GlyphPageState {

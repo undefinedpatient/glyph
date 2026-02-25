@@ -24,14 +24,14 @@ pub enum GlyphMode {
     Edit,
 }
 // This is the mediator of all views
-pub struct GlyphViewerState {
+pub struct GlyphViewState {
     pub is_focused: Rc<RefCell<bool>>, // Shared state across all view
     pub mode: GlyphMode,
 
     // Shared Data
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
-impl GlyphViewerState{
+impl GlyphViewState {
     pub(crate) fn local_entry_state_ref(&'_  self) -> Option<Ref<'_, LocalEntryState>> {
         Ref::filter_map(
             self.entry_state.try_borrow().ok()?,
@@ -50,18 +50,18 @@ impl GlyphViewerState{
     }
 }
 
-pub struct GlyphViewer {
-    pub(crate) state: GlyphViewerState,
+pub struct GlyphView {
+    pub(crate) state: GlyphViewState,
     pub(crate) containers: [Box<dyn Container>; 3],
 }
 
-impl From<GlyphViewer> for Box<dyn Container> {
-    fn from(container: GlyphViewer) -> Self {
+impl From<GlyphView> for Box<dyn Container> {
+    fn from(container: GlyphView) -> Self {
         Box::new(container)
     }
 }
 
-impl GlyphViewer {
+impl GlyphView {
     pub fn new(entry_state: Rc<RefCell<LocalEntryState>>) -> Self {
         let shared_focus: Rc<RefCell<bool>> = Rc::new(RefCell::new(false));
         Self {
@@ -70,7 +70,7 @@ impl GlyphViewer {
                 GlyphEditView::new(shared_focus.clone(), entry_state.clone()).into(),
                 GlyphLayoutView::new(shared_focus.clone(), entry_state.clone()).into(),
             ],
-            state: GlyphViewerState {
+            state: GlyphViewState {
                 is_focused: shared_focus,
                 mode: GlyphMode::Read,
                 entry_state
@@ -78,15 +78,18 @@ impl GlyphViewer {
         }
     }
 }
-impl Drawable for GlyphViewer {
+impl Drawable for GlyphView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
            Container Frame
         */
         let mut widget_frame: Block = block!("Content", draw_flag, theme);
+        // Adjust inner_area width base on the type of view
+        let mut inner_area = widget_frame.inner(area.centered_horizontally(Constraint::Percentage(90)));
         match self.state.mode {
             GlyphMode::Read => {
                 widget_frame = widget_frame.title_top(Line::from("[ READ ]").right_aligned());
+                inner_area = widget_frame.inner(area.centered_horizontally(Constraint::Max(80)));
             }
             GlyphMode::Edit => {
                 widget_frame = widget_frame.title_top(Line::from("[ EDIT ]").right_aligned());
@@ -95,7 +98,6 @@ impl Drawable for GlyphViewer {
                 widget_frame = widget_frame.title_top(Line::from("[ LAYOUT ]").right_aligned());
             }
         }
-        let inner_area = widget_frame.inner(area.centered_horizontally(Constraint::Percentage(90)));
         widget_frame.render(area, frame.buffer_mut());
 
 
@@ -121,7 +123,7 @@ impl Drawable for GlyphViewer {
         }
     }
 }
-impl Interactable for GlyphViewer {
+impl Interactable for GlyphView {
     fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
@@ -269,7 +271,7 @@ impl Interactable for GlyphViewer {
         }
     }
 }
-impl Focusable for GlyphViewer {
+impl Focusable for GlyphView {
     fn is_focused(&self) -> bool {
         self.state.is_focused.borrow().clone()
     }
