@@ -3,7 +3,7 @@ use crate::models::layout::{BorderMode, LayoutOrientation, SizeMode};
 use crate::models::section::Section;
 use crate::services::LocalEntryState;
 use crate::theme::Theme;
-use crate::utils::markdown_renderer::MarkdownRenderer;
+use crate::utils::markdown_renderer::MarkdownRendererExperimental;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::layout::{Constraint, Layout, Margin, Rect, Size};
 use ratatui::style::Stylize;
@@ -98,7 +98,7 @@ impl Drawable for GlyphReadView {
                         }.padding(Padding::uniform(*padding));
                         let inner_area: Rect = block.inner(*area);
                         block.render(*area, frame.buffer_mut());
-                        MarkdownRenderer::render_markdown(_section.content.as_str(), &inner_area, frame.buffer_mut(), theme);
+                        MarkdownRendererExperimental::create(inner_area.clone(), theme).render(_section.content.as_str(), frame.buffer_mut());
                     }
                 }
             }
@@ -134,7 +134,7 @@ impl Drawable for GlyphReadView {
                         }.padding(Padding::uniform(*padding));
                         let inner_area: Rect = block.inner(*area);
                         block.render(*area, scroll_view.buf_mut());
-                        MarkdownRenderer::render_markdown(section.content.as_str(), &inner_area, scroll_view.buf_mut(), theme);
+                        MarkdownRendererExperimental::create(inner_area.clone(), theme).render(section.content.as_str(), scroll_view.buf_mut());
                     }
                 }
                 scroll_view.render(area, frame.buffer_mut(), &mut *self.state.scroll_state.borrow_mut());

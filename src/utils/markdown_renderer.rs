@@ -3,10 +3,10 @@ use crate::utils::number_to_roman;
 use bitflags::bitflags;
 use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Offset, Rect};
-use ratatui::style::{Style, Stylize};
+use ratatui::layout::{Offset, Rect, Rows, Size};
+use ratatui::style::{Color, Style, Stylize};
 use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::Widget;
+use ratatui::widgets::{Paragraph, Row, Widget};
 use tui_big_text::{BigText, PixelSize};
 
 /// This is a customized Markdown Drawer powered by pulldown-cmark.
@@ -17,14 +17,21 @@ struct ListState {
     item_index: u32,
 }
 impl ListState {
+    fn new(level: u32, is_ordered: bool, item_index:u32) -> Self {
+        Self {
+            level,
+            is_ordered,
+            item_index
+        }
+    }
     fn get_prefix(&self) -> String{
         if self.is_ordered {
             match self.level {
                 2 => {
-                    format!("{:>4}",number_to_roman(self.item_index as u16))
+                    format!("{:<3}",number_to_roman(self.item_index as u16)+".")
                 }
                 _ => {
-                    format!("{:>4}",self.item_index.to_string())
+                    format!("{:<3}",self.item_index.to_string()+".")
                 }
             }
         } else {
@@ -42,244 +49,222 @@ impl ListState {
 struct QuoteState {
     level: u32,
 }
+impl QuoteState {
+    fn new(level: u32) -> Self {
+        Self {
+            level
+        }
+    }
+}
+pub struct MarkdownRendererExperimental<'a> {
+    current_spans: Vec<Span<'a>>,
+    rows_area: Vec<Rect>,
+    render_row_index: usize,
+    text_style: TextStyleBuilder,
+    list_state_stack: Vec<ListState>,
+    quote_state: QuoteState,
+    is_in_code_block: bool,
+    code_lines: Vec<Line<'a>>,
+    area: Rect,
+    theme: &'a dyn Theme
+}
 
-pub struct MarkdownRenderer;
+impl<'a> MarkdownRendererExperimental<'a>{
+    pub fn create(area: Rect, theme: &'a dyn Theme) -> Self {
+        Self {
+            current_spans: Vec::new(),
+            rows_area: area.rows().into_iter().collect(),
+            render_row_index: 0,
+            text_style: TextStyleBuilder::new(),
+            list_state_stack: Vec::new(),
+            quote_state: QuoteState::new(0),
+            is_in_code_block: false,
+            code_lines: Vec::new(),
+            area,
+            theme,
+        }
+    }
+    /// Render a line to the buffer and increment a row number by 1.
+    fn render_line(&mut self, buffer: &mut Buffer) -> (){
+        if self.quote_state.level != 0 {
+            self.current_spans.insert(0, Span::from("░ ".repeat(self.quote_state.level as usize)));
+        }
 
-impl MarkdownRenderer {
-    pub fn render_markdown<'a>(str: &'a str, area: &Rect, buffer: &mut Buffer, theme: &'a dyn Theme) -> () {
+        if let Some(line_area) = self.rows_area.get(self.render_row_index) {
+            Line::from(self.current_spans.clone()).render(*line_area, buffer);
+            self.current_spans = Vec::new();
+            self.render_row_index +=1;
+        }
+    }
+    fn render_header(&mut self, buffer: &mut Buffer, level: HeadingLevel) -> () {
+        if let Some(line_area) = self.rows_area.get(self.render_row_index) {
+            match level {
+                HeadingLevel::H1 => {
+                    let text = BigText::builder().lines([Line::from(self.current_spans.clone())]).pixel_size(PixelSize::Full).build();
+                    text.render(line_area.resize(Size::new(line_area.width, 8)).intersection(self.area), buffer);
+                    self.render_row_index += 8;
+                },
+                HeadingLevel::H2 => {
+                    let text = BigText::builder().lines([Line::from(self.current_spans.clone())]).pixel_size(PixelSize::HalfWidth).build();
+                    text.render(line_area.resize(Size::new(line_area.width, 8)).intersection(self.area), buffer);
+                    self.render_row_index += 8;
+                },
+                HeadingLevel::H3 => {
+                    let text = BigText::builder().lines([Line::from(self.current_spans.clone())]).pixel_size(PixelSize::HalfHeight).build();
+                    text.render(line_area.resize(Size::new(line_area.width, 4)).intersection(self.area), buffer);
+                    self.render_row_index += 4;
+                },
+                HeadingLevel::H4 => {
+                    let text = BigText::builder().lines([Line::from(self.current_spans.clone())]).pixel_size(PixelSize::Quadrant).build();
+                    text.render(line_area.resize(Size::new(line_area.width, 4)).intersection(self.area), buffer);
+                    self.render_row_index += 4;
+                },
+                HeadingLevel::H5 => {
+                    let text = BigText::builder().lines([Line::from(self.current_spans.clone())]).pixel_size(PixelSize::Sextant).build();
+                    text.render(line_area.resize(Size::new(line_area.width, 3)).intersection(self.area), buffer);
+                    self.render_row_index += 3;
+                },
+                HeadingLevel::H6 => {
+                    let text = BigText::builder().lines([Line::from(self.current_spans.clone())]).pixel_size(PixelSize::Octant).build();
+                    text.render(line_area.resize(Size::new(line_area.width, 3)).intersection(self.area), buffer);
+                    self.render_row_index += 3;
+                }
+            }
+        }
+        self.current_spans = Vec::new();
+    }
+    /// Render a markdown page in area, consume self.
+    pub fn render(mut self, str: &'a str, buffer: &mut Buffer) -> () {
         let mut options = Options::empty();
         options.insert(Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH | Options::ENABLE_FOOTNOTES);
         let parser = Parser::new_ext(&str, options);
 
-        let mut lines: Vec<Line> = Vec::new();
-        let mut current_line: Vec<Span> = Vec::new();
-        let mut render_offset: usize = 0; // Next y-position the line to be inserted.
-
-        let mut style: TextStyleBuilder = TextStyleBuilder::new();
-
-
-        let mut list_stack: Vec<ListState> = Vec::new();
-        let mut quote_state: QuoteState = QuoteState { level: 0 };
 
         for event in parser {
             match event {
                 Event::Start(tag) => {
                     match tag {
-                        Tag::Heading { level: _l, id: _, classes: _, attrs: _ } => {
-                        }
-                        Tag::Paragraph => {
-                            current_line.push(Span::from("<p>"));
-                        }
                         Tag::Strong => {
-                            style.set_flag(TextStyleFlag::STRONG);
+                            self.text_style.set_flag(TextStyleFlag::STRONG);
                         }
                         Tag::Emphasis => {
-                            style.set_flag(TextStyleFlag::EMPHASIS);
+                            self.text_style.set_flag(TextStyleFlag::EMPHASIS);
                         }
                         Tag::Strikethrough => {
-                            style.set_flag(TextStyleFlag::STRIKETHROUGH);
-                        }
-                        Tag::CodeBlock(_) => {
-                            style.set_flag(TextStyleFlag::HIGHLIGHT);
+                            self.text_style.set_flag(TextStyleFlag::STRIKETHROUGH);
                         }
                         Tag::List(is_ordered) => {
-                            let level = list_stack.len() as u32 + 1;
-                            list_stack.push(ListState {
-                                level,
+                            let new_level = self.list_state_stack.len() as u32 + 1;
+                            self.list_state_stack.push(ListState {
+                                level: new_level,
                                 is_ordered: is_ordered.is_some(),
                                 item_index: is_ordered.unwrap_or(1) as u32,
-                            })
-                        }
-                        Tag::BlockQuote(_quote_type) => {
-                            quote_state.level += 1;
-                        }
-                        Tag::Item => {
-                            if let Some(state) = list_stack.last_mut() {
-                                // Add indentation
-                                let indent = "  ".repeat(state.level as usize);
-                                if !current_line.is_empty() {
-                                    lines.push(Line::from(current_line));
-                                    current_line = Vec::new();
-                                }
-                                current_line.push(Span::raw(indent));
-
-                                // Add marker
-                                if state.is_ordered {
-                                    current_line.push(Span::raw(format!("{}. ", state.get_prefix())));
-                                    state.item_index += 1;
-                                } else {
-                                    current_line.push(Span::raw(format!("{} ", state.get_prefix())));
-                                }
+                            });
+                            if !self.current_spans.is_empty() {
+                                self.render_line(buffer);
                             }
                         }
-                        _ => {}
+                        // Simply add prefix to the line.
+                        Tag::Item => {
+                            // self.current_spans.push(Span::raw("<>"));
+                            if let Some(list_state) = self.list_state_stack.last_mut() {
+                                // Add indentation
+                                let indent = "  ".repeat(list_state.level as usize);
+
+                                // Add marker
+                                self.current_spans.push(Span::raw(format!("{:<0}{1} ",indent, list_state.get_prefix())));
+                                // Add for in case the list is ordered, if the list is not ordered, it has no effect.
+                                list_state.item_index += 1;
+                            }
+                        }
+                        Tag::BlockQuote(_quote_type) => {
+                            self.quote_state.level += 1;
+                        }
+                        Tag::CodeBlock(_kind) => {
+                            self.is_in_code_block = true;
+                        }
+                        _ => {
+                        }
                     }
-                },
-                Event::Code(text) => {
-                    // Have to directly use theme.
-                    current_line.push(Span::raw(text).bg(theme.surface_low_highlight()));
-                }
-                Event::HardBreak => {
-                    if quote_state.level != 0 {
-                        current_line.insert(0, Span::from("░ ".repeat(quote_state.level as usize)));
-                    }
-                    lines.push(Line::from(current_line));
-                    current_line = Vec::new();
-                    lines.push(Line::default());
-                    render_offset += 1;
-                }
-                Event::SoftBreak => {
-                    if quote_state.level != 0{
-                        current_line.insert(0, Span::from("░ ".repeat(quote_state.level as usize)));
-                    }
-                    lines.push(Line::from(current_line));
-                    current_line = Vec::new();
-                    render_offset += 1;
                 }
                 Event::Rule => {
-                    lines.push(Line::from(format!("{:—<width$}", "", width=area.width as usize - 1)).dark_gray());
-                    render_offset+=1;
+                    self.current_spans = vec![
+                        Span::from(format!("{:—<width$}", "", width = self.area.width as usize)).dark_gray()
+                    ];
+                    self.render_line(buffer);
+                }
+                Event::Code(text) => {
+                    self.current_spans.push(Span::raw(text).bg(self.theme.surface_low_highlight()));
                 }
                 Event::Text(text) => {
-                    current_line.push(Span::styled(text, style.build(theme)));
-                },
+                    if self.is_in_code_block {
+                        for line in text.lines() {
+                            self.code_lines.push(Line::from(line.to_string()));
+                        }
+                    } else {
+                        self.current_spans.push(Span::styled(text, self.text_style.build(self.theme)));
+                    }
+                }
+                Event::SoftBreak | Event::HardBreak => {
+                    self.render_line(buffer);
+                }
                 Event::End(tag) => {
                     match tag {
                         TagEnd::Heading(level) => {
-                            match level {
-                                HeadingLevel::H1 => {
-                                    let text = BigText::builder().lines([Line::from(current_line)]).pixel_size(PixelSize::Full).build();
-                                    text.render(area.offset(Offset{x:0, y:render_offset as i32}).intersection(*area), buffer);
-                                    current_line = Vec::new();
-
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    render_offset += 8;
-                                },
-                                HeadingLevel::H2 => {
-                                    let text = BigText::builder().lines([Line::from(current_line)]).pixel_size(PixelSize::HalfWidth).build();
-                                    text.render(area.offset(Offset{x:0, y:render_offset as i32}).intersection(*area), buffer);
-                                    current_line = Vec::new();
-
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    render_offset += 8;
-
-                                },
-                                HeadingLevel::H3 => {
-                                    let text = BigText::builder().lines([Line::from(current_line)]).pixel_size(PixelSize::HalfHeight).build();
-                                    text.render(area.offset(Offset{x:0, y:render_offset as i32}).intersection(*area), buffer);
-                                    current_line = Vec::new();
-
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    render_offset += 4;
-                                },
-                                HeadingLevel::H4 => {
-                                    let text = BigText::builder().lines([Line::from(current_line)]).pixel_size(PixelSize::Quadrant).build();
-                                    text.render(area.offset(Offset{x:0, y:render_offset as i32}).intersection(*area), buffer);
-                                    current_line = Vec::new();
-
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    render_offset += 4;
-                                },
-                                HeadingLevel::H5 => {
-                                    let text = BigText::builder().lines([Line::from(current_line)]).pixel_size(PixelSize::Sextant).build();
-                                    text.render(area.offset(Offset{x:0, y:render_offset as i32}).intersection(*area), buffer);
-                                    current_line = Vec::new();
-
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    render_offset += 3;
-                                },
-                                HeadingLevel::H6 => {
-                                    let text = BigText::builder().lines([Line::from(current_line)]).pixel_size(PixelSize::Octant).build();
-                                    text.render(area.offset(Offset{x:0, y:render_offset as i32}).intersection(*area), buffer);
-                                    current_line = Vec::new();
-
-                                    lines.push(Line::default());
-                                    lines.push(Line::default());
-                                    render_offset += 2;
-                                }
-                            }
-                        }
-                        TagEnd::List(_) => {
-                            if !list_stack.is_empty() {
-                                list_stack.pop();
-                            } else {
-                                lines.push(Line::default());
-                                render_offset+=1;
-                            }
-                        }
-                        TagEnd::Item => {
-                            if !current_line.is_empty() {
-                                lines.push(Line::from(current_line));
-                                current_line = Vec::new();
-                                render_offset+=1;
-                            }
-                        }
-                        TagEnd::BlockQuote(_quote_type) => {
-                            quote_state.level = quote_state.level.saturating_sub(1);
-                            if quote_state.level == 0 {
-                                lines.push(Line::default());
-                            }
+                            self.render_header(buffer, level);
                         }
                         TagEnd::Paragraph => {
-                            if quote_state.level != 0{
-                                current_line.insert(0, Span::from("░ ".repeat(quote_state.level as usize)));
-                                lines.push(Line::from(current_line));
-                                current_line = Vec::new();
-                            } else {
-                                lines.push(Line::from(current_line));
-                                current_line = Vec::new();
-                                lines.push(Line::default());
-                            }
-                            render_offset+=1;
-                        }
-                        TagEnd::CodeBlock => {
-                            style.remove_flag(TextStyleFlag::HIGHLIGHT);
+                            self.render_line(buffer);
                         }
                         TagEnd::Strong => {
-                            style.remove_flag(TextStyleFlag::STRONG);
+                            self.text_style.remove_flag(TextStyleFlag::STRONG);
                         }
                         TagEnd::Emphasis => {
-                            style.remove_flag(TextStyleFlag::EMPHASIS);
+                            self.text_style.remove_flag(TextStyleFlag::EMPHASIS);
                         }
                         TagEnd::Strikethrough => {
-                            style.remove_flag(TextStyleFlag::STRIKETHROUGH);
+                            self.text_style.remove_flag(TextStyleFlag::STRIKETHROUGH);
                         }
-                        _ => {
+                        TagEnd::List(_) => {
 
+                            if self.list_state_stack.len() > 1 {
+                                self.render_row_index -= 1;
+                            }
+                            if !self.list_state_stack.is_empty() {
+                                self.list_state_stack.pop();
+
+                            } else {
+                                self.render_row_index += 1;
+                            }
                         }
+                        // Render the item in the list
+                        TagEnd::Item => {
+                            // self.current_spans.push(Span::raw("</>"));
+                            self.render_line(buffer);
+                        }
+                        TagEnd::BlockQuote(_quote_type) => {
+                            self.quote_state.level = self.quote_state.level.saturating_sub(1);
+                            if self.quote_state.level == 0 {
+                                self.render_row_index += 1;
+                            }
+                        }
+                        TagEnd::CodeBlock => {
+                            self.is_in_code_block = false;
+                            let text: Text= Text::from(self.code_lines).bg(self.theme.surface_low_highlight());
+                            let text_height: usize = text.height();
+                            let text_width: usize = text.width();
+                            if let Some(line_area) = self.rows_area.get(self.render_row_index) {
+                                text.render(line_area.resize(Size::new(text_width as u16, text_height as u16)), buffer);
+                                self.render_row_index += text_height;
+                            }
+                            self.code_lines = Vec::new();
+                        }
+                        _ => {}
                     }
                 }
                 _ => {}
             }
         }
-        if !current_line.is_empty() {
-            lines.push(Line::from(current_line));
-        }
-        Text::from(lines).render(*area, buffer);
     }
 }
 bitflags! {

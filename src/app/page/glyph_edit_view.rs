@@ -9,7 +9,6 @@ use crate::models::section::Section;
 use crate::services::LocalEntryState;
 use crate::theme::Theme;
 use crate::utils::cycle_offset;
-use crate::utils::markdown_renderer::MarkdownRenderer;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::prelude::{Line, Stylize};
@@ -18,6 +17,7 @@ use ratatui::Frame;
 use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
+use crate::utils::markdown_renderer::MarkdownRendererExperimental;
 
 pub struct GlyphEditState {
     pub shared_focus: Rc<RefCell<bool>>, // Shared state across all view
@@ -382,7 +382,7 @@ impl Drawable for GlyphEditOrderView {
                 }
             ).title_top(Line::from(String::from("Pos: ") + format!("{}", section.position).as_str()).right_aligned())
                 .render(section_areas[index], frame.buffer_mut());
-            MarkdownRenderer::render_markdown(section.content.as_str(), &inner_area, frame.buffer_mut(), theme);
+            MarkdownRendererExperimental::create(inner_area, theme).render(section.content.as_str(), frame.buffer_mut());
         }
     }
 }
