@@ -6,6 +6,8 @@ Powered by Ratatui
 - [x] List 
 - [x] Bold/Italic/Underline
 - [x] Horizontal Line
+- [x] Quote Block
+- [x] Code / Code Block
 - [ ] Image
 - [ ] Table
 

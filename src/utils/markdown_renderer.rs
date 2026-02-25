@@ -1,12 +1,12 @@
 use crate::theme::Theme;
 use crate::utils::number_to_roman;
 use bitflags::bitflags;
-use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
+use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Offset, Rect, Rows, Size};
-use ratatui::style::{Color, Style, Stylize};
+use ratatui::layout::{Rect, Size};
+use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{Paragraph, Row, Widget};
+use ratatui::widgets::{Block, Widget};
 use tui_big_text::{BigText, PixelSize};
 
 /// This is a customized Markdown Drawer powered by pulldown-cmark.
@@ -56,7 +56,7 @@ impl QuoteState {
         }
     }
 }
-pub struct MarkdownRendererExperimental<'a> {
+pub struct MarkdownRenderer<'a> {
     current_spans: Vec<Span<'a>>,
     rows_area: Vec<Rect>,
     render_row_index: usize,
@@ -69,7 +69,7 @@ pub struct MarkdownRendererExperimental<'a> {
     theme: &'a dyn Theme
 }
 
-impl<'a> MarkdownRendererExperimental<'a>{
+impl<'a> MarkdownRenderer<'a>{
     pub fn create(area: Rect, theme: &'a dyn Theme) -> Self {
         Self {
             current_spans: Vec::new(),
@@ -254,8 +254,12 @@ impl<'a> MarkdownRendererExperimental<'a>{
                             let text_height: usize = text.height();
                             let text_width: usize = text.width();
                             if let Some(line_area) = self.rows_area.get(self.render_row_index) {
-                                text.render(line_area.resize(Size::new(text_width as u16, text_height as u16)), buffer);
-                                self.render_row_index += text_height;
+                                let code_block_frame: Block = Block::bordered().border_style(Style::default().dim());
+                                let code_block_area: Rect = line_area.resize(Size::new(text_width as u16 + 2, text_height as u16 + 2));
+                                let code_inner_area: Rect = code_block_frame.inner(code_block_area);
+                                text.render(code_inner_area, buffer);
+                                code_block_frame.render(code_block_area, buffer);
+                                self.render_row_index += text_height + 2;
                             }
                             self.code_lines = Vec::new();
                         }
@@ -273,7 +277,6 @@ bitflags! {
         const STRONG = 0b0000_0001;
         const EMPHASIS = 0b0000_0010;
         const STRIKETHROUGH = 0b0000_0100;
-        const HIGHLIGHT = 0b0000_1000;
     }
 }
 struct TextStyleBuilder{
@@ -301,9 +304,6 @@ impl TextStyleBuilder {
         }
         if self.flags.contains(TextStyleFlag::STRIKETHROUGH) {
             style = style.patch(theme.strikethrough());
-        }
-        if self.flags.contains(TextStyleFlag::HIGHLIGHT) {
-            style = style.bg(theme.surface_low_highlight());
         }
         style
     }

@@ -17,7 +17,7 @@ use ratatui::Frame;
 use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
-use crate::utils::markdown_renderer::MarkdownRendererExperimental;
+use crate::utils::markdown_renderer::MarkdownRenderer;
 
 pub struct GlyphEditState {
     pub shared_focus: Rc<RefCell<bool>>, // Shared state across all view
@@ -382,7 +382,7 @@ impl Drawable for GlyphEditOrderView {
                 }
             ).title_top(Line::from(String::from("Pos: ") + format!("{}", section.position).as_str()).right_aligned())
                 .render(section_areas[index], frame.buffer_mut());
-            MarkdownRendererExperimental::create(inner_area, theme).render(section.content.as_str(), frame.buffer_mut());
+            MarkdownRenderer::create(inner_area, theme).render(section.content.as_str(), frame.buffer_mut());
         }
     }
 }
