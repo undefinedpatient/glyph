@@ -126,8 +126,8 @@ impl<'a> MarkdownRenderer<'a>{
                 },
                 HeadingLevel::H6 => {
                     let text = BigText::builder().lines([Line::from(self.current_spans.clone())]).pixel_size(PixelSize::Octant).build();
-                    text.render(line_area.resize(Size::new(line_area.width, 3)).intersection(self.area), buffer);
-                    self.render_row_index += 3;
+                    text.render(line_area.resize(Size::new(line_area.width, 2)).intersection(self.area), buffer);
+                    self.render_row_index += 2;
                 }
             }
         }
@@ -136,7 +136,7 @@ impl<'a> MarkdownRenderer<'a>{
     /// Render a markdown page in area, consume self.
     pub fn render(mut self, str: &'a str, buffer: &mut Buffer) -> () {
         let mut options = Options::empty();
-        options.insert(Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH | Options::ENABLE_FOOTNOTES);
+        options.insert(Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH | Options::ENABLE_FOOTNOTES | Options::ENABLE_TASKLISTS);
         let parser = Parser::new_ext(&str, options);
 
 
@@ -187,9 +187,16 @@ impl<'a> MarkdownRenderer<'a>{
                         }
                     }
                 }
+                Event::TaskListMarker(checked) => {
+                    if checked {
+                        self.current_spans.push(Span::raw("☑  "));
+                    } else {
+                        self.current_spans.push(Span::raw("☐  "));
+                    }
+                }
                 Event::Rule => {
                     self.current_spans = vec![
-                        Span::from(format!("{:—<width$}", "", width = self.area.width as usize)).dark_gray()
+                        Span::from(format!("{:—<width$}", "", width = self.area.width.saturating_sub(1) as usize)).dark_gray()
                     ];
                     self.render_line(buffer);
                 }

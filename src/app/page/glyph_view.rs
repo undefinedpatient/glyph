@@ -16,7 +16,9 @@ use ratatui::widgets::{Block, Paragraph, Widget};
 use ratatui::Frame;
 use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
+use std::cmp::PartialEq;
 use std::rc::Rc;
+use crate::models::layout::LayoutOrientation;
 
 pub enum GlyphMode {
     Read,
@@ -78,6 +80,8 @@ impl GlyphView {
         }
     }
 }
+
+
 impl Drawable for GlyphView {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         /*
@@ -90,6 +94,11 @@ impl Drawable for GlyphView {
             GlyphMode::Read => {
                 widget_frame = widget_frame.title_top(Line::from("[ READ ]").right_aligned());
                 inner_area = widget_frame.inner(area.centered_horizontally(Constraint::Max(80)));
+                if let Some(active_entry) = self.state.local_entry_state_ref().unwrap().get_active_entry_ref() {
+                    if active_entry.layout.sub_layouts.len() > 1 && active_entry.layout.details.orientation == LayoutOrientation::Horizontal {
+                        inner_area = widget_frame.inner(area.centered_horizontally(Constraint::Max(160)));
+                    }
+                }
             }
             GlyphMode::Edit => {
                 widget_frame = widget_frame.title_top(Line::from("[ EDIT ]").right_aligned());

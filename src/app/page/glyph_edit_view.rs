@@ -76,19 +76,22 @@ impl GlyphEditView {
                             let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.entry_state.try_borrow_mut().unwrap();
                             let eid: i64 = local_entry_state.active_entry_id.unwrap();
                             let sid: i64 = _parent_state.active_sid.borrow().unwrap();
-                            let section: &mut Section = local_entry_state.get_section_mut(&eid, &sid).unwrap();
-                            let mut lines: Vec<Vec<char>> = (*_state).lines.clone();
-                            let line_number = lines.len();
-                            for line in &mut lines[0..line_number-1] {
-                                line.push('\n');
+                            if let Some(section) = local_entry_state.get_section_mut(&eid, &sid) {
+                                let mut lines: Vec<Vec<char>> = (*_state).lines.clone();
+                                let line_number = lines.len();
+                                for line in &mut lines[0..line_number-1] {
+                                    line.push('\n');
+                                }
+                                let buffer_content = lines.concat().iter().collect::<String>();
+                                if section.content != buffer_content {
+                                    section.content = buffer_content;
+                                    _parent_state.is_editing = false;
+                                    _state.is_focused = false;
+                                    return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
+                                }
                             }
-                            let buffer_content = lines.concat().iter().collect::<String>();
                             _parent_state.is_editing = false;
                             _state.is_focused = false;
-                            if section.content != buffer_content {
-                                section.content = buffer_content;
-                                return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
-                            }
                             return Ok(vec![]);
                         } )
                     )
