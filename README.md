@@ -3,7 +3,7 @@ Powered by Ratatui
 
 ### Markdown Support
 - [x] Heading
-- [x] List 
+- [x] List
 - [x] Bold/Italic/Underline
 - [x] Horizontal Line
 - [x] Quote Block
@@ -13,6 +13,11 @@ Powered by Ratatui
 
 ### Storage
 Currently using Rusqlite.
+
+### Test
+| H1 | H2  | H3 |
+|:---|:---:|---:|
+| a  |  b  |  c |
 
 ### Built-in Editor
 The built-in editor is highly similar to vim, but with very limited features.

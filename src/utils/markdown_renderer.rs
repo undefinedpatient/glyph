@@ -1,5 +1,6 @@
 use crate::theme::Theme;
 use crate::utils::number_to_roman;
+use color_eyre::{Report, Result};
 use bitflags::bitflags;
 use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use ratatui::buffer::Buffer;
@@ -56,15 +57,85 @@ impl QuoteState {
         }
     }
 }
+
+/// A Row Major Table with max size (256, 256)
+#[derive(Debug)]
+struct Table<'a> {
+    data: Vec<Vec<Vec<Span<'a>>>>,
+    /// Zero-indexed position
+    position: (u8, u8)
+}
+impl<'a> Table<'a> {
+    fn new() -> Self {
+        Self {
+            data: Vec::new(),
+            position: (0,0)
+        }
+    }
+    /// Get the size (row, column)
+    fn size(&self) -> (u8, u8) {
+        (self.data.len() as u8, self.data.first().map_or(0u8, |col| {col.len() as u8}))
+    }
+
+    /// Return true for all u8 x in any case among: (0, x), (x, 0), (0,0)
+    fn is_zero_size(&self) -> bool {
+        self.data.len() == 0 || self.data.get(0).is_none()
+    }
+
+    /// Set the size of each column
+    fn set_column_size(&mut self, size: u8) -> () {
+        self.data.resize(size as usize, Vec::new());
+    }
+    /// Set the size of each row
+    fn set_row_size(&mut self, size: u8) -> () {
+        for row in self.data.iter_mut() {
+            row.resize(size as usize, Vec::new());
+        }
+    }
+    fn next_row(&mut self) -> () {
+        self.position.0 = self.position.0.saturating_add(1);
+    }
+    fn next_column(&mut self) -> () {
+        self.position.1 = self.position.1.saturating_add(1);
+    }
+    fn previous_row(&mut self) -> () {
+        self.position.0 = self.position.0.saturating_sub(1);
+
+    }
+    fn previous_column(&mut self) -> () {
+        self.position.1 = self.position.1.saturating_add(1);
+    }
+    fn set_position(&mut self, pos: (u8, u8)) -> Result<(u8, u8)> {
+        let size: (u8, u8) = self.size();
+        if pos.0 >= size.0 || pos.1 >= size.1 {
+            return Err(Report::msg("Index out of bounds"));
+        }
+        self.position = pos;
+        Ok(pos)
+    }
+    /// Add span at current table position.
+    fn push_span(&mut self, span: Span<'a>) -> () {
+        self.data[self.position.0 as usize][self.position.1 as usize].push(span);
+    }
+    /// Get a cloned spans at current table position.
+    fn get_spans(&self) -> Vec<Span<'a>> {
+        self.data[self.position.0 as usize][self.position.1 as usize].clone()
+    }
+}
 pub struct MarkdownRenderer<'a> {
     current_spans: Vec<Span<'a>>,
     rows_area: Vec<Rect>,
     render_row_index: usize,
     text_style: TextStyleBuilder,
+
     list_state_stack: Vec<ListState>,
     quote_state: QuoteState,
+
+    ///
     is_in_code_block: bool,
     code_lines: Vec<Line<'a>>,
+    /// Containing table data in Row Major Alignment
+    table: Table<'a>,
     area: Rect,
     theme: &'a dyn Theme
 }
@@ -80,6 +151,7 @@ impl<'a> MarkdownRenderer<'a>{
             quote_state: QuoteState::new(0),
             is_in_code_block: false,
             code_lines: Vec::new(),
+            table: Table::new(),
             area,
             theme,
         }
@@ -183,6 +255,18 @@ impl<'a> MarkdownRenderer<'a>{
                         Tag::CodeBlock(_kind) => {
                             self.is_in_code_block = true;
                         }
+                        Tag::Table(alignment) => {
+                            self.current_spans.push(Span::raw(format!("<T{}>", alignment.len())));
+                        }
+                        Tag::TableCell => {
+                            self.current_spans.push(Span::raw("<C>"));
+                        }
+                        Tag::TableHead => {
+                            self.current_spans.push(Span::raw("<H>"));
+                        }
+                        Tag::TableRow => {
+                            self.current_spans.push(Span::raw("<R>"));
+                        }
                         _ => {
                         }
                     }
@@ -269,6 +353,21 @@ impl<'a> MarkdownRenderer<'a>{
                                 self.render_row_index += text_height + 2;
                             }
                             self.code_lines = Vec::new();
+                        }
+                        TagEnd::Table => {
+                            self.current_spans.push(Span::raw("</T>"));
+                            self.render_line(buffer);
+                        }
+                        TagEnd::TableCell => {
+                            self.current_spans.push(Span::raw("</C>"));
+                        }
+                        TagEnd::TableHead => {
+                            self.current_spans.push(Span::raw("</H>"));
+                            self.render_line(buffer);
+                        }
+                        TagEnd::TableRow => {
+                            self.current_spans.push(Span::raw("</R>"));
+                            self.render_line(buffer);
                         }
                         _ => {}
                     }
