@@ -9,16 +9,10 @@ Powered by Ratatui
 - [x] Quote Block
 - [x] Code / Code Block
 - [ ] Image
-- [ ] Table
+- [x] Table
 
 ### Storage
 Currently using Rusqlite.
-
-### Test
-| H1                                   | H22222222222 | H333333 |
-|:-------------------------------------|:------------:|--------:|
-| aa<br/>a**aaa**aaaaaaaaaaaaaaaaaaaaa |      b       |       c |
-| d                                    | | |
 
 ### Built-in Editor
 The built-in editor is highly similar to vim, but with very limited features.
