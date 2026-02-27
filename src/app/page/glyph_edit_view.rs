@@ -9,6 +9,7 @@ use crate::models::section::Section;
 use crate::services::LocalEntryState;
 use crate::theme::Theme;
 use crate::utils::cycle_offset;
+use crate::utils::markdown_renderer::MarkdownRenderer;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::prelude::{Line, Stylize};
@@ -17,7 +18,6 @@ use ratatui::Frame;
 use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
-use crate::utils::markdown_renderer::MarkdownRenderer;
 
 pub struct GlyphEditState {
     pub shared_focus: Rc<RefCell<bool>>, // Shared state across all view

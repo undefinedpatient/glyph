@@ -1,14 +1,11 @@
-use std::fmt::format;
 use crate::theme::Theme;
 use crate::utils::number_to_roman;
-use color_eyre::{Report, Result};
 use bitflags::bitflags;
 use color_eyre::owo_colors::OwoColorize;
-use log::debug;
+use color_eyre::{Report, Result};
 use pulldown_cmark::{Alignment, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use ratatui::buffer::Buffer;
-use ratatui::layout::{ Rect, Size};
-use ratatui::macros::span;
+use ratatui::layout::{Rect, Size};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, BorderType, Widget};
@@ -165,7 +162,7 @@ impl<'a> MarkdownTable<'a> {
     }
     /// Get the size of the table for each cell in area (width, height) without taking account of border.
     fn cell_sizes(&self) -> (Vec<usize>, Vec<usize>) {
-        let size = self.size();
+        let size: (u8, u8) = self.size();
         let mut heights: Vec<usize> = Vec::with_capacity(size.0 as usize);
         heights.resize(size.0 as usize, 0);
         let mut widths: Vec<usize> = Vec::with_capacity(size.1 as usize);
@@ -192,7 +189,7 @@ impl<'a> MarkdownTable<'a> {
             if r_idx == 0 {
                 let mut line = Line::default();
                 line.push_span(Span::raw("┏"));
-                for (c_idx, cell) in row.iter().enumerate() {
+                for (c_idx, _) in row.iter().enumerate() {
                     // If the first Cell in the row
                     let mut cell_width = cell_sizes.0[c_idx];
                     line.push_span(Span::raw("━".repeat(cell_width)));
@@ -625,7 +622,6 @@ impl TextStyleBuilder {
 
 #[cfg(test)]
 mod test {
-    use log::debug;
     use crate::utils::markdown_renderer::MarkdownTable;
 
     #[test]

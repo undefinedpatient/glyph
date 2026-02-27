@@ -5,6 +5,7 @@ use crate::app::Command::GlyphCommand;
 use crate::app::GlyphCommand::SetEntryUnsavedState;
 use crate::app::{Command, Container, DrawFlag, Drawable, Focusable, Interactable};
 use crate::block;
+use crate::models::layout::LayoutOrientation;
 use crate::services::LocalEntryState;
 use crate::theme::Theme;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -16,9 +17,7 @@ use ratatui::widgets::{Block, Paragraph, Widget};
 use ratatui::Frame;
 use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
-use std::cmp::PartialEq;
 use std::rc::Rc;
-use crate::models::layout::LayoutOrientation;
 
 pub enum GlyphMode {
     Read,

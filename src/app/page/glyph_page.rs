@@ -18,7 +18,7 @@ use ratatui::style::Stylize;
 use ratatui::widgets::Block;
 use ratatui::widgets::BorderType;
 use ratatui::Frame;
-pub use rusqlite::fallible_iterator::{FallibleIterator};
+pub use rusqlite::fallible_iterator::FallibleIterator;
 use rusqlite::Connection;
 use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
