@@ -5,9 +5,9 @@ use color_eyre::{Report, Result};
 use bitflags::bitflags;
 use color_eyre::owo_colors::OwoColorize;
 use log::debug;
-use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
+use pulldown_cmark::{Alignment, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Rect, Size};
+use ratatui::layout::{ Rect, Size};
 use ratatui::macros::span;
 use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Span, Text};
@@ -64,18 +64,21 @@ impl QuoteState {
 
 /// A Row Major Table with max size (256, 256)
 #[derive(Debug)]
-struct Table<'a> {
+struct MarkdownTable<'a> {
     data: Vec<Vec<Vec<Span<'a>>>>,
     /// Zero-indexed position
     position: (u8, u8),
+    /// Alignment for each column, should have exact same size of num of column
+    alignments: Vec<Alignment>,
     size: (u8, u8)
 }
-impl<'a> Table<'a> {
+impl<'a> MarkdownTable<'a> {
     fn new() -> Self {
         Self {
             data: Vec::new(),
             position: (0,0),
-            size: (0,0)
+            alignments: Vec::new(),
+            size: (0, 0),
         }
     }
     /// Get the size (num of row, num of column)
@@ -86,6 +89,10 @@ impl<'a> Table<'a> {
     /// Return true for all u8 x in any case among: (0, x), (x, 0), (0,0)
     fn is_zero_size(&self) -> bool {
         self.size.0 == 0 ||  self.size.1 == 0
+    }
+
+    fn set_alignments(&mut self, alignments: Vec<Alignment>) -> () {
+        self.alignments = alignments;
     }
 
     /// Set the size of each column
@@ -190,11 +197,11 @@ impl<'a> Table<'a> {
                     let mut cell_width = cell_sizes.0[c_idx];
                     line.push_span(Span::raw("━".repeat(cell_width)));
                     if c_idx == row.len() - 1 {
-                        continue;
+                        line.push_span(Span::raw("┓"));
+                        break;
                     }
                     line.push_span(Span::raw("┳"));
                 }
-                line.push_span(Span::raw("┓"));
                 lines.push(line);
             }
 
@@ -207,25 +214,47 @@ impl<'a> Table<'a> {
                     let mut cell_width = cell_sizes.0[c_idx];
                     line.push_span(Span::raw({if r_idx == 1 {"━"} else {"─"}}.repeat(cell_width)));
                     if c_idx == row.len() - 1 {
-                        continue;
+                        line.push_span(Span::raw(if r_idx == 1 {"┩"} else {"┤"}));
+                        break;
                     }
                     line.push_span(Span::raw(if r_idx == 1 {"╇"} else {"┼"}));
                 }
-                line.push_span(Span::raw(if r_idx == 1 {"┩"} else {"┤"}));
                 lines.push(line);
             }
 
 
             // Render: Content
             let mut line = Line::default();
-            for (c_idx, cell) in row.iter().enumerate() {
+            for (c_idx, cells) in row.iter().enumerate() {
                 // If the first Cell in the row
                 if c_idx == 0 {
                     line.push_span(Span::raw(if r_idx == 0 {"┃"} else {"│"}));
                 }
                 let mut individual_cell_width = 0;
-                for span in cell.clone() {
+                // Count the individual cell width first, "abc" == 3
+                for span in cells.clone() {
                     individual_cell_width += span.width();
+                }
+
+                // Get the number of padding needed.
+                let num_of_empty_padding: usize = if individual_cell_width < cell_sizes.0[c_idx] {
+                    cell_sizes.0[c_idx] - individual_cell_width
+                } else {0};
+
+                let (left_padding, right_padding) = match self.alignments[c_idx] {
+                    Alignment::None | Alignment::Left => {
+                        ("".to_string()," ".repeat(num_of_empty_padding))
+                    }
+                    Alignment::Center => {
+                        (" ".repeat(num_of_empty_padding/2)," ".repeat(num_of_empty_padding.div_ceil(2)))
+                    }
+                    Alignment::Right => {
+                        (" ".repeat(num_of_empty_padding),"".to_string())
+                    }
+                };
+                line.push_span(Span::raw(left_padding));
+
+                for span in cells.clone() {
                     if r_idx == 0 {
                         line.push_span(span.bold());
                     } else {
@@ -233,11 +262,8 @@ impl<'a> Table<'a> {
                     }
                 }
 
-                // Ensuring the cell width string is consistent and match the render_size.
-                if individual_cell_width < cell_sizes.0[c_idx] {
-                    let difference: usize = cell_sizes.0[c_idx] - individual_cell_width;
-                    line.push_span(Span::raw(" ".repeat(difference)));
-                }
+                line.push_span(Span::raw(right_padding));
+
                 line.push_span(Span::raw(if r_idx == 0 {"┃"} else {"│"}));
             }
             lines.push(line);
@@ -252,11 +278,11 @@ impl<'a> Table<'a> {
                     let mut cell_width = cell_sizes.0[c_idx];
                     line.push_span(Span::raw("─".repeat(cell_width)));
                     if c_idx == row.len() - 1 {
-                        continue;
+                        line.push_span(Span::raw("┘"));
+                        break;
                     }
                     line.push_span(Span::raw("┴"));
                 }
-                line.push_span(Span::raw("┘"));
                 lines.push(line);
             }
         }
@@ -299,7 +325,7 @@ pub struct MarkdownRenderer<'a> {
     is_in_table: bool,
     code_lines: Vec<Line<'a>>,
     /// Containing table data in Row Major Alignment
-    table: Table<'a>,
+    table: MarkdownTable<'a>,
     area: Rect,
     theme: &'a dyn Theme
 }
@@ -316,7 +342,7 @@ impl<'a> MarkdownRenderer<'a>{
             is_in_code_block: false,
             is_in_table: false,
             code_lines: Vec::new(),
-            table: Table::new(),
+            table: MarkdownTable::new(),
             area,
             theme,
         }
@@ -420,16 +446,15 @@ impl<'a> MarkdownRenderer<'a>{
                         Tag::CodeBlock(_kind) => {
                             self.is_in_code_block = true;
                         }
-                        Tag::Table(alignment) => {
+                        Tag::Table(alignments) => {
                             self.is_in_table = true;
-                            self.table = Table::new();
-                            self.table.set_width(alignment.len() as u8);
+                            self.table = MarkdownTable::new();
+                            self.table.set_width(alignments.len() as u8);
+                            self.table.set_alignments(alignments);
                         }
                         Tag::TableCell => {
-                            // self.spans_buffer.push(Span::raw("<C>"));
                         }
                         Tag::TableHead => {
-                            // self.spans_buffer.push(Span::raw("<H>"));
                             self.table.set_height(self.table.size().0.saturating_add(1));
                         }
                         Tag::TableRow => {
@@ -601,11 +626,11 @@ impl TextStyleBuilder {
 #[cfg(test)]
 mod test {
     use log::debug;
-    use crate::utils::markdown_renderer::Table;
+    use crate::utils::markdown_renderer::MarkdownTable;
 
     #[test]
     fn test_table() {
-        let mut table = Table::new();
+        let mut table = MarkdownTable::new();
         table.set_height(6);
         table.set_width(4);
         assert_eq!(table.size(), (6,4));
