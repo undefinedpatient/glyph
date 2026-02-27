@@ -1,6 +1,5 @@
 ![Banner](images/banner.jpg)
 Powered by Ratatui
-
 ### Markdown Support
 - [x] Heading
 - [x] List

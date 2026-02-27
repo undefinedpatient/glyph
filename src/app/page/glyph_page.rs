@@ -437,7 +437,7 @@ impl Drawable for GlyphNavigationBar {
             .enumerate()
             .map(|(i, (id, name)): (usize, &(i64, String))| {
                 let is_selected = ref_entry_state.active_entry_id == Some(*id);
-                let is_hovered   = self.state.hovered_index == Some(i);
+                let is_hovered   = self.state.hovered_index == Some(i) && self.is_focused(); // If self is not focused, then do not display hovered target
                 let prefix = match (is_selected, is_hovered) {
                     (true, true)   => " >[",
                     (true, false)  => "  [",

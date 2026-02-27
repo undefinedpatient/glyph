@@ -5,7 +5,7 @@ use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Offset, Position, Rect, Rows};
 use ratatui::prelude::{Line, Span, Widget};
-use ratatui::style::Stylize;
+use ratatui::style::{Color, Stylize};
 use ratatui::widgets::{Block, Clear};
 use ratatui::widgets::BorderType;
 use ratatui::Frame;
@@ -441,9 +441,23 @@ impl Drawable for TextEditor {
             lines.get(line_number).render(line_row, frame.buffer_mut());
         }
         // Bottom status bar
-        let status_bar_area: Rect = Rect::new(area.x, area.y+area.height-1, area.width, 1);
-        Clear.render(status_bar_area, frame.buffer_mut());
-        Line::from(self.get_info()).bg(theme.surface_high()).render(status_bar_area, frame.buffer_mut());
+        if self.is_focused() {
+            let status_bar_area: Rect = Rect::new(area.x, area.y+area.height-1, area.width, 1);
+            Clear.render(status_bar_area, frame.buffer_mut());
+            Line::from(self.get_info()).bg(
+                match self.state.mode {
+                    EditMode::Normal => {
+                        theme.on_surface()
+                    }
+                    EditMode::Insert => {
+                        Color::Yellow
+                    }
+                    _ => {
+                        theme.on_surface()
+                    }
+                }
+            ).render(status_bar_area, frame.buffer_mut());
+        }
     }
 }
 
