@@ -1,18 +1,28 @@
-use crate::app::{Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable};
+use crate::app::{Command, Component, Container, Convertible, DrawFlag, Drawable, Focusable, Interactable};
 use crate::models::layout::{BorderMode, LayoutOrientation, SizeMode};
 use crate::models::section::Section;
 use crate::services::LocalEntryState;
-use crate::theme::Theme;
+use crate::theme::{Iceberg, Theme};
 use crate::utils::markdown_renderer::MarkdownRenderer;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use ratatui::layout::{Constraint, Layout, Margin, Rect, Size};
+use ratatui::layout::{Constraint, Layout, Margin, Position, Rect, Size};
 use ratatui::style::Stylize;
 use ratatui::widgets::{Block, BorderType, Padding, StatefulWidget, Widget};
 use ratatui::Frame;
 use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
+use std::fs;
+use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
 use std::rc::Rc;
+use ratatui::buffer::Buffer;
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
+use crate::app::Command::PageCommand;
+use crate::app::dialog::text_input_dialog::{TextInputDialog, TextInputDialogState};
+use crate::app::page::glyph_page::{GlyphPage, GlyphPageState};
+use crate::app::PageCommand::PushDialog;
+use crate::app::widget::directory_list::DirectoryList;
 
 pub struct GlyphReadState {
     pub is_focused: Rc<RefCell<bool>>, // Shared state across all view
@@ -74,7 +84,7 @@ impl Drawable for GlyphReadView {
         let layout = &entry_state.get_entry_ref(&eid).unwrap().layout;
         match layout.details.size_mode {
             SizeMode::Flex => {
-                let areas: Vec<(u16, Rect, BorderMode, u16)> = evaluate_read_areas(self, area, layout, 0);
+                let areas: Vec<(u16, Rect, BorderMode, u16)> = evaluate_read_areas(area, layout, 0);
                 let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
                 for (_sid, _section) in ref_sections {
                     if let Some((_position, area, border_mode, padding)) = areas.iter().find(
@@ -110,7 +120,7 @@ impl Drawable for GlyphReadView {
                 }).scrollbars_visibility(ScrollbarVisibility::Never);
                 let background: Block = Block::new().bg(theme.background());
                 background.render(scroll_view.area(), scroll_view.buf_mut());
-                let areas: Vec<(u16, Rect, BorderMode, u16)> = evaluate_read_areas(self, scroll_view.area(), layout, 0);
+                let areas: Vec<(u16, Rect, BorderMode, u16)> = evaluate_read_areas(scroll_view.area(), layout, 0);
                 let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
                 for (_sid, section) in ref_sections {
                     if let Some((_position, area, border_mode, padding)) = areas.iter().find(
@@ -143,12 +153,7 @@ impl Drawable for GlyphReadView {
 
     }
 }
-fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &crate::models::layout::Layout, depth: u16) -> Vec<(u16, Rect, BorderMode, u16)> {
-    // let mut target_section_text: String = "None".to_string();
-    // if let Some(position_target) = layout.section_index {
-    //     target_section_text = position_target.to_string();
-    // }
-
+fn evaluate_read_areas(area: Rect, layout: &crate::models::layout::Layout, depth: u16) -> Vec<(u16, Rect, BorderMode, u16)> {
     let recursive_area: Rect = Block::default().inner(area);
 
     // Process the child
@@ -180,9 +185,9 @@ fn evaluate_read_areas(me: &GlyphReadView, area: Rect, layout: &crate::models::l
             areas.push((section_index, area.inner(Margin::new(layout.details.margin, layout.details.margin)), layout.details.border_mode.clone(), layout.details.padding));
         }
     }
+
     for (i, sub_layout) in layout.sub_layouts.iter().enumerate() {
         areas = [areas,evaluate_read_areas(
-            me,
             sub_areas[i],
             sub_layout,
             depth + 1,
@@ -214,6 +219,62 @@ impl Interactable for GlyphReadView {
                 if let KeyCode::Down = key.code {
                     self.state.scroll_state.borrow_mut().scroll_down();
                     return Ok(Vec::new());
+                }
+                if let KeyCode::Char('P') = key.code {
+                    return Ok(vec![
+                        PageCommand(PushDialog(
+                            TextInputDialog::new("Path (TODO: Allow user to input size)", std::env::current_dir()?.to_str().unwrap(), Box::new(|input| {!input.ends_with("/")})).on_submit(
+                                Box::new(|parent_state, state|{
+                                    let _parent_state = parent_state.unwrap().downcast_ref::<GlyphPageState>().unwrap();
+                                    let _state = state.unwrap().downcast_ref::<TextInputDialogState>().unwrap();
+                                    let mut file: File = fs::File::create(_state.text_input.clone())?;
+
+                                    let entry_state: Ref<LocalEntryState> = _parent_state.local_entry_state_ref().unwrap();
+                                    let eid: i64 = entry_state.active_entry_id.unwrap();
+                                    let layout: &crate::models::layout::Layout = &entry_state.get_entry_ref(&eid).unwrap().layout;
+                                    let mut buffer: Buffer = Buffer::empty(Rect::new(0,0, 96, layout.details.length));
+                                    let areas: Vec<(u16, Rect, BorderMode, u16)> = evaluate_read_areas(*buffer.area(), layout, 0);
+                                    let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
+                                    for (_sid, section) in ref_sections {
+                                        if let Some((_position, area, border_mode, padding)) = areas.iter().find(
+                                            |(_position, _area, _border_mode, _padding)|{
+                                                *_position as i64 == section.position
+                                            }
+                                        ) {
+                                            let block = match border_mode {
+                                                BorderMode::None => {
+                                                    Block::new().title(section.title.clone().bold())
+                                                }
+                                                BorderMode::Plain => {
+                                                    Block::bordered().title(section.title.clone().bold())
+                                                }
+                                                BorderMode::Dashed => {
+                                                    Block::bordered().border_type(BorderType::LightDoubleDashed).title(section.title.clone().bold())
+                                                }
+                                                BorderMode::Rounded => {
+                                                    Block::bordered().border_type(BorderType::Rounded).title(section.title.clone().bold())
+                                                }
+                                            }.padding(Padding::uniform(*padding));
+                                            let inner_area: Rect = block.inner(*area);
+                                            block.render(*area, &mut buffer);
+                                            MarkdownRenderer::create(inner_area.clone(), &mut Iceberg).render(section.content.as_str(), &mut buffer);
+                                        }
+                                    }
+                                    let final_area = buffer.area();
+                                    for y in final_area.y..final_area.y+final_area.height {
+                                        let mut line_bytes = Vec::new();
+                                        for x in final_area.x..final_area.x+final_area.width {
+                                            let cell = Buffer::cell(&buffer, Position{x, y}).unwrap();
+                                            line_bytes.extend_from_slice(cell.symbol().as_bytes());
+                                        }
+                                        file.write_all(&line_bytes)?;
+                                        file.write_all(b"\n")?;
+                                    }
+                                    return Ok(vec![])
+                                })
+                            ).into()
+                        ))
+                    ]);
                 }
                 Ok(Vec::new())
             }

@@ -66,7 +66,6 @@ impl Layout {
             }
         }
     }
-
     pub fn remove_sublayout(&mut self, coordinates: &Vec<usize>) -> Result<()> {
         let mut coor = coordinates.clone();
         let index = coor.pop().unwrap();

@@ -254,7 +254,8 @@ impl Interactable for GlyphView {
         match self.state.mode {
             GlyphMode::Read => {
                 [
-                    ("up/down/pageup/pagedown", "Scroll")
+                    ("up/down/pageup/pagedown", "Scroll"),
+                    ("P", "Print to txt")
                 ].into()
             }
             GlyphMode::Edit => {
