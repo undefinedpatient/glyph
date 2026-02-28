@@ -271,6 +271,7 @@ impl Interactable for GlyphView {
                 [
                     ("up/down/pageup/pagedown", "Scroll"),
                     ("e", "Edit (With Active Layout)"),
+                    ("D", "Clone Layout to other Entry"),
                     ("t", "Change Layout Orientation"),
                     ("+/-", "Change Targeted Section Position"),
                 ].into()

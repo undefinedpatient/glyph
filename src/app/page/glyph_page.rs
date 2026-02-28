@@ -1,5 +1,5 @@
 use crate::app::dialog::confirm_dialog::ConfirmDialog;
-use crate::app::dialog::search_entry_dialog::SearchEntryDialog;
+use crate::app::dialog::search_entry_dialog::{SearchEntryDialog, SearchEntryDialogState};
 use crate::app::dialog::text_input_dialog::{TextInputDialog, TextInputDialogState};
 use crate::app::page::glyph_view::GlyphView;
 use crate::app::AppCommand::PopPage;
@@ -24,6 +24,7 @@ use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashSet;
 use std::rc::Rc;
+use crate::models::layout::Layout as GLayout;
 
 pub struct GlyphPageState {
     pub is_focused: bool,
@@ -213,7 +214,28 @@ impl Interactable for GlyphPage {
                     }
                     if let KeyCode::Char('F') = key.code {
                         self.dialogs.push(
-                            SearchEntryDialog::new(self.state.entry_state.clone()).into()
+                            SearchEntryDialog::new("Search Entry", self.state.entry_state.clone()).on_submit(
+                                Box::new(
+                                    |parent_state, state| {
+                                        let _parent_state: &mut GlyphPageState = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                        let _state: &mut SearchEntryDialogState = state.unwrap().downcast_mut::<SearchEntryDialogState>().unwrap();
+                                        if _state.entries_name.is_empty() {
+                                            return Ok(vec![]);
+                                        }
+                                        let cloned_id = _state.entries_name.iter().filter_map(|((eid, _name),ava)|{
+                                            if *ava {
+                                                return Some(*eid)
+                                            }
+                                            None
+                                        }).collect::<Vec<i64>>();
+                                        _state.local_entry_state.borrow_mut().active_entry_id = Some(
+                                            cloned_id.get(_state.hovered_index).unwrap().clone()
+                                        );
+                                        return Ok(vec![PageCommand(PopDialog)]);
+                                    }
+
+                                )
+                            ).into()
                         );
                     }
                     if let KeyCode::Char('b') = key.code {

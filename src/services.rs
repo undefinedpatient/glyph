@@ -5,6 +5,7 @@ use crate::utils::auto_increment_name;
 use color_eyre::Report;
 use rusqlite::Connection;
 use std::collections::HashSet;
+use crate::models::layout::Layout;
 
 pub struct LocalEntryState {
     /// All entries in the database.

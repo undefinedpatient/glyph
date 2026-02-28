@@ -2,7 +2,7 @@ use crate::app::widget::button::Button;
 use crate::app::widget::number_field::{NumberField, NumberFieldState};
 use crate::app::widget::option_menu::{OptionMenu, OptionMenuState};
 use crate::app::widget::text_field::{TextField, TextFieldState};
-use crate::app::Command::GlyphCommand;
+use crate::app::Command::{GlyphCommand, PageCommand};
 use crate::app::GlyphCommand::{RefreshLayoutEditPanel, SetEntryUnsavedState};
 use crate::app::{get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable};
 use crate::block;
@@ -23,6 +23,9 @@ use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
+use crate::app::dialog::search_entry_dialog::{SearchEntryDialog, SearchEntryDialogState};
+use crate::app::page::glyph_page::GlyphPageState;
+use crate::app::PageCommand::{PopDialog, PushDialog};
 
 pub struct GlyphLayoutState {
     pub shared_focus: Rc<RefCell<bool>>, // Shared state across all layout view
@@ -341,6 +344,42 @@ impl Interactable for GlyphLayoutOverview {
                                 &target_coor,
                             );
                             return Ok(vec![GlyphCommand(SetEntryUnsavedState(eid, true))]);
+                        }
+                        'D' => {
+                            return Ok(
+                                vec![
+                                    PageCommand(
+                                        PushDialog(
+                                            SearchEntryDialog::new("Clone Active Entry Layout to", self.state.entry_state.clone()).on_submit(
+                                                Box::new(
+                                                    |parent_state, state| {
+                                                        let _parent_state: &mut GlyphPageState = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                                        let _state: &mut SearchEntryDialogState = state.unwrap().downcast_mut::<SearchEntryDialogState>().unwrap();
+                                                        if _state.entries_name.is_empty() {
+                                                            return Ok(vec![]);
+                                                        }
+                                                        let filtered_eids = _state.entries_name.iter().filter_map(|((eid, _name),ava)|{
+                                                            if *ava {
+                                                                return Some(*eid)
+                                                            }
+                                                            None
+                                                        }).collect::<Vec<i64>>();
+                                                        let selected_eid = filtered_eids.get(_state.hovered_index).unwrap();
+                                                        let mut _entry_state = _state.local_entry_state.borrow_mut();
+                                                        let active_entry_layout: crate::models::layout::Layout = _entry_state.get_active_entry_ref().unwrap().layout.clone();
+                                                        let entry = _entry_state.entries.iter_mut().find(|(eid, entry)|{*eid == *selected_eid}).unwrap();
+                                                        (*entry).1.layout = active_entry_layout;
+                                                        // _entry_state.update_entry_layout_db((*entry).0, active_entry_layout)?;
+                                                        _entry_state.updated_entries.insert((*selected_eid).clone());
+                                                        return Ok(vec![PageCommand(PopDialog)]);
+                                                    }
+
+                                                )
+                                            ).into()
+                                        )
+                                    )
+                                ]
+                            );
                         }
                         'x' => {
                             if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {

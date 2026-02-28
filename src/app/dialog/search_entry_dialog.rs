@@ -1,5 +1,5 @@
 use crate::app::widget::text_field::{TextField, TextFieldState};
-use crate::app::{Command, Container, DrawFlag, Drawable, Focusable, Interactable, PageCommand};
+use crate::app::{Command, Container, DrawFlag, Drawable, Focusable, Interactable};
 use crate::block;
 use crate::services::LocalEntryState;
 use crate::theme::Theme;
@@ -15,23 +15,28 @@ use ratatui::Frame;
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
+use crate::app::Command::PageCommand;
+use crate::app::PageCommand::PopDialog;
 
 pub struct SearchEntryDialogState {
+    pub label: String,
     pub is_focused: bool,
     pub hovered_index: usize,
-    /// ((eid, entry_name), availability)
+    /// ((eid, entry_name), visibility)
     pub entries_name: Vec<((i64, String), bool)>,
     pub local_entry_state: Rc<RefCell<LocalEntryState>>,
 }
 pub struct SearchEntryDialog {
     state: SearchEntryDialogState,
     text_field: TextField,
+    on_submit: Option<Box<dyn Fn(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>
 }
 impl SearchEntryDialog {
-    pub fn new(local_entry_state: Rc<RefCell<LocalEntryState>>)-> SearchEntryDialog {
+    pub fn new(label: &str, local_entry_state: Rc<RefCell<LocalEntryState>>)-> SearchEntryDialog {
         let entries: Vec<(i64, String)> = (*local_entry_state.borrow().entries).iter().map(|(id,entry)|{(*id, entry.entry_name.clone())}).collect();
         Self {
             state: SearchEntryDialogState {
+                label: label.to_string(),
                 is_focused: true,
                 hovered_index: 0usize,
                 entries_name: entries.into_iter().map(|item|{(item, true)}).collect(),
@@ -55,8 +60,13 @@ impl SearchEntryDialog {
                 }
                 _parent_state.hovered_index = _parent_state.hovered_index.clamp(0, ava_count).saturating_sub(1);
                 Ok(vec![])
-            }))
+            })),
+            on_submit: None,
         }
+    }
+    pub fn on_submit(mut self, on_submit: Box<dyn Fn(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>) -> Self {
+        self.on_submit = Some(on_submit);
+        self
     }
 }
 impl From<SearchEntryDialog> for Box<dyn Container> {
@@ -67,7 +77,7 @@ impl From<SearchEntryDialog> for Box<dyn Container> {
 
 impl Drawable for SearchEntryDialog {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
-        let dialog_frame = block!("Search Entry", draw_flag, theme);
+        let dialog_frame = block!(self.state.label.clone(), draw_flag, theme);
         let dialog_area: Rect = area.centered(Constraint::Length(64), Constraint::Percentage(50));
         let dialog_inner_area: Rect = dialog_frame.inner(dialog_area);
         let layout: Layout = Layout::vertical([Constraint::Length(3), Constraint::Fill(1)]);
@@ -108,7 +118,7 @@ impl Interactable for SearchEntryDialog {
         match key.kind {
             KeyEventKind::Press => {
                 if let KeyCode::Esc = key.code {
-                    return Ok(vec![Command::PageCommand(PageCommand::PopDialog)]);
+                    return Ok(vec![PageCommand(PopDialog)]);
                 }
                 if key.modifiers.contains(KeyModifiers::CONTROL) {
                     if let KeyCode::Char('n') = key.code {
@@ -120,20 +130,11 @@ impl Interactable for SearchEntryDialog {
                     return Ok(vec![]);
                 }
                 if let KeyCode::Enter = key.code {
-                    if self.state.entries_name.is_empty() {
-                        return Ok(vec![]);
+                    if let Some(on_submit) = self.on_submit.take() {
+                        return on_submit(_parent_state, Some(&mut self.state));
+                    } else {
+                        return Ok(vec![PageCommand(PopDialog)]);
                     }
-                    let cloned_id = self.state.entries_name.iter().filter_map(|((eid, _name),ava)|{
-                        if *ava {
-                            return Some(*eid)
-                        }
-                        None
-                    }).collect::<Vec<i64>>();
-                    self.state.local_entry_state.borrow_mut().active_entry_id = Some(
-                        cloned_id.get(self.state.hovered_index).unwrap().clone()
-                    );
-
-                    return Ok(vec![Command::PageCommand(PageCommand::PopDialog)]);
                 }
 
                 self.text_field.handle(key, Some(&mut self.state))?;
