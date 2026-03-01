@@ -223,11 +223,13 @@ impl Interactable for GlyphReadView {
                 if let KeyCode::Char('P') = key.code {
                     return Ok(vec![
                         PageCommand(PushDialog(
-                            TextInputDialog::new("Path (TODO: Allow user to input size)", std::env::current_dir()?.to_str().unwrap(), Box::new(|input| {!input.ends_with("/")})).on_submit(
+                            TextInputDialog::new("Path (TODO: Allow user to input size)", "./", Box::new(|input| {!input.ends_with("/")})).on_submit(
                                 Box::new(|parent_state, state|{
                                     let _parent_state = parent_state.unwrap().downcast_ref::<GlyphPageState>().unwrap();
                                     let _state = state.unwrap().downcast_ref::<TextInputDialogState>().unwrap();
-                                    let mut file: File = fs::File::create(_state.text_input.clone())?;
+                                    let mut file_path_buf = std::env::current_dir()?;
+                                    file_path_buf.push(PathBuf::from(_state.text_input.clone()));
+                                    let mut file: File = fs::File::create(file_path_buf)?;
 
                                     let entry_state: Ref<LocalEntryState> = _parent_state.local_entry_state_ref().unwrap();
                                     let eid: i64 = entry_state.active_entry_id.unwrap();

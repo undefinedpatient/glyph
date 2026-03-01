@@ -13,6 +13,9 @@ Powered by Ratatui
 ### Storage
 Currently using Rusqlite.
 
+### Print
+Support print the whole entry to txt file in utf8 format.
+
 ### Built-in Editor
 The built-in editor is highly similar to vim, but with very limited features.
 

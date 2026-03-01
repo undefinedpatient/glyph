@@ -86,7 +86,7 @@ impl From<TextInputDialog> for Box<dyn Container> {
 
 impl Drawable for TextInputDialog {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
-        let dialog_area: Rect = area.centered(Constraint::Length(42), Constraint::Length(5));
+        let dialog_area: Rect = area.centered(Constraint::Length(64), Constraint::Length(5));
         let back_button =
             (*self.components[0])
                 .as_any()
