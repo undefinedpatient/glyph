@@ -97,7 +97,7 @@ fn handle_cli(args: &Vec<String>) -> Result<(bool, Option<Connection>)> {
                 return Ok((false, Some(connection)));
             }
             _ => {
-                println!("Invalid Command\nAvailable commands: \n - new\n - delete")
+                println!("Invalid Command\nAvailable commands: \n - new\n - delete\n - open")
             }
         }
     }

@@ -143,7 +143,7 @@ impl Interactable for EntrancePage {
     fn handle(
         &mut self,
         key: &KeyEvent,
-        _parent_state: Option<&mut dyn Any>,
+        _: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>> {
         match key.kind {
             KeyEventKind::Press => {

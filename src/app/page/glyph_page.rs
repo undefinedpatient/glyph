@@ -24,6 +24,7 @@ use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashSet;
 use std::rc::Rc;
+use crate::db::SectionRepository;
 use crate::models::layout::Layout as GLayout;
 
 pub struct GlyphPageState {
@@ -605,7 +606,10 @@ impl Interactable for GlyphNavigationBar {
                                 }
                                 let mut local_entry_state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
                                 let active_entry: Entry = local_entry_state.get_active_entry_ref().unwrap().clone();
-                                local_entry_state.insert_entry(active_entry)?;
+                                let cloned_eid = local_entry_state.insert_entry(active_entry.clone())?;
+                                for (sid, section) in active_entry.sections {
+                                    local_entry_state.insert_section(&cloned_eid, section)?;
+                                }
                                 return Ok(Vec::new())
                             }
                             'x' => {

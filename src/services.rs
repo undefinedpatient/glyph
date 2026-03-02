@@ -162,6 +162,13 @@ impl LocalEntryState {
         Section Section
 
      */
+    /// Insert a new section to db. Return the section id in the database after insertion.
+    pub fn insert_section(&mut self, eid: &i64, mut section: Section) -> color_eyre::Result<i64> {
+        let section_id: i64 = SectionRepository::insert(&self.connection, eid, &section)?;
+        let target_entry: &mut Entry = self.get_entry_mut(eid).unwrap();
+        target_entry.sections.push((section_id, section));
+        Ok(section_id)
+    }
     /// Get ref Section by eid and sid.
     pub fn get_section_ref(&self, eid: &i64, sid: &i64) -> Option<&Section> {
         if let Some(entry) = self.get_entry_ref(eid) {
