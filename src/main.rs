@@ -52,8 +52,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     terminal.show_cursor()?;
     // Process the result
     match result {
-        Ok(_m) => println!("Navi Exit"),
-        Err(_m) => println!("Navi Exit with Error."),
+        Ok(_m) => println!("Glyph Exit"),
+        Err(_m) => println!("Glyph Exit with Error."),
     }
     Ok(())
 }

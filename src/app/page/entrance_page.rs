@@ -122,7 +122,7 @@ impl Drawable for EntrancePage {
             .lines(vec![Line::from("Glyph")])
             .alignment(HorizontalAlignment::Center)
             .build();
-        let version: Line = Line::from("v0.2.0").centered();
+        let version: Line = Line::from("v0.2.1").centered();
         // Render Section
         block.render(area, frame.buffer_mut());
         title.render(areas[0], frame.buffer_mut());
