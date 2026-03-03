@@ -111,12 +111,11 @@ impl Drawable for DirectoryList {
         */
         let inner_area: Rect = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
-        let mut list: Vec<String> = get_dir_names(&self.state.current_path).unwrap_or(Vec::new());
-        list.len();
+        let mut directory_entries: Vec<String> = get_dir_names(&self.state.current_path).unwrap_or(Vec::new());
         if self.state.show_files {
-            list.append(&mut get_file_names(&self.state.current_path).unwrap_or(Vec::new()))
+            directory_entries.append(&mut get_file_names(&self.state.current_path).unwrap_or(Vec::new()))
         }
-        let list_items: Vec<Line> = list
+        let list_items: Vec<Line> = directory_entries
             .iter()
             .enumerate()
             .map(|(i, item)| {
@@ -231,6 +230,7 @@ impl Interactable for DirectoryList {
                             if index == 0 {
                                 if let Some(path_buf) = (&self.state.current_path).parent() {
                                     self.state.current_path = path_buf.to_path_buf().clone();
+                                    self.state.offset = 0;
                                 }
                                 return Ok(Vec::new());
                             }
@@ -238,6 +238,7 @@ impl Interactable for DirectoryList {
                                 self.state.current_path = self.state.current_path.join(PathBuf::from(
                                     get_dir_names(&self.state.current_path)?[index].to_string(),
                                 ));
+                                self.state.offset = 0;
                                 self.state.selected_index = None;
                                 self.state.hovered_index = Some(0);
                             }
