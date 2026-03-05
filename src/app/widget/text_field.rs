@@ -40,7 +40,7 @@ impl TextField {
             validate
         }
     }
-    pub fn replace(&mut self, content: String) -> () {
+    pub fn replace(&mut self, content: String) {
         self.state.chars = content.chars().collect();
         self.state.cursor_index = self.state.chars.len();
     }
@@ -157,7 +157,7 @@ impl Focusable for TextField {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         self.state.is_focused = value;
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {

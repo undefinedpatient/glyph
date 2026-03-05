@@ -78,7 +78,7 @@ impl EntrancePage {
             },
         }
     }
-    pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {
+    pub(crate) fn cycle_hover(&mut self, offset: i16) {
         let max: u16 = self.components.len() as u16;
         if let Some(hover_index) = self.state.hovered_index {
             self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, max) as usize);
@@ -127,7 +127,7 @@ impl Drawable for EntrancePage {
         block.render(area, frame.buffer_mut());
         title.render(areas[0], frame.buffer_mut());
         version.render(areas[1], frame.buffer_mut());
-        for (i, button_interactable) in (&self.components).iter().enumerate() {
+        for (i, button_interactable) in self.components.iter().enumerate() {
             if let Some(ci) = self.state.hovered_index {
                 if i == ci {
                     button_interactable.render(frame, button_rects[i], DrawFlag::HIGHLIGHTING, theme);
@@ -145,36 +145,32 @@ impl Interactable for EntrancePage {
         key: &KeyEvent,
         _: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>> {
-        match key.kind {
-            KeyEventKind::Press => {
-                if is_cycle_forward_hover_key(key) {
-                    self.cycle_hover(1);
-                }
-                if is_cycle_backward_hover_key(key) {
-                    self.cycle_hover(-1);
-                }
-                if let KeyCode::Esc = key.code {
-                    return Ok(vec![
-                        AppCommand(PushPopup(
-                            ConfirmPopup::new("Exit Glyph?").on_confirm(
-                                Box::new(
-                                    |app_state| {
-                                        let _app_state = app_state.unwrap().downcast_mut::<AppState>().unwrap();
-                                        _app_state.should_quit = true;
-                                        Ok(Vec::new())
-                                    }
-                                )
-                            ).into()
-                        ))
-                    ]);
-                }
-                if let KeyCode::Enter = key.code {
-                    if let Some(index) = self.state.hovered_index {
-                        return self.components[index].as_mut().handle(key, None);
-                    }
-                }
+        if key.kind == KeyEventKind::Press {
+            if is_cycle_forward_hover_key(key) {
+                self.cycle_hover(1);
             }
-            _ => {}
+            if is_cycle_backward_hover_key(key) {
+                self.cycle_hover(-1);
+            }
+            if let KeyCode::Esc = key.code {
+                return Ok(vec![
+                    AppCommand(PushPopup(
+                        ConfirmPopup::new("Exit Glyph?").on_confirm(
+                            Box::new(
+                                |app_state| {
+                                    let _app_state = app_state.unwrap().downcast_mut::<AppState>().unwrap();
+                                    _app_state.should_quit = true;
+                                    Ok(Vec::new())
+                                }
+                            )
+                        ).into()
+                    ))
+                ]);
+            }
+            if let KeyCode::Enter = key.code
+                && let Some(index) = self.state.hovered_index {
+                    return self.components[index].as_mut().handle(key, None);
+                }
         }
         Ok(Vec::new())
     }
@@ -189,7 +185,7 @@ impl Focusable for EntrancePage {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         self.state.is_focused = value;
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {

@@ -72,11 +72,10 @@ pub(crate) fn get_draw_flag(
     widget_index: usize,
     focused: Option<bool>,
 ) -> DrawFlag {
-    if let Some(should_focus) = focused {
-        if should_focus {
+    if let Some(should_focus) = focused
+        && should_focus {
             return DrawFlag::FOCUSED;
         }
-    }
     if let Some(index) = current_hover_index {
         if index == widget_index {
             DrawFlag::HIGHLIGHTING
@@ -230,31 +229,31 @@ impl Application {
         }
     }
     pub(crate) fn view_to_focus_ref(&self) -> Option<&dyn Container> {
-        if self.popup_states.len() != 0 {
+        if !self.popup_states.is_empty() {
             return Some(self.popup_states.last().unwrap().as_view_ref());
         }
-        if self.page_states.len() != 0 {
+        if !self.page_states.is_empty() {
             return Some(self.page_states.last().unwrap().as_view_ref());
         }
         None
     }
     pub(crate) fn view_to_focus_mut(&mut self) -> Option<&mut dyn Container> {
-        if self.popup_states.len() != 0 {
+        if !self.popup_states.is_empty() {
             return Some(self.popup_states.last_mut().unwrap().as_view_mut());
         }
-        if self.page_states.len() != 0 {
+        if !self.page_states.is_empty() {
             return Some(self.page_states.last_mut().unwrap().as_view_mut());
         }
         None
     }
     pub(crate) fn focused_page_index(&self) -> Option<usize> {
-        if self.popup_states.len() != 0 {
+        if !self.popup_states.is_empty() {
             return None;
         }
         Some(self.page_states.len()-1)
     }
     pub(crate) fn focused_popup_index(&self) -> Option<usize> {
-        if self.popup_states.len() == 0 {
+        if self.popup_states.is_empty() {
             return None;
         }
         Some(self.popup_states.len()-1)
@@ -298,7 +297,7 @@ pub fn keymap_to_line<'a>(key_map: Vec<(&'a str, &'a str)>) -> Line<'a> {
     }
     line.dim()
 }
-pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
+pub fn handle_key_events(key: &KeyEvent, app: &mut Application) {
     handle_global_events(key, app);
     if (*app).view_to_focus_mut().is_none() {
         return;
@@ -307,16 +306,16 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
     // Retrieve the Command from Page/Popup
     let mut commands: Vec<Command> = Vec::new();
     if let Some(popup_index) = (*app).focused_popup_index() {
-        commands = (*app).popup_states[popup_index].handle(key, Some(&mut app.state)).unwrap_or_else(
+        commands = app.popup_states[popup_index].handle(key, Some(&mut app.state)).unwrap_or_else(
             |report|{
-                return vec![Command::AppCommand(AppCommand::PushPopup(
+                vec![Command::AppCommand(AppCommand::PushPopup(
                     MessagePopup::new( report.to_string().as_str(), Color::Red).into()
                 ))]}
         );
     } else if let Some(page_index) = (*app).focused_page_index() {
-        commands = (*app).page_states[page_index].handle(key, Some(&mut app.state)).unwrap_or_else(
+        commands = app.page_states[page_index].handle(key, Some(&mut app.state)).unwrap_or_else(
             |report|{
-                return vec![Command::AppCommand(AppCommand::PushPopup(
+                vec![Command::AppCommand(AppCommand::PushPopup(
                     MessagePopup::new( report.to_string().as_str(), Color::Red).into()
                 ))]}
         );
@@ -327,8 +326,8 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) -> () {
 }
 fn process_command(app: &mut Application) {
     // Process the Command
-    while app.q_commands.len() > 0 {
-        let command: Command = app.q_commands.pop().unwrap();
+    while let Some(command) = app.q_commands.pop() {
+        
         match command {
             Command::AppCommand(app_command)=> {
                 match app_command {
@@ -359,21 +358,18 @@ fn process_command(app: &mut Application) {
     }
 
 }
-fn handle_global_events(key: &KeyEvent, app: &mut Application) -> () {
-    match (*key).kind {
-        KeyEventKind::Press => {
-            if let KeyCode::F(num) = (*key).code {
-                match num {
-                    1 => {
-                        app.state.should_quit = true;
-                    }
-                    2 => {}
-                    3 => {}
-                    _ => {}
+fn handle_global_events(key: &KeyEvent, app: &mut Application) {
+    if key.kind == KeyEventKind::Press {
+        if let KeyCode::F(num) = key.code {
+            match num {
+                1 => {
+                    app.state.should_quit = true;
                 }
+                2 => {}
+                3 => {}
+                _ => {}
             }
         }
-        _ => {}
     }
 }
 

@@ -84,7 +84,7 @@ fn handle_cli(args: &Vec<String>) -> Result<(bool, Option<Connection>)> {
                 return Ok((true, None));
             }
             "delete" => {
-                fs::remove_file(&args.get(2).unwrap())?;
+                fs::remove_file(args.get(2).unwrap())?;
                 return Ok((true, None));
             }
             "open" => {

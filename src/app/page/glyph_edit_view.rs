@@ -77,7 +77,7 @@ impl GlyphEditView {
                             let eid: i64 = local_entry_state.active_entry_id.unwrap();
                             let sid: i64 = _parent_state.active_sid.borrow().unwrap();
                             if let Some(section) = local_entry_state.get_section_mut(&eid, &sid) {
-                                let mut lines: Vec<Vec<char>> = (*_state).lines.clone();
+                                let mut lines: Vec<Vec<char>> = _state.lines.clone();
                                 let line_number = lines.len();
                                 for line in &mut lines[0..line_number-1] {
                                     line.push('\n');
@@ -92,7 +92,7 @@ impl GlyphEditView {
                             }
                             _parent_state.is_editing = false;
                             _state.is_focused = false;
-                            return Ok(vec![]);
+                            Ok(vec![])
                         } )
                     )
                     .into()
@@ -107,12 +107,12 @@ impl GlyphEditView {
             }
         }
     }
-    pub fn refresh_section_buffer(&mut self) -> () {
+    pub fn refresh_section_buffer(&mut self) {
         match self.state.active_sid.borrow().as_ref() {
             Some(sid) => {
                 let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
                 let eid: i64 = state.active_entry_id.unwrap();
-                let section: Section = state.get_section_ref(&eid, &sid).unwrap().clone();
+                let section: Section = state.get_section_ref(&eid, sid).unwrap().clone();
                 drop(state);
                 (*self.containers[1]).as_any_mut().downcast_mut::<TextEditor>().unwrap().replace(section.content.clone());
             }
@@ -158,19 +158,15 @@ impl Interactable for GlyphEditView {
         if self.state.is_editing {
             self.containers[1].handle(key, Some(&mut self.state))
         } else {
-            match key.kind {
-                KeyEventKind::Press => {
-                    if let KeyCode::Esc = key.code {
-                        self.state.shared_focus.replace(false);
-                    }
-                    if let KeyCode::Char(c) = key.code {
-                        if c == 'e' && self.state.active_sid.borrow().is_some() {
-                            self.state.is_editing = true;
-                            self.containers[1].set_focus(true);
-                        }
-                    }
+            if key.kind == KeyEventKind::Press {
+                if let KeyCode::Esc = key.code {
+                    self.state.shared_focus.replace(false);
                 }
-                _ => {}
+                if let KeyCode::Char(c) = key.code
+                    && c == 'e' && self.state.active_sid.borrow().is_some() {
+                        self.state.is_editing = true;
+                        self.containers[1].set_focus(true);
+                    }
             }
 
             let result = self.containers[0].as_mut().handle(key, Some(&mut self.state));
@@ -206,9 +202,9 @@ impl Interactable for GlyphEditView {
 impl Focusable for GlyphEditView {
 
     fn is_focused(&self) -> bool {
-        self.state.shared_focus.borrow().clone()
+        *self.state.shared_focus.borrow()
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         let mut focus = self.state.shared_focus.borrow_mut();
         *focus = value;
     }
@@ -282,7 +278,7 @@ impl GlyphEditOrderView {
             }
         }
     }
-    pub(crate) fn cycle_section_hover(&mut self, offset: i16) -> () {
+    pub(crate) fn cycle_section_hover(&mut self, offset: i16) {
         let state = self.state.local_entry_state_mut().unwrap();
         let eid = state.active_entry_id.unwrap();
         let len = state.get_num_sections(&eid);
@@ -296,7 +292,7 @@ impl GlyphEditOrderView {
 
     /// Return the active selected section as Mutable Reference
     pub(crate) fn get_editing_section_mut(&'_ mut self) -> RefMut<'_, Section> {
-        let editing_sid: i64 = self.state.active_sid.borrow().unwrap().clone();
+        let editing_sid: i64 = self.state.active_sid.borrow().unwrap();
         let entry_state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
         let active_entry_id: i64 = entry_state.active_entry_id.unwrap();
         RefMut::map(entry_state, |state|{
@@ -362,16 +358,14 @@ impl Drawable for GlyphEditOrderView {
                 break;
             }
             let mut border_type = BorderType::Plain;
-            if let Some(hovered_index) = self.state.hovered_index {
-                if index as isize == hovered_index as isize - self.state.scroll_offset as isize {
+            if let Some(hovered_index) = self.state.hovered_index
+                && index as isize == hovered_index as isize - self.state.scroll_offset as isize {
                     border_type = BorderType::Double;
                 }
-            }
-            if let Some(focused_sid) = *self.state.active_sid.borrow() {
-                if focused_sid == *sid {
+            if let Some(focused_sid) = *self.state.active_sid.borrow()
+                && focused_sid == *sid {
                     border_type = BorderType::Thick
                 }
-            }
             let block: Block = Block::bordered().border_type(
                 border_type
             );
@@ -405,27 +399,25 @@ impl Interactable for GlyphEditOrderView {
                 if let KeyCode::PageDown = key.code {
                     self.state.scroll_offset = self.state.scroll_offset.saturating_add(1);
                 }
-                if let KeyCode::Enter = key.code {
-                    if let Some(index) = self.state.hovered_index {
+                if let KeyCode::Enter = key.code
+                    && let Some(index) = self.state.hovered_index {
                         let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
                         let eid = state.active_entry_id.unwrap();
                         let sections: &Vec<(i64, Section)> = state.get_sections_ref(&eid);
-                        if sections.len() == 0 {
+                        if sections.is_empty() {
                             return Ok(Vec::new());
                         }
                         if self.state.active_sid.borrow().is_some() {
                             let editing_sid: i64 = self.state.active_sid.borrow().unwrap();
-                            if let Some(selected_section) = sections.get(index) {
-                                if editing_sid == selected_section.0 {
+                            if let Some(selected_section) = sections.get(index)
+                                && editing_sid == selected_section.0 {
                                     *self.state.active_sid.borrow_mut() = None;
                                     return Ok(vec![GlyphCommand(RefreshEditSectionEditor)]);
                                 }
-                            }
                         }
-                        *self.state.active_sid.borrow_mut() = Some((*sections.get(index).unwrap()).0);
+                        *self.state.active_sid.borrow_mut() = Some(sections.get(index).unwrap().0);
                         return Ok(vec![GlyphCommand(RefreshEditSectionEditor)]);
                     }
-                }
                 if let KeyCode::Esc = key.code {
                     // Directly mutating parent state to lose focus
                     let parent_state = parent_state.unwrap().downcast_mut::<GlyphEditState>().unwrap();
@@ -442,7 +434,7 @@ impl Interactable for GlyphEditOrderView {
                                 return Ok(Vec::new());
                             }
                             let mut section: RefMut<Section> = self.get_editing_section_mut();
-                            section.position = section.position + 1;
+                            section.position += 1;
                             drop(section);
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             let eid: i64 = state.active_entry_id.unwrap();
@@ -459,7 +451,7 @@ impl Interactable for GlyphEditOrderView {
                                 return Ok(Vec::new());
                             }
                             let mut section: RefMut<Section> = self.get_editing_section_mut();
-                            section.position = section.position - 1;
+                            section.position -= 1;
                             drop(section);
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             let eid: i64 = state.active_entry_id.unwrap();
@@ -471,7 +463,7 @@ impl Interactable for GlyphEditOrderView {
                             if self.state.active_sid.borrow().is_none() {
                                 return Ok(Vec::new());
                             }
-                            let sid: i64 = self.state.active_sid.borrow().as_ref().unwrap().clone();
+                            let sid: i64 = *self.state.active_sid.borrow().as_ref().unwrap();
                             self.state.active_sid.replace(None);
                             let mut state = self.state.local_entry_state_mut().unwrap();
                             state.delete_section_db(&sid)?;
@@ -490,7 +482,7 @@ impl Interactable for GlyphEditOrderView {
                             if self.state.active_sid.borrow().is_none() {
                                 return Ok(Vec::new());
                             }
-                            let sid = self.state.active_sid.borrow().as_ref().unwrap().clone();
+                            let sid = *self.state.active_sid.borrow().as_ref().unwrap();
                             let eid = local_entry_state.active_entry_id.unwrap();
                             let active_section_name: String = local_entry_state.get_section_ref(&eid, &sid).unwrap().title.clone();
                             Ok(
@@ -530,7 +522,7 @@ impl Focusable for GlyphEditOrderView {
     fn is_focused(&self) -> bool {
         false
     }
-    fn set_focus(&mut self, _value: bool) -> () {}
+    fn set_focus(&mut self, _value: bool) {}
     fn focused_child_ref(&self) -> Option<&dyn Container> {
         None
     }

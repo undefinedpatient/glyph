@@ -21,12 +21,12 @@ impl Layout {
     pub fn get_layout_at_ref(&self, coordinates: &Vec<usize>) -> Option<&Layout> {
         let mut coor = coordinates.clone();
         coor.reverse();
-        if coor.len() == 0 {
+        if coor.is_empty() {
             return Some(self);
         }
         let mut temp_layout: &Layout = self;
         while let Some(index) =  coor.pop() {
-            temp_layout = &(*temp_layout).sub_layouts[index];
+            temp_layout = &temp_layout.sub_layouts[index];
         }
         if coor.is_empty() {
             Some(temp_layout)
@@ -37,12 +37,12 @@ impl Layout {
     pub fn get_layout_at_mut(&mut self, coordinates: &Vec<usize>) -> Option<&mut Layout> {
         let mut coor = coordinates.clone();
         coor.reverse();
-        if coor.len() == 0 {
+        if coor.is_empty() {
             return Some(self);
         }
         let mut temp_layout: &mut Layout = self;
         while let Some(index) =  coor.pop() {
-            temp_layout = &mut (*temp_layout).sub_layouts[index];
+            temp_layout = &mut temp_layout.sub_layouts[index];
         }
         if coor.is_empty() {
             Some(temp_layout)

@@ -91,8 +91,8 @@ impl LocalEntryState {
     pub fn update_entry_name_db(&mut self, eid: &i64, new_name: &str) -> color_eyre::Result<()> {
         let name_list: Vec<&str> = self.ordered_entries.iter().map(|(_eid, name)|{name.as_str()}).collect::<Vec<&str>>();
         let corrected_name: String = auto_increment_name(new_name, name_list.as_slice());
-        EntryRepository::update_name(&self.connection, &eid, corrected_name.as_str())?;
-        let (eid, entry) = EntryRepository::read_by_id(&self.connection, &eid)?;
+        EntryRepository::update_name(&self.connection, eid, corrected_name.as_str())?;
+        let (eid, entry) = EntryRepository::read_by_id(&self.connection, eid)?;
 
         let current_entry: &mut Entry = self.get_entry_mut(&eid).unwrap();
         current_entry.update_name(&entry);
@@ -113,7 +113,7 @@ impl LocalEntryState {
             let result = EntryRepository::delete(&self.connection, &id);
             let mut remove_index: i8 = -1;
             for (index, entry) in self.entries.iter().enumerate() {
-                if (*entry).0 == id {
+                if entry.0 == id {
                     remove_index = index as i8;
                     break;
                 }
@@ -198,8 +198,8 @@ impl LocalEntryState {
     /// Update section's name by its id, this function interact and update database.
     pub fn update_section_name_db(&mut self, sid: &i64, new_name: &str) -> color_eyre::Result<()> {
 
-        SectionRepository::update_name(&self.connection, &sid, new_name)?;
-        let (eid, sid, section): (i64, i64, Section) = SectionRepository::read_by_id(&self.connection, &sid)?.unwrap();
+        SectionRepository::update_name(&self.connection, sid, new_name)?;
+        let (eid, sid, section): (i64, i64, Section) = SectionRepository::read_by_id(&self.connection, sid)?.unwrap();
 
         let current_section: &mut Section = self.get_section_mut(&eid, &sid).unwrap();
         current_section.title = section.title;
@@ -228,7 +228,7 @@ impl LocalEntryState {
 
         let mut section_index_to_remove: usize = usize::MAX;
         for (index, item) in sections.iter().enumerate() {
-            if (*item).0 == sid {
+            if item.0 == sid {
                 section_index_to_remove = index;
             }
         }
@@ -248,7 +248,7 @@ impl LocalEntryState {
         if let Some(entry) = self.get_entry_mut(&eid) {
             let mut index_of_section: usize = usize::MAX;
             for (index, item) in &mut entry.sections.iter().enumerate() {
-                if (*item).0 == sid {
+                if item.0 == sid {
                     index_of_section = index;
                 }
             }
@@ -280,22 +280,22 @@ impl LocalEntryState {
     pub fn get_sections_sid(&self, eid: &i64) -> Vec<i64> {
         self.get_entry_ref(eid).unwrap().sections.iter().map(
             |(sid, _)| {
-                sid.clone()
+                *sid
             }
         ).collect()
     }
 
-    pub fn sort_sections_by_position(&mut self, eid: &i64) -> () {
+    pub fn sort_sections_by_position(&mut self, eid: &i64) {
         if let Some(entry) = self.get_entry_mut(eid) {
             entry.sections.sort_by(|cur, nex| {
-                (*cur).1.position.cmp(&(*nex).1.position)
+                cur.1.position.cmp(&nex.1.position)
             })
         }
     }
 
     /// Filter all reachable entries and overwrite the old ordered_entries
     /// It does not automatically sort the result.
-    pub fn filter_entry_order_by(&mut self, predicate: &dyn Fn(&str)->bool) -> () {
+    pub fn filter_entry_order_by(&mut self, predicate: &dyn Fn(&str)->bool) {
         let mut new_ordered_entries: Vec<(i64, String)> = Vec::new();
         for (eid, entry) in &self.entries {
             if predicate(entry.entry_name.as_str()) {
@@ -306,7 +306,7 @@ impl LocalEntryState {
     }
 
     /// Reload layout
-    pub fn reload_layout(&mut self, eid: &i64) -> () {
+    pub fn reload_layout(&mut self, eid: &i64) {
         let item = EntryRepository::read_by_id(&self.connection, eid).unwrap();
         self.get_entry_mut(eid).unwrap().layout = item.1.layout;
     }
@@ -318,10 +318,10 @@ impl LocalEntryState {
      */
 
     /// Fetch local entry to new sorted list of entry_order
-    fn reconstruct_entry_order(&mut self) -> () {
+    fn reconstruct_entry_order(&mut self) {
         let mut new_ordered_entries: Vec<(i64, String)> = self.entries.iter().map(
             |(id,entry)| {
-                (id.clone(), entry.entry_name.clone())
+                (*id, entry.entry_name.clone())
             }
         ).collect();
         if new_ordered_entries.len() <= 1 {

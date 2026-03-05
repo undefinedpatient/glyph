@@ -64,7 +64,7 @@ impl DirectoryList {
             self.get_num_dirs()
         }
     }
-    pub fn next_entry(&mut self) -> () {
+    pub fn next_entry(&mut self) {
         if let Some(index) = self.state.hovered_index {
             let num_entries = self.get_num_entries();
             self.state.hovered_index = Some(cycle_offset(index as u16, 1, num_entries as u16) as usize);
@@ -72,7 +72,7 @@ impl DirectoryList {
             self.state.hovered_index = Some(0);
         }
     }
-    pub fn previous_entry(&mut self) -> () {
+    pub fn previous_entry(&mut self) {
         let num_entries = self.get_num_entries();
         if let Some(index) = self.state.hovered_index {
             self.state.hovered_index = Some(cycle_offset(index as u16, -1, num_entries as u16) as usize);
@@ -98,7 +98,7 @@ impl Drawable for DirectoryList {
         /*
            Container Frame
         */
-        let current_path: String = (&self.state.current_path)
+        let current_path: String = self.state.current_path
             .clone()
             .to_str()
             .unwrap_or("Invalid Path")
@@ -111,9 +111,9 @@ impl Drawable for DirectoryList {
         */
         let inner_area: Rect = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
-        let mut directory_entries: Vec<String> = get_dir_names(&self.state.current_path).unwrap_or(Vec::new());
+        let mut directory_entries: Vec<String> = get_dir_names(&self.state.current_path).unwrap_or_default();
         if self.state.show_files {
-            directory_entries.append(&mut get_file_names(&self.state.current_path).unwrap_or(Vec::new()))
+            directory_entries.append(&mut get_file_names(&self.state.current_path).unwrap_or_default())
         }
         let list_items: Vec<Line> = directory_entries
             .iter()
@@ -151,7 +151,7 @@ impl Drawable for DirectoryList {
             line.render(
                 inner_area.offset(Offset {
                     x: 0,
-                    y: (i * &self.state.line_height) as i32,
+                    y: (i * self.state.line_height) as i32,
                 }),
                 frame.buffer_mut(),
             );
@@ -193,12 +193,11 @@ impl Interactable for DirectoryList {
                             }
                             ' ' => {
                                 if let Some(hovered_index) = self.state.hovered_index {
-                                    if let Some(selected_index) = self.state.selected_index {
-                                        if selected_index == hovered_index {
+                                    if let Some(selected_index) = self.state.selected_index
+                                        && selected_index == hovered_index {
                                             self.state.selected_index = None;
                                             return Ok(Vec::new());
                                         }
-                                    }
                                     if self.state.select_dir || hovered_index >= self.get_num_dirs() {
                                         self.state.selected_index = self.state.hovered_index;
                                     }
@@ -210,8 +209,8 @@ impl Interactable for DirectoryList {
                     }
                     if let KeyCode::Esc = key.code {
                         if let Some(selected_index) = self.state.selected_index {
-                            let mut entries = get_dir_names(self.state.current_path.as_path()).unwrap_or(Vec::new());
-                            entries.append(&mut get_file_names(self.state.current_path.as_path()).unwrap_or(Vec::new()));
+                            let mut entries = get_dir_names(self.state.current_path.as_path()).unwrap_or_default();
+                            entries.append(&mut get_file_names(self.state.current_path.as_path()).unwrap_or_default());
                             self.state.selected_file_path = Some(self.state.current_path.join(entries[selected_index].clone()));
                         } else {
                             self.state.selected_file_path = Some(self.state.current_path.clone());
@@ -224,17 +223,17 @@ impl Interactable for DirectoryList {
                         }
                         return Ok(Vec::new());
                     }
-                    if let KeyCode::Enter = key.code {
-                        if let Some(index) = self.state.hovered_index {
+                    if let KeyCode::Enter = key.code
+                        && let Some(index) = self.state.hovered_index {
                             // "cd .."
                             if index == 0 {
-                                if let Some(path_buf) = (&self.state.current_path).parent() {
+                                if let Some(path_buf) = self.state.current_path.parent() {
                                     self.state.current_path = path_buf.to_path_buf().clone();
                                     self.state.offset = 0;
                                 }
                                 return Ok(Vec::new());
                             }
-                            if index < get_dir_names(&self.state.current_path).unwrap_or(Vec::new()).len() {
+                            if index < get_dir_names(&self.state.current_path).unwrap_or_default().len() {
                                 self.state.current_path = self.state.current_path.join(PathBuf::from(
                                     get_dir_names(&self.state.current_path)?[index].to_string(),
                                 ));
@@ -244,7 +243,6 @@ impl Interactable for DirectoryList {
                             }
                             return Ok(Vec::new());
                         }
-                    }
                     Ok(Vec::new())
                 }
                 _ => Ok(Vec::new()),
@@ -263,7 +261,7 @@ impl Focusable for DirectoryList {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         self.state.is_focused = value;
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {

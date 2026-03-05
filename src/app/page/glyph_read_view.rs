@@ -85,7 +85,7 @@ impl Drawable for GlyphReadView {
         match layout.details.size_mode {
             SizeMode::Flex => {
                 let areas: Vec<(u16, Rect, BorderMode, u16)> = evaluate_read_areas(area, layout, 0);
-                let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
+                let ref_sections: &Vec<(i64, Section)> = entry_state.get_sections_ref(&eid);
                 for (_sid, _section) in ref_sections {
                     if let Some((_position, area, border_mode, padding)) = areas.iter().find(
                         |(_position, _area, _border_mode, _padding)|{
@@ -108,7 +108,7 @@ impl Drawable for GlyphReadView {
                         }.padding(Padding::uniform(*padding));
                         let inner_area: Rect = block.inner(*area);
                         block.render(*area, frame.buffer_mut());
-                        MarkdownRenderer::create(inner_area.clone(), theme).render(_section.content.as_str(), frame.buffer_mut());
+                        MarkdownRenderer::create(inner_area, theme).render(_section.content.as_str(), frame.buffer_mut());
                     }
                 }
             }
@@ -121,7 +121,7 @@ impl Drawable for GlyphReadView {
                 let background: Block = Block::new().bg(theme.background());
                 background.render(scroll_view.area(), scroll_view.buf_mut());
                 let areas: Vec<(u16, Rect, BorderMode, u16)> = evaluate_read_areas(scroll_view.area(), layout, 0);
-                let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
+                let ref_sections: &Vec<(i64, Section)> = entry_state.get_sections_ref(&eid);
                 for (_sid, section) in ref_sections {
                     if let Some((_position, area, border_mode, padding)) = areas.iter().find(
                         |(_position, _area, _border_mode, _padding)|{
@@ -144,7 +144,7 @@ impl Drawable for GlyphReadView {
                         }.padding(Padding::uniform(*padding));
                         let inner_area: Rect = block.inner(*area);
                         block.render(*area, scroll_view.buf_mut());
-                        MarkdownRenderer::create(inner_area.clone(), theme).render(section.content.as_str(), scroll_view.buf_mut());
+                        MarkdownRenderer::create(inner_area, theme).render(section.content.as_str(), scroll_view.buf_mut());
                     }
                 }
                 scroll_view.render(area, frame.buffer_mut(), &mut *self.state.scroll_state.borrow_mut());
@@ -157,8 +157,8 @@ fn evaluate_read_areas(area: Rect, layout: &crate::models::layout::Layout, depth
     let recursive_area: Rect = Block::default().inner(area);
 
     // Process the child
-    let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
-        |(_index, sub)| {
+    let constraints: Vec<Constraint> = layout.sub_layouts.iter().map(
+        |sub| {
             match sub.details.size_mode {
                 SizeMode::Flex => {
                     Constraint::Fill(sub.details.flex)
@@ -180,11 +180,10 @@ fn evaluate_read_areas(area: Rect, layout: &crate::models::layout::Layout, depth
         };
 
     let mut areas: Vec<(u16, Rect, BorderMode, u16)> = vec![];
-    if let Some(section_index) = layout.section_index {
-        if layout.sub_layouts.is_empty() {
+    if let Some(section_index) = layout.section_index
+        && layout.sub_layouts.is_empty() {
             areas.push((section_index, area.inner(Margin::new(layout.details.margin, layout.details.margin)), layout.details.border_mode.clone(), layout.details.padding));
         }
-    }
 
     for (i, sub_layout) in layout.sub_layouts.iter().enumerate() {
         areas = [areas,evaluate_read_areas(
@@ -236,7 +235,7 @@ impl Interactable for GlyphReadView {
                                     let layout: &crate::models::layout::Layout = &entry_state.get_entry_ref(&eid).unwrap().layout;
                                     let mut buffer: Buffer = Buffer::empty(Rect::new(0,0, 96, layout.details.length));
                                     let areas: Vec<(u16, Rect, BorderMode, u16)> = evaluate_read_areas(*buffer.area(), layout, 0);
-                                    let ref_sections: &Vec<(i64, Section)> = &entry_state.get_sections_ref(&eid);
+                                    let ref_sections: &Vec<(i64, Section)> = entry_state.get_sections_ref(&eid);
                                     for (_sid, section) in ref_sections {
                                         if let Some((_position, area, border_mode, padding)) = areas.iter().find(
                                             |(_position, _area, _border_mode, _padding)|{
@@ -259,7 +258,7 @@ impl Interactable for GlyphReadView {
                                             }.padding(Padding::uniform(*padding));
                                             let inner_area: Rect = block.inner(*area);
                                             block.render(*area, &mut buffer);
-                                            MarkdownRenderer::create(inner_area.clone(), &mut Iceberg).render(section.content.as_str(), &mut buffer);
+                                            MarkdownRenderer::create(inner_area, &Iceberg).render(section.content.as_str(), &mut buffer);
                                         }
                                     }
                                     let final_area = buffer.area();
@@ -272,7 +271,7 @@ impl Interactable for GlyphReadView {
                                         file.write_all(&line_bytes)?;
                                         file.write_all(b"\n")?;
                                     }
-                                    return Ok(vec![])
+                                    Ok(vec![])
                                 })
                             ).into()
                         ))
@@ -289,9 +288,9 @@ impl Interactable for GlyphReadView {
 }
 impl Focusable for GlyphReadView {
     fn is_focused(&self) -> bool {
-        self.state.is_focused.borrow().clone()
+        *self.state.is_focused.borrow()
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         let mut focus = self.state.is_focused.borrow_mut();
         *focus = value;
     }

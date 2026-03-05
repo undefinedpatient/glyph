@@ -99,7 +99,7 @@ impl Focusable for MessagePopup {
     fn is_focused(&self) -> bool {
         self.is_focused
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         self.is_focused = value;
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {

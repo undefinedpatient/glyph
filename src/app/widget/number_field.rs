@@ -38,7 +38,7 @@ impl NumberField {
             validate,
         }
     }
-    pub fn replace(&mut self, content: i16) -> () {
+    pub fn replace(&mut self, content: i16) {
         self.state.chars = content.to_string().chars().collect();
         self.state.cursor_index = self.state.chars.len();
     }
@@ -114,12 +114,11 @@ impl Interactable for NumberField {
                         };
                         return Ok(Vec::new());
                     }
-                    if let KeyCode::Char(c) = key.code {
-                        if c.is_numeric() {
+                    if let KeyCode::Char(c) = key.code
+                        && c.is_numeric() {
                             self.insert_char(c);
                             self.move_to_next_char();
                         }
-                    }
                     if let KeyCode::Left = key.code {
                         self.move_to_previous_char();
                     }
@@ -143,7 +142,7 @@ impl Focusable for NumberField {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         self.state.is_focused = value;
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {

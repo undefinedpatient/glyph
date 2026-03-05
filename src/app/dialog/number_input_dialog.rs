@@ -69,7 +69,7 @@ impl NumberInputDialog {
         (*self.containers[0]).as_any().downcast_ref::<NumberField>().unwrap().state.is_valid
     }
 
-    pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {
+    pub(crate) fn cycle_hover(&mut self, offset: i16) {
         let max: u16 = (self.containers.len() + self.components.len()) as u16;
         if let Some(hover_index) = self.state.hovered_index {
             self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, max) as usize);
@@ -156,8 +156,8 @@ impl Interactable for NumberInputDialog {
                     if is_cycle_backward_hover_key(key) {
                         self.cycle_hover(-1);
                     }
-                    if let KeyCode::Enter = key.code {
-                        if let Some(index) = self.state.hovered_index {
+                    if let KeyCode::Enter = key.code
+                        && let Some(index) = self.state.hovered_index {
                             return match index {
                                 0 => {
                                     // Text Field
@@ -189,16 +189,14 @@ impl Interactable for NumberInputDialog {
                                 _ => Ok(Vec::new()),
                             };
                         }
-                    }
                     Ok(Vec::new())
                 }
                 _ => Ok(Vec::new()),
             }
         } else {
             let index: usize = self.focused_child_index().unwrap();
-            let result =
-                self.containers[index].handle(key, Some(&mut self.state));
-            result
+            
+            self.containers[index].handle(key, Some(&mut self.state))
         }
     }
     fn keymap(&self) -> Vec<(&str, &str)>{
@@ -214,7 +212,7 @@ impl Focusable for NumberInputDialog {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         self.state.is_focused = value;
     }
 

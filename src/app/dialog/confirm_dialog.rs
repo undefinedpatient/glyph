@@ -45,7 +45,7 @@ impl ConfirmDialog {
         self
     }
 
-    pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {
+    pub(crate) fn cycle_hover(&mut self, offset: i16) {
         let max: u16 = self.components.len() as u16;
         if let Some(hover_index) = self.state.hovered_index {
             self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, max) as usize);
@@ -112,8 +112,8 @@ impl Interactable for ConfirmDialog {
                 if is_cycle_backward_hover_key(key) {
                     self.cycle_hover(-1);
                 }
-                if let KeyCode::Enter = key.code {
-                    if let Some(index) = self.state.hovered_index {
+                if let KeyCode::Enter = key.code
+                    && let Some(index) = self.state.hovered_index {
                         return match index {
                             0 => {
                                 // Back Button
@@ -137,7 +137,6 @@ impl Interactable for ConfirmDialog {
                             _ => Ok(Vec::new()),
                         };
                     }
-                }
                 Ok(Vec::new())
             }
             _ => Ok(Vec::new()),
@@ -155,7 +154,7 @@ impl Focusable for ConfirmDialog {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         self.state.is_focused = value;
     }
 

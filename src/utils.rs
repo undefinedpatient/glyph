@@ -24,7 +24,7 @@ pub fn cycle_sub(value:u16, offset: u16, max: u16) -> u16 {
 }
 pub fn cycle_offset(value:u16, offset: i16, max: u16) -> u16 {
     if offset.is_negative() {
-        cycle_sub(value, offset.abs() as u16, max)
+        cycle_sub(value, offset.unsigned_abs(), max)
     } else {
         cycle_add(value, offset as u16, max)
     }
@@ -38,11 +38,10 @@ pub fn get_file_names(path: &Path) -> Result<Vec<String>> {
         if path.is_dir() {
             continue;
         }
-        if let Some(file_name) = path.file_name() {
-            if let Some(name) = file_name.to_str() {
+        if let Some(file_name) = path.file_name()
+            && let Some(name) = file_name.to_str() {
                 file_names.push(name.to_string());
             }
-        }
     }
 
     Ok(file_names)
@@ -57,11 +56,10 @@ pub fn get_dir_names(path: &Path) -> Result<Vec<String>> {
         if !path.is_dir() {
             continue;
         }
-        if let Some(file_name) = path.file_name() {
-            if let Some(name) = file_name.to_str() {
+        if let Some(file_name) = path.file_name()
+            && let Some(name) = file_name.to_str() {
                 file_names.push(name.to_string());
             }
-        }
     }
 
     Ok(file_names)
@@ -135,7 +133,7 @@ pub fn number_to_roman(mut num: u16) -> String {
 /// Auto-increment a name with suffix format ".00x"
 pub fn auto_increment_name(name: &str, existing_names: &[&str]) -> String {
     let mut new_name = name.to_string();
-    let (raw_name, _suffix) = name.rsplit_once('.').unwrap_or((&name, ""));
+    let (raw_name, _suffix) = name.rsplit_once('.').unwrap_or((name, ""));
     let mut count: u16 = 0;
     while existing_names.contains(&new_name.as_str()) {
         count += 1;

@@ -78,7 +78,7 @@ impl TextEditor { pub fn new(label: &str) -> Self {
         self.state.lines.concat().iter().collect::<String>()
     }
 
-    pub fn replace(&mut self, content: String) -> () {
+    pub fn replace(&mut self, content: String) {
         let parsed_content_0: Vec<&str> = content.split('\n').collect::<Vec<&str>>();
         let parsed_content_1: Vec<Vec<char>> = parsed_content_0.iter().map(
             |line| line.chars().collect::<Vec<char>>(),
@@ -116,7 +116,7 @@ impl TextEditor { pub fn new(label: &str) -> Self {
     pub fn switch_mode(&mut self, mode: EditMode) {
         self.state.mode = mode;
     }
-    pub fn push_multiple(&mut self, digit: u8) -> () {
+    pub fn push_multiple(&mut self, digit: u8) {
         if self.state.operation.is_some() {
             return;
         }
@@ -124,36 +124,36 @@ impl TextEditor { pub fn new(label: &str) -> Self {
             self.state.multiple = Some(digit);
             return;
         }
-        self.state.multiple = self.state.multiple.map_or(None, |v|{Some(v.saturating_mul(10).saturating_add(digit))});
+        self.state.multiple = self.state.multiple.map(|v| v.saturating_mul(10).saturating_add(digit));
     }
     pub fn reset_multiple(&mut self) { self.state.multiple = None; }
 
-    pub fn scroll_vertical_offset(&mut self, offset: i16) -> () {
+    pub fn scroll_vertical_offset(&mut self, offset: i16) {
         if offset.is_positive() {
             self.state.scroll_offset =
                 (
                     self.state.scroll_offset.0,
-                    self.state.scroll_offset.1.saturating_add(offset.abs() as usize)
+                    self.state.scroll_offset.1.saturating_add(offset.unsigned_abs() as usize)
                 );
         } else {
             self.state.scroll_offset =
                 (
                     self.state.scroll_offset.0,
-                    self.state.scroll_offset.1.saturating_sub(offset.abs() as usize)
+                    self.state.scroll_offset.1.saturating_sub(offset.unsigned_abs() as usize)
                 );
         }
     }
-    pub fn scroll_horizontal_offset(&mut self, offset: i16) -> () {
+    pub fn scroll_horizontal_offset(&mut self, offset: i16) {
         if offset.is_positive() {
             self.state.scroll_offset =
                 (
-                    self.state.scroll_offset.0.saturating_add(offset.abs() as usize),
+                    self.state.scroll_offset.0.saturating_add(offset.unsigned_abs() as usize),
                     self.state.scroll_offset.1
                 );
         } else {
             self.state.scroll_offset =
                 (
-                    self.state.scroll_offset.0.saturating_sub(offset.abs() as usize),
+                    self.state.scroll_offset.0.saturating_sub(offset.unsigned_abs() as usize),
                     self.state.scroll_offset.1
                 );
         }
@@ -283,7 +283,7 @@ impl TextEditor { pub fn new(label: &str) -> Self {
         }
 
     }
-    pub fn auto_horizontal_offset(&mut self) -> () {
+    pub fn auto_horizontal_offset(&mut self) {
         let cursor_screen_location: (usize, usize) =
             (
                 self.state.cursor_index.saturating_sub(self.state.scroll_offset.0),
@@ -754,7 +754,7 @@ impl Focusable for TextEditor {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         self.state.is_focused = value;
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {

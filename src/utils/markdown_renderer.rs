@@ -88,39 +88,39 @@ impl<'a> MarkdownTable<'a> {
         self.size.0 == 0 ||  self.size.1 == 0
     }
 
-    fn set_alignments(&mut self, alignments: Vec<Alignment>) -> () {
+    fn set_alignments(&mut self, alignments: Vec<Alignment>) {
         self.alignments = alignments;
     }
 
     /// Set the size of each column
-    fn set_height(&mut self, height: u8) -> () {
+    fn set_height(&mut self, height: u8) {
         self.size.0 = height;
         let mut default_row: Vec<Vec<Span>> = Vec::new();
         default_row.resize(self.size.1 as usize, Vec::new());
         self.data.resize(height as usize, default_row);
     }
     /// Set the size of each row
-    fn set_width(&mut self, width: u8) -> () {
+    fn set_width(&mut self, width: u8) {
         self.size.1 = width;
         for row in self.data.iter_mut() {
             row.resize(width as usize, Vec::new());
         }
     }
     /// Set the pointer to point next row.
-    fn next_row(&mut self) -> () {
+    fn next_row(&mut self) {
         self.position.0 = self.position.0.saturating_add(1);
     }
     /// Set the pointer to point next column.
-    fn next_column(&mut self) -> () {
+    fn next_column(&mut self) {
         self.position.1 = self.position.1.saturating_add(1).clamp(0, self.size().1.saturating_sub(1));
     }
     /// Set the pointer to point previous row.
-    fn previous_row(&mut self) -> () {
+    fn previous_row(&mut self) {
         self.position.0 = self.position.0.saturating_sub(1);
 
     }
     /// Set the pointer to point previous column.
-    fn previous_column(&mut self) -> () {
+    fn previous_column(&mut self) {
         self.position.1 = self.position.1.saturating_add(1);
     }
     /// Set the row position back to 0, meaning the table pointer will point to the first item in the current row.
@@ -163,18 +163,17 @@ impl<'a> MarkdownTable<'a> {
     /// Get the size of the table for each cell in area (width, height) without taking account of border.
     fn cell_sizes(&self) -> (Vec<usize>, Vec<usize>) {
         let size: (u8, u8) = self.size();
-        let mut heights: Vec<usize> = Vec::with_capacity(size.0 as usize);
-        heights.resize(size.0 as usize, 0);
+        let mut heights: Vec<usize> = vec![0; size.0 as usize];
         let mut widths: Vec<usize> = Vec::with_capacity(size.1 as usize);
         widths.resize(size.0 as usize, 0);
         for (r_idx, row) in self.data.iter().enumerate() {
             let mut max_width = 1u16;
             for (c_idx, col) in row.iter().enumerate() {
                 let cell_size = self.cell_size((r_idx as u8, c_idx as u8));
-                if cell_size.0 > widths[c_idx] as usize {
+                if cell_size.0 > widths[c_idx] {
                     widths[c_idx] = cell_size.0;
                 }
-                if cell_size.1 > heights[r_idx] as usize {
+                if cell_size.1 > heights[r_idx] {
                     heights[r_idx] = cell_size.1;
                 }
             }
@@ -234,9 +233,7 @@ impl<'a> MarkdownTable<'a> {
                 }
 
                 // Get the number of padding needed.
-                let num_of_empty_padding: usize = if individual_cell_width < cell_sizes.0[c_idx] {
-                    cell_sizes.0[c_idx] - individual_cell_width
-                } else {0};
+                let num_of_empty_padding: usize = cell_sizes.0[c_idx].saturating_sub(individual_cell_width);
 
                 let (left_padding, right_padding) = match self.alignments[c_idx] {
                     Alignment::None | Alignment::Left => {
@@ -331,7 +328,7 @@ impl<'a> MarkdownRenderer<'a>{
     pub fn create(area: Rect, theme: &'a dyn Theme) -> Self {
         Self {
             spans_buffer: Vec::new(),
-            rows_area: area.rows().into_iter().collect(),
+            rows_area: area.rows().collect(),
             render_row_index: 0,
             text_style: TextStyleBuilder::new(),
             list_state_stack: Vec::new(),
@@ -345,7 +342,7 @@ impl<'a> MarkdownRenderer<'a>{
         }
     }
     /// Render a line to the buffer and increment a row number by 1.
-    fn render_buffer(&mut self, buffer: &mut Buffer) -> (){
+    fn render_buffer(&mut self, buffer: &mut Buffer){
         if self.quote_state.level != 0 {
             self.spans_buffer.insert(0, Span::from("░ ".repeat(self.quote_state.level as usize)));
         }
@@ -356,7 +353,7 @@ impl<'a> MarkdownRenderer<'a>{
             self.render_row_index += 1;
         }
     }
-    fn render_header(&mut self, buffer: &mut Buffer, level: HeadingLevel) -> () {
+    fn render_header(&mut self, buffer: &mut Buffer, level: HeadingLevel) {
         if let Some(line_area) = self.rows_area.get(self.render_row_index) {
             match level {
                 HeadingLevel::H1 => {
@@ -394,10 +391,10 @@ impl<'a> MarkdownRenderer<'a>{
         self.spans_buffer = Vec::new();
     }
     /// Render a markdown page in area, consume self.
-    pub fn render(mut self, str: &'a str, buffer: &mut Buffer) -> () {
+    pub fn render(mut self, str: &'a str, buffer: &mut Buffer) {
         let mut options = Options::empty();
         options.insert(Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH | Options::ENABLE_FOOTNOTES | Options::ENABLE_TASKLISTS);
-        let parser = Parser::new_ext(&str, options);
+        let parser = Parser::new_ext(str, options);
 
 
         for event in parser {
@@ -592,7 +589,7 @@ impl TextStyleBuilder {
             flags: TextStyleFlag::empty(),
         }
     }
-    pub fn set_flag(&mut self, flag: TextStyleFlag) -> () {
+    pub fn set_flag(&mut self, flag: TextStyleFlag) {
         self.flags.insert(flag);
     }
     pub fn remove_flag(&mut self, flag: TextStyleFlag) {

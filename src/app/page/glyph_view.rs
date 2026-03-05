@@ -93,11 +93,10 @@ impl Drawable for GlyphView {
             GlyphMode::Read => {
                 widget_frame = widget_frame.title_top(Line::from("[ READ ]").right_aligned());
                 inner_area = widget_frame.inner(area.centered_horizontally(Constraint::Max(80)));
-                if let Some(active_entry) = self.state.local_entry_state_ref().unwrap().get_active_entry_ref() {
-                    if active_entry.layout.sub_layouts.len() > 1 && active_entry.layout.details.orientation == LayoutOrientation::Horizontal {
+                if let Some(active_entry) = self.state.local_entry_state_ref().unwrap().get_active_entry_ref()
+                    && active_entry.layout.sub_layouts.len() > 1 && active_entry.layout.details.orientation == LayoutOrientation::Horizontal {
                         inner_area = widget_frame.inner(area.centered_horizontally(Constraint::Max(160)));
                     }
-                }
             }
             GlyphMode::Edit => {
                 widget_frame = widget_frame.title_top(Line::from("[ EDIT ]").right_aligned());
@@ -140,43 +139,39 @@ impl Interactable for GlyphView {
             /*
                 Switch Mode Key
              */
-            match key.kind {
-                KeyEventKind::Press => {
-                    if let KeyCode::Char(c) = key.code {
-                        match c {
-                            '\\' => {
-                                match self.state.mode {
-                                    GlyphMode::Read => {
-                                        self.state.mode = GlyphMode::Edit;
-                                    }
-                                    GlyphMode::Edit => {
-                                        self.state.mode = GlyphMode::Layout;
+            if key.kind == KeyEventKind::Press
+                && let KeyCode::Char(c) = key.code {
+                    match c {
+                        '\\' => {
+                            match self.state.mode {
+                                GlyphMode::Read => {
+                                    self.state.mode = GlyphMode::Edit;
+                                }
+                                GlyphMode::Edit => {
+                                    self.state.mode = GlyphMode::Layout;
 
-                                        // Dangerous Cheating here
-                                        (*(*self.containers[2])
-                                            .as_any_mut().downcast_mut::<GlyphLayoutView>().unwrap().containers[1])
-                                            .as_any_mut().downcast_mut::<GlyphLayoutEditView>().unwrap().refresh_layout_edit_panel();
-                                    }
-                                    GlyphMode::Layout => {
-                                        self.state.mode = GlyphMode::Read;
-                                    }
+                                    // Dangerous Cheating here
+                                    (*(*self.containers[2])
+                                        .as_any_mut().downcast_mut::<GlyphLayoutView>().unwrap().containers[1])
+                                        .as_any_mut().downcast_mut::<GlyphLayoutEditView>().unwrap().refresh_layout_edit_panel();
+                                }
+                                GlyphMode::Layout => {
+                                    self.state.mode = GlyphMode::Read;
                                 }
                             }
-                            's' => {
-                                if key.modifiers.contains(KeyModifiers::CONTROL) {
-                                    let mut state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
-                                    let eid = state.active_entry_id.unwrap();
-                                    state.updated_entries.remove(&eid);
-
-                                    state.save_entry_db(&eid)?;
-                                }
-                            }
-                            _ => {}
                         }
+                        's' => {
+                            if key.modifiers.contains(KeyModifiers::CONTROL) {
+                                let mut state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
+                                let eid = state.active_entry_id.unwrap();
+                                state.updated_entries.remove(&eid);
+
+                                state.save_entry_db(&eid)?;
+                            }
+                        }
+                        _ => {}
                     }
                 }
-                _ => {}
-            }
             match self.state.mode {
                 GlyphMode::Read => {
                     self.containers[0].as_mut().handle(key, parent_state)
@@ -283,9 +278,9 @@ impl Interactable for GlyphView {
 }
 impl Focusable for GlyphView {
     fn is_focused(&self) -> bool {
-        self.state.is_focused.borrow().clone()
+        *self.state.is_focused.borrow()
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         let mut focus = self.state.is_focused.borrow_mut();
         *focus = value;
     }

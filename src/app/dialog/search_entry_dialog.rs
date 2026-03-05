@@ -101,7 +101,7 @@ impl Drawable for SearchEntryDialog {
                 true => "> ",
                 false => "  "
             };
-            let mut line: Line = Line::from([prefix, (*_item).1.as_str()].concat()).dim();
+            let mut line: Line = Line::from([prefix, _item.1.as_str()].concat()).dim();
 
             if _index == self.state.hovered_index {
                 line = line.bold().not_dim();
@@ -158,7 +158,7 @@ impl Focusable for SearchEntryDialog {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         self.state.is_focused = value;
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {

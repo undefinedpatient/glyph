@@ -12,7 +12,7 @@ pub struct Section {
 impl Section {
     pub fn new(title: &str, default: &str, position: i64) -> Self {
         Self {
-            position: position,
+            position,
             title: title.to_string(),
             content: default.to_string(),
         }

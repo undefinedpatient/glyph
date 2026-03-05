@@ -36,7 +36,7 @@ impl OptionMenu {
         self
     }
 
-    pub fn replace(&mut self, new_selection: u8) -> () {
+    pub fn replace(&mut self, new_selection: u8) {
         self.state.current_index = new_selection;
     }
 }

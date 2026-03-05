@@ -12,12 +12,12 @@ pub struct Entry {
 }
 
 impl Entry {
-    pub fn update_name(&mut self, other: &Entry) -> () {
+    pub fn update_name(&mut self, other: &Entry) {
         if self.entry_name != other.entry_name {
             self.entry_name = other.entry_name.clone();
         }
     }
-    pub fn update_layout(&mut self, other: &Entry) -> () {
+    pub fn update_layout(&mut self, other: &Entry) {
         self.layout = other.layout.clone();
     }
 }

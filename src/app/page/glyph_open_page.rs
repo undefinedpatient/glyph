@@ -75,7 +75,7 @@ impl GlyphOpenPage {
             },
         }
     }
-    pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {
+    pub(crate) fn cycle_hover(&mut self, offset: i16) {
         let max: u16 = (self.containers.len() + self.components.len()) as u16;
         if let Some(hover_index) = self.state.hovered_index {
             self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, max) as usize);
@@ -140,51 +140,46 @@ impl Interactable for GlyphOpenPage {
         _parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>> {
         if self.focused_child_ref().is_none() {
-            match key.kind {
-                KeyEventKind::Press => {
-                    if is_cycle_forward_hover_key(key) {
-                        self.cycle_hover(1);
-                    }
-                    if is_cycle_backward_hover_key(key) {
-                        self.cycle_hover(-1);
-                    }
-                    if let KeyCode::Esc = key.code {
-                        return Ok(vec![AppCommand(PopPage)]);
-                    }
-                    if let KeyCode::Enter = key.code {
-                        if let Some(index) = self.state.hovered_index {
-                            match index {
-                                0 => {
-                                    // Directory List
-                                    self.containers[index].set_focus(true);
-                                }
-                                1 => {
-                                    // Back Button
-                                    return self.components[0].handle(key, None);
-                                }
-                                2 => {
-                                    // Open Button
-                                    return self.components[1].handle(key, Some(&mut self.state));
-                                }
-                                _ => {}
+            if key.kind == KeyEventKind::Press {
+                if is_cycle_forward_hover_key(key) {
+                    self.cycle_hover(1);
+                }
+                if is_cycle_backward_hover_key(key) {
+                    self.cycle_hover(-1);
+                }
+                if let KeyCode::Esc = key.code {
+                    return Ok(vec![AppCommand(PopPage)]);
+                }
+                if let KeyCode::Enter = key.code
+                    && let Some(index) = self.state.hovered_index {
+                        match index {
+                            0 => {
+                                // Directory List
+                                self.containers[index].set_focus(true);
                             }
+                            1 => {
+                                // Back Button
+                                return self.components[0].handle(key, None);
+                            }
+                            2 => {
+                                // Open Button
+                                return self.components[1].handle(key, Some(&mut self.state));
+                            }
+                            _ => {}
                         }
                     }
-                }
-                _ => {}
             }
             Ok(Vec::new())
         } else {
             let index: usize = self.focused_child_index().unwrap();
-            let result =
-                self.containers[index].handle(key, Some(&mut self.state));
-            result
+            
+            self.containers[index].handle(key, Some(&mut self.state))
         }
     }
     fn keymap(&self) -> Vec<(&str, &str)>{
         [
-            ("j/k/up/down/tab/backtab".into(),"Navigate".into()),
-            ("Enter".into(),"Interact".into()),
+            ("j/k/up/down/tab/backtab","Navigate"),
+            ("Enter","Interact"),
         ].into()
     }
 }
@@ -192,7 +187,7 @@ impl Focusable for GlyphOpenPage {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         self.state.is_focused = value;
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {

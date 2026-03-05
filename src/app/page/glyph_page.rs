@@ -80,7 +80,7 @@ impl GlyphPage {
             }
         }
     }
-    pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {
+    pub(crate) fn cycle_hover(&mut self, offset: i16) {
         let max: u16 = (self.containers.len() + self.components.len()) as u16;
 
         // Quick fix for focus
@@ -178,83 +178,78 @@ impl Interactable for GlyphPage {
             Process Page
          */
         if self.focused_child_ref().is_none() {
-            match key.kind {
-                KeyEventKind::Press => {
-                    if is_cycle_forward_hover_key(key) {
-                        self.cycle_hover(1);
-                    }
-                    if is_cycle_backward_hover_key(key) {
-                        self.cycle_hover(-1);
-                    }
-                    if let KeyCode::Esc = key.code {
-                        if !self.state.local_entry_state_ref().unwrap().updated_entries.is_empty() {
-                            self.dialogs.push(
-                                ConfirmDialog::new(
-                                    "You have unsaved change! Exit anyway?"
-                                ).on_submit(
-                                    Box::new(|_, _| {
-                                        Ok(vec![AppCommand(PopPage)])
-                                    })
-                                )
-                                    .into()
-                            );
-                        } else {
-                            return Ok(vec![AppCommand(PopPage)]);
-                        }
-                    }
-                    if let KeyCode::Enter = key.code {
-                        if let Some(index) = self.state.hovered_index {
-                            match index {
-                                0 => self.containers[0].set_focus(true),
-                                1 => if self.state.local_entry_state_ref().unwrap().active_entry_id.is_some() {
-                                    self.containers[1].set_focus(true)
-                                }
-                                _ => {}
-                            }
-                        }
-                    }
-                    if let KeyCode::Char('F') = key.code {
+            if key.kind == KeyEventKind::Press {
+                if is_cycle_forward_hover_key(key) {
+                    self.cycle_hover(1);
+                }
+                if is_cycle_backward_hover_key(key) {
+                    self.cycle_hover(-1);
+                }
+                if let KeyCode::Esc = key.code {
+                    if !self.state.local_entry_state_ref().unwrap().updated_entries.is_empty() {
                         self.dialogs.push(
-                            SearchEntryDialog::new("Search Entry", self.state.entry_state.clone()).on_submit(
-                                Box::new(
-                                    |parent_state, state| {
-                                        let _parent_state: &mut GlyphPageState = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                        let _state: &mut SearchEntryDialogState = state.unwrap().downcast_mut::<SearchEntryDialogState>().unwrap();
-                                        if _state.entries_name.is_empty() {
-                                            return Ok(vec![]);
-                                        }
-                                        let cloned_id = _state.entries_name.iter().filter_map(|((eid, _name),ava)|{
-                                            if *ava {
-                                                return Some(*eid)
-                                            }
-                                            None
-                                        }).collect::<Vec<i64>>();
-                                        _state.local_entry_state.borrow_mut().active_entry_id = Some(
-                                            cloned_id.get(_state.hovered_index).unwrap().clone()
-                                        );
-                                        return Ok(vec![PageCommand(PopDialog)]);
-                                    }
-
-                                )
-                            ).into()
+                            ConfirmDialog::new(
+                                "You have unsaved change! Exit anyway?"
+                            ).on_submit(
+                                Box::new(|_, _| {
+                                    Ok(vec![AppCommand(PopPage)])
+                                })
+                            )
+                                .into()
                         );
-                    }
-                    if let KeyCode::Char('b') = key.code {
-                        if key.modifiers.contains(KeyModifiers::CONTROL) {
-                            if self.state.hidden_container_index.contains(&0u8) {
-                                self.state.hidden_container_index.remove(&0u8);
-                            } else {
-                                self.state.hidden_container_index.insert(0);
-                                self.state.hovered_index = if self.state.hovered_index.is_some() {
-                                    Some(1)
-                                } else {
-                                    None
-                                };
-                            }
-                        }
+                    } else {
+                        return Ok(vec![AppCommand(PopPage)]);
                     }
                 }
-                _ => {}
+                if let KeyCode::Enter = key.code
+                    && let Some(index) = self.state.hovered_index {
+                        match index {
+                            0 => self.containers[0].set_focus(true),
+                            1 => if self.state.local_entry_state_ref().unwrap().active_entry_id.is_some() {
+                                self.containers[1].set_focus(true)
+                            }
+                            _ => {}
+                        }
+                    }
+                if let KeyCode::Char('F') = key.code {
+                    self.dialogs.push(
+                        SearchEntryDialog::new("Search Entry", self.state.entry_state.clone()).on_submit(
+                            Box::new(
+                                |parent_state, state| {
+                                    let _parent_state: &mut GlyphPageState = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                    let _state: &mut SearchEntryDialogState = state.unwrap().downcast_mut::<SearchEntryDialogState>().unwrap();
+                                    if _state.entries_name.is_empty() {
+                                        return Ok(vec![]);
+                                    }
+                                    let cloned_id = _state.entries_name.iter().filter_map(|((eid, _name),ava)|{
+                                        if *ava {
+                                            return Some(*eid)
+                                        }
+                                        None
+                                    }).collect::<Vec<i64>>();
+                                    _state.local_entry_state.borrow_mut().active_entry_id = Some(
+                                        *cloned_id.get(_state.hovered_index).unwrap()
+                                    );
+                                    Ok(vec![PageCommand(PopDialog)])
+                                }
+
+                            )
+                        ).into()
+                    );
+                }
+                if let KeyCode::Char('b') = key.code
+                    && key.modifiers.contains(KeyModifiers::CONTROL) {
+                        if self.state.hidden_container_index.contains(&0u8) {
+                            self.state.hidden_container_index.remove(&0u8);
+                        } else {
+                            self.state.hidden_container_index.insert(0);
+                            self.state.hovered_index = if self.state.hovered_index.is_some() {
+                                Some(1)
+                            } else {
+                                None
+                            };
+                        }
+                    }
             }
             Ok(Vec::new())
         } else {
@@ -305,7 +300,7 @@ impl Focusable for GlyphPage {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         self.state.is_focused = value;
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {
@@ -389,7 +384,7 @@ impl GlyphNavigationBar {
             }
         }
     }
-    pub fn next_entry(&mut self) -> () {
+    pub fn next_entry(&mut self) {
         if let Ok(state) = self.state.entry_state.try_borrow() {
             let num_entries = state.ordered_entries.len();
             if self.state.local_entry_state_ref().unwrap().entries.is_empty() {
@@ -403,7 +398,7 @@ impl GlyphNavigationBar {
             }
         }
     }
-    pub fn previous_entry(&mut self) -> () {
+    pub fn previous_entry(&mut self) {
         if let Ok(state) = self.state.entry_state.try_borrow() {
             let num_entries = state.ordered_entries.len();
             if self.state.local_entry_state_ref().unwrap().entries.is_empty() {
@@ -478,7 +473,7 @@ impl Drawable for GlyphNavigationBar {
                 if is_hovered {
                     line = line.bg(theme.surface_low_highlight());
                 }
-                if self.state.local_entry_state_ref().unwrap().updated_entries.contains(&id) {
+                if self.state.local_entry_state_ref().unwrap().updated_entries.contains(id) {
                     line.push_span(Span::from(String::from(" (Unsaved)")).italic().not_bold());
                 }
                 line
@@ -494,7 +489,7 @@ impl Drawable for GlyphNavigationBar {
             line.render(
                 inner_area.offset(Offset {
                     x: 0,
-                    y: (i * &self.state.line_height) as i32,
+                    y: (i * self.state.line_height) as i32,
                 }),
                 frame.buffer_mut(),
             );
@@ -508,141 +503,136 @@ impl Interactable for GlyphNavigationBar {
             self.set_focus(true);
             Ok(Vec::new())
         } else {
-            match key.kind {
-                KeyEventKind::Press => {
-                    if is_cycle_forward_hover_key(key) {
-                        self.next_entry();
+            if key.kind == KeyEventKind::Press {
+                if is_cycle_forward_hover_key(key) {
+                    self.next_entry();
+                }
+                if is_cycle_backward_hover_key(key) {
+                    self.previous_entry();
+                }
+                if let KeyCode::Esc = key.code {
+                    self.set_focus(false);
+                    return Ok(Vec::new());
+                }
+                if let KeyCode::Enter = key.code {
+                    if self.state.hovered_index.is_some() {
+                        let index: usize = self.state.hovered_index.unwrap();
+                        let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                        let selected_id: i64 = self.state.local_entry_state_ref().unwrap().ordered_entries[index].0;
+                        let mut local_entry_state = self.state.local_entry_state_mut().unwrap();
+                        local_entry_state.toggle_active_entry_id(selected_id)
                     }
-                    if is_cycle_backward_hover_key(key) {
-                        self.previous_entry();
-                    }
-                    if let KeyCode::Esc = key.code {
-                        self.set_focus(false);
-                        return Ok(Vec::new());
-                    }
-                    if let KeyCode::Enter = key.code {
-                        if self.state.hovered_index.is_some() {
-                            let index: usize = self.state.hovered_index.unwrap();
-                            let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                            let selected_id: i64 = self.state.local_entry_state_ref().unwrap().ordered_entries[index].0;
-                            let mut local_entry_state = self.state.local_entry_state_mut().unwrap();
-                            local_entry_state.toggle_active_entry_id(selected_id)
+                    return Ok(Vec::new());
+                }
+                if let KeyCode::Char(c) = key.code {
+                    match c {
+                        'A' => {
+                            return Ok(
+                                vec![
+                                    PageCommand(
+                                        PushDialog(
+                                            TextInputDialog::new( "New Entry Name", "untitled", Box::new(|value|{!value.is_empty()})).on_submit(
+                                                // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
+                                                Box::new(|parent_state, state| {
+                                                    let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                                    let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
+                                                    let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
+                                                    local_entry_state.create_default_entry_db(_state.text_input.as_str())?;
+                                                    Ok(vec![])
+                                                })
+                                            ).into()
+                                        )
+                                    )
+                                ]
+                            );
                         }
-                        return Ok(Vec::new());
-                    }
-                    if let KeyCode::Char(c) = key.code {
-                        match c {
-                            'A' => {
-                                return Ok(
-                                    vec![
-                                        PageCommand(
-                                            PushDialog(
-                                                TextInputDialog::new( "New Entry Name", "untitled", Box::new(|value|{!value.is_empty()})).on_submit(
-                                                    // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
-                                                    Box::new(|parent_state, state| {
-                                                        let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                                        let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
-                                                        let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                        local_entry_state.create_default_entry_db(_state.text_input.as_str())?;
-                                                        Ok(vec![])
-                                                    })
-                                                ).into()
-                                            )
+                        'F' => {
+                            return Ok(
+                                vec![
+                                    PageCommand(
+                                        PushDialog(
+                                            TextInputDialog::new( "Filter Entry", "", Box::new(|_value|{true})).on_submit(
+                                                // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
+                                                Box::new(|parent_state, state| {
+                                                    let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                                    let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
+                                                    let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
+                                                    local_entry_state.filter_entry_order_by(
+                                                        &|name|{
+                                                            name.contains(_state.text_input.as_str())
+                                                        }
+                                                    );
+                                                    Ok(vec![])
+                                                })
+                                            ).into()
                                         )
-                                    ]
-                                );
-                            }
-                            'F' => {
-                                return Ok(
-                                    vec![
-                                        PageCommand(
-                                            PushDialog(
-                                                TextInputDialog::new( "Filter Entry", "", Box::new(|_value|{true})).on_submit(
-                                                    // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
-                                                    Box::new(|parent_state, state| {
-                                                        let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                                        let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
-                                                        let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                        local_entry_state.filter_entry_order_by(
-                                                            &|name|{
-                                                                name.contains(_state.text_input.as_str())
-                                                            }
-                                                        );
-                                                        Ok(vec![])
-                                                    })
-                                                ).into()
-                                            )
+                                    )
+                                ]
+                            );
+                        }
+                        'R' => {
+                            let active_entry_name: String = self.get_focused_entry_ref().unwrap().entry_name.clone();
+                            return Ok(
+                                vec![
+                                    PageCommand(
+                                        PushDialog(
+                                            TextInputDialog::new( "Rename Entry", active_entry_name.as_str(), Box::new(|value|{!value.is_empty()})).on_submit(
+                                                // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
+                                                Box::new(|parent_state, state| {
+                                                    let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                                    let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
+                                                    let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
+                                                    let new_entry_name: &str = _state.text_input.as_str();
+                                                    let eid: i64 = local_entry_state.active_entry_id.unwrap();
+                                                    local_entry_state.update_entry_name_db(&eid, new_entry_name)?;
+                                                    Ok(vec![])
+                                                })
+                                            ).into()
                                         )
-                                    ]
-                                );
+                                    )
+                                ]
+                            );
+                        }
+                        // Clone Entry
+                        'D' => {
+                            if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
+                                return Ok(Vec::new());
                             }
-                            'R' => {
-                                let active_entry_name: String = self.get_focused_entry_ref().unwrap().entry_name.clone();
-                                return Ok(
-                                    vec![
-                                        PageCommand(
-                                            PushDialog(
-                                                TextInputDialog::new( "Rename Entry", active_entry_name.as_str(), Box::new(|value|{!value.is_empty()})).on_submit(
-                                                    // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
-                                                    Box::new(|parent_state, state| {
-                                                        let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                                        let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
-                                                        let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                        let new_entry_name: &str = _state.text_input.as_str();
-                                                        let eid: i64 = local_entry_state.active_entry_id.unwrap();
-                                                        local_entry_state.update_entry_name_db(&eid, new_entry_name)?;
-                                                        Ok(vec![])
-                                                    })
-                                                ).into()
-                                            )
+                            let mut local_entry_state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
+                            let active_entry: Entry = local_entry_state.get_active_entry_ref().unwrap().clone();
+                            let cloned_eid = local_entry_state.insert_entry(active_entry.clone())?;
+                            for (sid, section) in active_entry.sections {
+                                local_entry_state.insert_section(&cloned_eid, section)?;
+                            }
+                            return Ok(Vec::new())
+                        }
+                        'x' => {
+                            if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
+                                return Ok(Vec::new());
+                            }
+                            return Ok(
+                                vec![
+                                    PageCommand(
+                                        PushDialog(
+                                            ConfirmDialog::new( "Delete Selected Entry?", ).on_submit(
+                                                // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
+                                                Box::new(|parent_state, _state| {
+                                                    let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
+                                                    let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
+                                                    local_entry_state.delete_active_entry_db()?;
+                                                    Ok(vec![])
+                                                })
+                                            ).into()
                                         )
-                                    ]
-                                );
-                            }
-                            // Clone Entry
-                            'D' => {
-                                if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
-                                    return Ok(Vec::new());
-                                }
-                                let mut local_entry_state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
-                                let active_entry: Entry = local_entry_state.get_active_entry_ref().unwrap().clone();
-                                let cloned_eid = local_entry_state.insert_entry(active_entry.clone())?;
-                                for (sid, section) in active_entry.sections {
-                                    local_entry_state.insert_section(&cloned_eid, section)?;
-                                }
-                                return Ok(Vec::new())
-                            }
-                            'x' => {
-                                if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
-                                    return Ok(Vec::new());
-                                }
-                                return Ok(
-                                    vec![
-                                        PageCommand(
-                                            PushDialog(
-                                                ConfirmDialog::new( "Delete Selected Entry?", ).on_submit(
-                                                    // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
-                                                    Box::new(|parent_state, _state| {
-                                                        let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                                        let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
-                                                        local_entry_state.delete_active_entry_db()?;
-                                                        Ok(vec![])
-                                                    })
-                                                ).into()
-                                            )
-                                        )
-                                    ]
-                                );
+                                    )
+                                ]
+                            );
 
-                            }
-                            _ => {
-                            }
                         }
-                    } else {
+                        _ => {
+                        }
                     }
-                }
-                _=>{
-                }
+                } 
             }
             Ok(Vec::new())
         }
@@ -660,7 +650,7 @@ impl Focusable for GlyphNavigationBar {
     fn is_focused(&self) -> bool {
         self.state.is_focused
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         self.state.is_focused = value;
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {

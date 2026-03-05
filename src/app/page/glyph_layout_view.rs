@@ -108,17 +108,11 @@ impl Interactable for GlyphLayoutView {
         if self.state.is_editing {
             self.containers[1].as_mut().handle(key, Some(&mut self.state))
         } else {
-            match key.kind {
-                KeyEventKind::Press => {
-                    if let KeyCode::Esc = key.code {
-                        if self.state.selected_coordinate.borrow().is_empty() {
-                            self.state.shared_focus.replace(false);
-                        }
+            if key.kind == KeyEventKind::Press {
+                if let KeyCode::Esc = key.code
+                    && self.state.selected_coordinate.borrow().is_empty() {
+                        self.state.shared_focus.replace(false);
                     }
-                }
-                _ => {
-
-                }
             }
             let result = self.containers[0].as_mut().handle(key, Some(&mut self.state));
             if result.is_err() {
@@ -152,9 +146,9 @@ impl Interactable for GlyphLayoutView {
 
 impl Focusable for GlyphLayoutView {
     fn is_focused(&self) -> bool {
-        self.state.shared_focus.borrow().clone()
+        *self.state.shared_focus.borrow()
     }
-    fn set_focus(&mut self, value: bool) -> () {
+    fn set_focus(&mut self, value: bool) {
         let mut focus = self.state.shared_focus.borrow_mut();
         *focus = value;
     }
@@ -232,7 +226,7 @@ impl GlyphLayoutOverview {
             },
         }
     }
-    pub(crate) fn cycle_layout_hover(&mut self, offset: i16) -> () {
+    pub(crate) fn cycle_layout_hover(&mut self, offset: i16) {
         let select_coordinate: Vec<usize> = self.state.selected_coordinate.borrow().clone();
         let state = self.state.local_entry_state_ref().unwrap();
         let eid: i64 = state.active_entry_id.unwrap();
@@ -241,10 +235,8 @@ impl GlyphLayoutOverview {
         drop(state);
         if let Some(hover_index) = self.state.hovered_index{
             self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, len as u16) as usize);
-        } else {
-            if len > 0 {
-                self.state.hovered_index = Some(0);
-            }
+        } else if len > 0 {
+            self.state.hovered_index = Some(0);
         }
     }
 }
@@ -319,14 +311,12 @@ impl Interactable for GlyphLayoutOverview {
                 if is_cycle_backward_hover_key(key) {
                     self.cycle_layout_hover(-1);
                 }
-                if let KeyCode::Enter = key.code {
-                    if let Some(hovered_index) = self.state.hovered_index{
+                if let KeyCode::Enter = key.code
+                    && let Some(hovered_index) = self.state.hovered_index{
                         self.state.selected_coordinate.borrow_mut().push(hovered_index);
                         self.state.hovered_index = None;
                         return Ok(vec![GlyphCommand(RefreshLayoutEditPanel)]);
                     }
-
-                }
                 if let KeyCode::Char(c) = key.code {
                     match c {
                         'e' => {
@@ -368,10 +358,10 @@ impl Interactable for GlyphLayoutOverview {
                                                         let mut _entry_state = _state.local_entry_state.borrow_mut();
                                                         let active_entry_layout: crate::models::layout::Layout = _entry_state.get_active_entry_ref().unwrap().layout.clone();
                                                         let entry = _entry_state.entries.iter_mut().find(|(eid, entry)|{*eid == *selected_eid}).unwrap();
-                                                        (*entry).1.layout = active_entry_layout;
+                                                        entry.1.layout = active_entry_layout;
                                                         // _entry_state.update_entry_layout_db((*entry).0, active_entry_layout)?;
-                                                        _entry_state.updated_entries.insert((*selected_eid).clone());
-                                                        return Ok(vec![PageCommand(PopDialog)]);
+                                                        _entry_state.updated_entries.insert(*selected_eid);
+                                                        Ok(vec![PageCommand(PopDialog)])
                                                     }
 
                                                 )
@@ -483,7 +473,7 @@ impl Focusable for GlyphLayoutOverview {
     fn is_focused(&self) -> bool {
         false
     }
-    fn set_focus(&mut self, _value: bool) -> () {
+    fn set_focus(&mut self, _value: bool) {
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {
         None
@@ -526,8 +516,8 @@ fn evaluate_layout(me: &GlyphLayoutOverview, area: Rect, buffer: &mut Buffer, la
     }
 
     // Process the child
-    let constraints: Vec<Constraint> = layout.sub_layouts.iter().enumerate().map(
-        |(_index, sub)| {
+    let constraints: Vec<Constraint> = layout.sub_layouts.iter().map(
+        |sub| {
             match sub.details.size_mode {
                 SizeMode::Flex => {
                     Constraint::Fill(sub.details.flex)
@@ -855,7 +845,7 @@ impl GlyphLayoutEditView {
         }
     }
 
-    pub(crate) fn cycle_hover(&mut self, offset: i16) -> () {
+    pub(crate) fn cycle_hover(&mut self, offset: i16) {
         let max: u16 = (self.containers.len() + self.components.len()) as u16;
         if let Some(hover_index) = self.state.hovered_index {
             self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, max) as usize);
@@ -864,7 +854,7 @@ impl GlyphLayoutEditView {
         }
     }
 
-    pub fn refresh_layout_edit_panel(&mut self) -> () {
+    pub fn refresh_layout_edit_panel(&mut self) {
         let coor: Vec<usize> = self.state.selected_coordinate.borrow().clone();
         let state: Ref<LocalEntryState> = self.state.local_entry_state_ref().unwrap();
         // let length: u16 = layout.
@@ -985,8 +975,8 @@ impl Interactable for GlyphLayoutEditView {
                         self.cycle_hover(-1);
                         return Ok(Vec::new());
                     }
-                    if let KeyCode::Enter = key.code {
-                        if let Some(index) = self.state.hovered_index {
+                    if let KeyCode::Enter = key.code
+                        && let Some(index) = self.state.hovered_index {
                             match index {
                                 0 => { // Label Field
                                     self.containers[0].set_focus(true);
@@ -1018,7 +1008,6 @@ impl Interactable for GlyphLayoutEditView {
                                 }
                             }
                         }
-                    }
                     Ok(Vec::new())
                 }
                 _ => {
@@ -1028,9 +1017,8 @@ impl Interactable for GlyphLayoutEditView {
             }
         } else {
             let index: usize = self.focused_child_index().unwrap();
-            let result =
-                self.containers[index].handle(key, Some(&mut self.state));
-            result
+            
+            self.containers[index].handle(key, Some(&mut self.state))
         }
     }
 }
@@ -1038,7 +1026,7 @@ impl Focusable for GlyphLayoutEditView {
     fn is_focused(&self) -> bool {
         false
     }
-    fn set_focus(&mut self, _value: bool) -> () {
+    fn set_focus(&mut self, _value: bool) {
     }
     fn focused_child_ref(&self) -> Option<&dyn Container> {
         for container in &self.containers {
