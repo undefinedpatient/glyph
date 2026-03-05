@@ -25,7 +25,7 @@ impl Layout {
             return Some(self);
         }
         let mut temp_layout: &Layout = self;
-        while let Some(index) =  coor.pop() {
+        while let Some(index) = coor.pop() {
             temp_layout = &temp_layout.sub_layouts[index];
         }
         if coor.is_empty() {
@@ -41,7 +41,7 @@ impl Layout {
             return Some(self);
         }
         let mut temp_layout: &mut Layout = self;
-        while let Some(index) =  coor.pop() {
+        while let Some(index) = coor.pop() {
             temp_layout = &mut temp_layout.sub_layouts[index];
         }
         if coor.is_empty() {
@@ -51,7 +51,7 @@ impl Layout {
         }
     }
     pub fn update_layout_at(&mut self, layout: &Layout, coordinates: &Vec<usize>) {
-        if let Some(target) = self.get_layout_at_mut(coordinates){
+        if let Some(target) = self.get_layout_at_mut(coordinates) {
             target.label = layout.label.clone();
             target.details = layout.details.clone();
         }
@@ -73,9 +73,11 @@ impl Layout {
             target.sub_layouts.remove(index);
             Ok(())
         } else {
-            Err(Report::msg(format!("Tried to remove a layout that does not exist. At {:?}", coor)))
+            Err(Report::msg(format!(
+                "Tried to remove a layout that does not exist. At {:?}",
+                coor
+            )))
         }
-
     }
 }
 
@@ -94,7 +96,7 @@ pub enum BorderMode {
     None,
     Plain,
     Dashed,
-    Rounded
+    Rounded,
 }
 #[derive(Serialize, Deserialize, Clone)]
 pub struct LayoutDetails {
@@ -107,8 +109,6 @@ pub struct LayoutDetails {
 
     pub orientation: LayoutOrientation, // Describing orientation main axis for the children
 }
-
-
 
 impl LayoutDetails {
     pub fn new() -> Self {

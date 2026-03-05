@@ -5,12 +5,16 @@ use crate::app::page::glyph_view::GlyphView;
 use crate::app::AppCommand::PopPage;
 use crate::app::Command::{AppCommand, PageCommand};
 use crate::app::PageCommand::{PopDialog, PushDialog};
-use crate::app::{get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable};
+use crate::app::{
+    get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable,
+    Focusable, Interactable,
+};
 use crate::block;
 use crate::models::entry::Entry;
 use crate::services::LocalEntryState;
 use crate::theme::Theme;
 use crate::utils::cycle_offset;
+use color_eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Layout, Offset, Rect};
 use ratatui::prelude::{Line, Span, Widget};
@@ -24,8 +28,6 @@ use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashSet;
 use std::rc::Rc;
-use crate::db::SectionRepository;
-use crate::models::layout::Layout as GLayout;
 
 pub struct GlyphPageState {
     pub is_focused: bool,
@@ -37,33 +39,24 @@ pub struct GlyphPageState {
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
 impl GlyphPageState {
-    pub(crate) fn local_entry_state_ref(&'_  self) -> Option<Ref<'_, LocalEntryState>> {
-        Ref::filter_map(
-            self.entry_state.try_borrow().ok()?,
-            |state| {
-                Some(state)
-            }
-        ).ok()
+    pub(crate) fn local_entry_state_ref(&'_ self) -> Option<Ref<'_, LocalEntryState>> {
+        Ref::filter_map(self.entry_state.try_borrow().ok()?, |state| Some(state)).ok()
     }
     pub(crate) fn local_entry_state_mut(&'_ mut self) -> Option<RefMut<'_, LocalEntryState>> {
-        RefMut::filter_map(
-            self.entry_state.try_borrow_mut().ok()?,
-            |state| {
-                Some(state)
-            }
-        ).ok()
+        RefMut::filter_map(self.entry_state.try_borrow_mut().ok()?, |state| Some(state)).ok()
     }
 }
 pub struct GlyphPage {
     pub dialogs: Vec<Box<dyn Container>>,
     pub containers: Vec<Box<dyn Container>>,
     pub components: Vec<Box<dyn Component>>,
-    pub state: GlyphPageState
+    pub state: GlyphPageState,
 }
 
 impl GlyphPage {
     pub fn new(connection: Connection) -> Self {
-        let entry_state: Rc<RefCell<LocalEntryState>> = Rc::new(RefCell::new(LocalEntryState::new(connection)));
+        let entry_state: Rc<RefCell<LocalEntryState>> =
+            Rc::new(RefCell::new(LocalEntryState::new(connection)));
         Self {
             dialogs: Vec::new(),
             containers: vec![
@@ -76,8 +69,8 @@ impl GlyphPage {
                 is_hovered: false,
                 hidden_container_index: HashSet::new(),
                 hovered_index: None,
-                entry_state
-            }
+                entry_state,
+            },
         }
     }
     pub(crate) fn cycle_hover(&mut self, offset: i16) {
@@ -88,7 +81,6 @@ impl GlyphPage {
             self.state.hovered_index = Some(1);
             return;
         }
-
 
         if let Some(hover_index) = self.state.hovered_index {
             self.state.hovered_index = Some(cycle_offset(hover_index as u16, offset, max) as usize);
@@ -111,23 +103,39 @@ impl Drawable for GlyphPage {
         */
         let page_frame: Block = block!("Glyph", draw_flag, theme);
 
-
-
         let page_area: Rect = page_frame.inner(area);
-        let mut content_areas = Layout::horizontal([Constraint::Length(24), Constraint::Min(24)]).split(page_area);
+        let mut content_areas =
+            Layout::horizontal([Constraint::Length(24), Constraint::Min(24)]).split(page_area);
         if self.state.hidden_container_index.contains(&0u8) {
-            content_areas = Layout::horizontal([Constraint::Length(0), Constraint::Min(24)]).split(page_area);
+            content_areas =
+                Layout::horizontal([Constraint::Length(0), Constraint::Min(24)]).split(page_area);
         }
 
-
         page_frame.render(area, frame.buffer_mut());
-        self.containers[0].render(frame, content_areas[0], get_draw_flag(self.state.hovered_index, 0, Some(self.containers[0].is_focused())), theme);
-        self.containers[1].render(frame, content_areas[1], get_draw_flag(self.state.hovered_index, 1, Some(self.containers[1].is_focused())), theme);
-
+        self.containers[0].render(
+            frame,
+            content_areas[0],
+            get_draw_flag(
+                self.state.hovered_index,
+                0,
+                Some(self.containers[0].is_focused()),
+            ),
+            theme,
+        );
+        self.containers[1].render(
+            frame,
+            content_areas[1],
+            get_draw_flag(
+                self.state.hovered_index,
+                1,
+                Some(self.containers[1].is_focused()),
+            ),
+            theme,
+        );
 
         /*
-            Dialog
-         */
+           Dialog
+        */
         if !self.dialogs.is_empty() {
             for (i, dialog) in self.dialogs.iter().enumerate() {
                 if i == self.dialogs.len() - 1 {
@@ -141,12 +149,20 @@ impl Drawable for GlyphPage {
 }
 
 impl Interactable for GlyphPage {
-    fn handle(&mut self, key: &KeyEvent, _parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        _parent_state: Option<&mut dyn Any>,
+    ) -> Result<Vec<Command>> {
         /*
-            Process Dialog
-         */
+           Process Dialog
+        */
         if !self.dialogs.is_empty() {
-            let result = self.dialogs.last_mut().unwrap().handle(key, Some(&mut self.state));
+            let result = self
+                .dialogs
+                .last_mut()
+                .unwrap()
+                .handle(key, Some(&mut self.state));
             return if result.is_err() {
                 result
             } else {
@@ -154,29 +170,26 @@ impl Interactable for GlyphPage {
                 let mut commands = result?;
                 while let Some(command) = commands.pop() {
                     match command {
-                        PageCommand(page_command) => {
-                            match page_command {
-                                PopDialog => {
-                                    self.dialogs.pop();
-                                }
-                                PushDialog(dialog) => {
-                                    self.dialogs.push(dialog);
-                                }
+                        PageCommand(page_command) => match page_command {
+                            PopDialog => {
+                                self.dialogs.pop();
                             }
-                        }
+                            PushDialog(dialog) => {
+                                self.dialogs.push(dialog);
+                            }
+                        },
                         _ => {
                             processed_commands.insert(0, command);
                         }
                     }
                 }
                 Ok(processed_commands)
-            }
+            };
         }
 
-
         /*
-            Process Page
-         */
+           Process Page
+        */
         if self.focused_child_ref().is_none() {
             if key.kind == KeyEventKind::Press {
                 if is_cycle_forward_hover_key(key) {
@@ -186,79 +199,95 @@ impl Interactable for GlyphPage {
                     self.cycle_hover(-1);
                 }
                 if let KeyCode::Esc = key.code {
-                    if !self.state.local_entry_state_ref().unwrap().updated_entries.is_empty() {
+                    if !self
+                        .state
+                        .local_entry_state_ref()
+                        .unwrap()
+                        .updated_entries
+                        .is_empty()
+                    {
                         self.dialogs.push(
-                            ConfirmDialog::new(
-                                "You have unsaved change! Exit anyway?"
-                            ).on_submit(
-                                Box::new(|_, _| {
-                                    Ok(vec![AppCommand(PopPage)])
-                                })
-                            )
-                                .into()
+                            ConfirmDialog::new("You have unsaved change! Exit anyway?")
+                                .on_submit(Box::new(|_, _| Ok(vec![AppCommand(PopPage)])))
+                                .into(),
                         );
                     } else {
                         return Ok(vec![AppCommand(PopPage)]);
                     }
                 }
                 if let KeyCode::Enter = key.code
-                    && let Some(index) = self.state.hovered_index {
-                        match index {
-                            0 => self.containers[0].set_focus(true),
-                            1 => if self.state.local_entry_state_ref().unwrap().active_entry_id.is_some() {
+                    && let Some(index) = self.state.hovered_index
+                {
+                    match index {
+                        0 => self.containers[0].set_focus(true),
+                        1 => {
+                            if self
+                                .state
+                                .local_entry_state_ref()
+                                .unwrap()
+                                .active_entry_id
+                                .is_some()
+                            {
                                 self.containers[1].set_focus(true)
                             }
-                            _ => {}
                         }
+                        _ => {}
                     }
+                }
                 if let KeyCode::Char('F') = key.code {
                     self.dialogs.push(
-                        SearchEntryDialog::new("Search Entry", self.state.entry_state.clone()).on_submit(
-                            Box::new(
-                                |parent_state, state| {
-                                    let _parent_state: &mut GlyphPageState = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                    let _state: &mut SearchEntryDialogState = state.unwrap().downcast_mut::<SearchEntryDialogState>().unwrap();
-                                    if _state.entries_name.is_empty() {
-                                        return Ok(vec![]);
-                                    }
-                                    let cloned_id = _state.entries_name.iter().filter_map(|((eid, _name),ava)|{
+                        SearchEntryDialog::new("Search Entry", self.state.entry_state.clone())
+                            .on_submit(Box::new(|parent_state, state| {
+                                let _parent_state: &mut GlyphPageState = parent_state
+                                    .unwrap()
+                                    .downcast_mut::<GlyphPageState>()
+                                    .unwrap();
+                                let _state: &mut SearchEntryDialogState = state
+                                    .unwrap()
+                                    .downcast_mut::<SearchEntryDialogState>()
+                                    .unwrap();
+                                if _state.entries_name.is_empty() {
+                                    return Ok(vec![]);
+                                }
+                                let cloned_id = _state
+                                    .entries_name
+                                    .iter()
+                                    .filter_map(|((eid, _name), ava)| {
                                         if *ava {
-                                            return Some(*eid)
+                                            return Some(*eid);
                                         }
                                         None
-                                    }).collect::<Vec<i64>>();
-                                    _state.local_entry_state.borrow_mut().active_entry_id = Some(
-                                        *cloned_id.get(_state.hovered_index).unwrap()
-                                    );
-                                    Ok(vec![PageCommand(PopDialog)])
-                                }
-
-                            )
-                        ).into()
+                                    })
+                                    .collect::<Vec<i64>>();
+                                _state.local_entry_state.borrow_mut().active_entry_id =
+                                    Some(*cloned_id.get(_state.hovered_index).unwrap());
+                                Ok(vec![PageCommand(PopDialog)])
+                            }))
+                            .into(),
                     );
                 }
                 if let KeyCode::Char('b') = key.code
-                    && key.modifiers.contains(KeyModifiers::CONTROL) {
-                        if self.state.hidden_container_index.contains(&0u8) {
-                            self.state.hidden_container_index.remove(&0u8);
+                    && key.modifiers.contains(KeyModifiers::CONTROL)
+                {
+                    if self.state.hidden_container_index.contains(&0u8) {
+                        self.state.hidden_container_index.remove(&0u8);
+                    } else {
+                        self.state.hidden_container_index.insert(0);
+                        self.state.hovered_index = if self.state.hovered_index.is_some() {
+                            Some(1)
                         } else {
-                            self.state.hidden_container_index.insert(0);
-                            self.state.hovered_index = if self.state.hovered_index.is_some() {
-                                Some(1)
-                            } else {
-                                None
-                            };
-                        }
+                            None
+                        };
                     }
+                }
             }
             Ok(Vec::new())
         } else {
             /*
-                Process Nested Components
-             */
+               Process Nested Components
+            */
             let index: usize = self.focused_child_index().unwrap();
-            let result =
-                self.containers[index].handle(key, Some(&mut self.state));
+            let result = self.containers[index].handle(key, Some(&mut self.state));
             if result.is_err() {
                 result
             } else {
@@ -266,16 +295,14 @@ impl Interactable for GlyphPage {
                 let mut commands = result?;
                 while let Some(command) = commands.pop() {
                     match command {
-                        PageCommand(page_command) => {
-                            match page_command {
-                                PopDialog => {
-                                    self.dialogs.pop();
-                                }
-                                PushDialog(dialog) => {
-                                    self.dialogs.push(dialog);
-                                }
+                        PageCommand(page_command) => match page_command {
+                            PopDialog => {
+                                self.dialogs.pop();
                             }
-                        }
+                            PushDialog(dialog) => {
+                                self.dialogs.push(dialog);
+                            }
+                        },
                         _ => {
                             processed_commands.insert(0, command);
                         }
@@ -286,13 +313,14 @@ impl Interactable for GlyphPage {
         }
     }
 
-    fn keymap(&self) -> Vec<(&str, &str)>{
+    fn keymap(&self) -> Vec<(&str, &str)> {
         [
-            ("j/k/up/down/tab/backtab","Navigate"),
+            ("j/k/up/down/tab/backtab", "Navigate"),
             ("c-B", "Fold Navigation Bar"),
             ("F", "Find Entry"),
-            ("Enter","Interact"),
-        ].into()
+            ("Enter", "Interact"),
+        ]
+        .into()
     }
 }
 
@@ -329,16 +357,6 @@ impl Focusable for GlyphPage {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
 pub struct GlyphNavigationBarState {
     pub is_focused: bool,
     pub line_height: usize,
@@ -348,27 +366,16 @@ pub struct GlyphNavigationBarState {
     pub entry_state: Rc<RefCell<LocalEntryState>>,
 }
 impl GlyphNavigationBarState {
-    pub(crate) fn local_entry_state_ref(&'_  self) -> Option<Ref<'_, LocalEntryState>> {
-        Ref::filter_map(
-            self.entry_state.try_borrow().ok()?,
-            |state| {
-                Some(state)
-            }
-        ).ok()
+    pub(crate) fn local_entry_state_ref(&'_ self) -> Option<Ref<'_, LocalEntryState>> {
+        Ref::filter_map(self.entry_state.try_borrow().ok()?, |state| Some(state)).ok()
     }
     pub(crate) fn local_entry_state_mut(&'_ mut self) -> Option<RefMut<'_, LocalEntryState>> {
-        RefMut::filter_map(
-            self.entry_state.try_borrow_mut().ok()?,
-            |state| {
-                Some(state)
-            }
-        ).ok()
+        RefMut::filter_map(self.entry_state.try_borrow_mut().ok()?, |state| Some(state)).ok()
     }
 }
 
-
 pub struct GlyphNavigationBar {
-    pub state: GlyphNavigationBarState
+    pub state: GlyphNavigationBarState,
 }
 
 impl GlyphNavigationBar {
@@ -380,19 +387,26 @@ impl GlyphNavigationBar {
                 hovered_index: None,
                 offset: 0,
 
-                entry_state
-            }
+                entry_state,
+            },
         }
     }
     pub fn next_entry(&mut self) {
         if let Ok(state) = self.state.entry_state.try_borrow() {
             let num_entries = state.ordered_entries.len();
-            if self.state.local_entry_state_ref().unwrap().entries.is_empty() {
+            if self
+                .state
+                .local_entry_state_ref()
+                .unwrap()
+                .entries
+                .is_empty()
+            {
                 self.state.hovered_index = None;
                 return;
             }
             if let Some(index) = self.state.hovered_index {
-                self.state.hovered_index = Some(cycle_offset(index as u16, 1, num_entries as u16) as usize);
+                self.state.hovered_index =
+                    Some(cycle_offset(index as u16, 1, num_entries as u16) as usize);
             } else {
                 self.state.hovered_index = Some(0);
             }
@@ -401,12 +415,19 @@ impl GlyphNavigationBar {
     pub fn previous_entry(&mut self) {
         if let Ok(state) = self.state.entry_state.try_borrow() {
             let num_entries = state.ordered_entries.len();
-            if self.state.local_entry_state_ref().unwrap().entries.is_empty() {
+            if self
+                .state
+                .local_entry_state_ref()
+                .unwrap()
+                .entries
+                .is_empty()
+            {
                 self.state.hovered_index = None;
                 return;
             }
             if let Some(index) = self.state.hovered_index {
-                self.state.hovered_index = Some(cycle_offset(index as u16, -1, num_entries as u16) as usize);
+                self.state.hovered_index =
+                    Some(cycle_offset(index as u16, -1, num_entries as u16) as usize);
             } else {
                 self.state.hovered_index = Some(0);
             }
@@ -430,7 +451,6 @@ impl GlyphNavigationBar {
             None
         }
     }
-
 }
 
 impl From<GlyphNavigationBar> for Box<dyn Container> {
@@ -446,8 +466,8 @@ impl Drawable for GlyphNavigationBar {
         */
         let widget_frame: Block = block!("Entries", draw_flag, theme).bg(theme.surface_low());
         /*
-            List Items (Entry)
-         */
+           List Items (Entry)
+        */
         let ref_entry_state = self.state.entry_state.borrow();
         let plain_entries: &Vec<(i64, String)> = &ref_entry_state.ordered_entries;
         let list_items: Vec<Line> = plain_entries
@@ -455,11 +475,11 @@ impl Drawable for GlyphNavigationBar {
             .enumerate()
             .map(|(i, (id, name)): (usize, &(i64, String))| {
                 let is_selected = ref_entry_state.active_entry_id == Some(*id);
-                let is_hovered   = self.state.hovered_index == Some(i) && self.is_focused(); // If self is not focused, then do not display hovered target
+                let is_hovered = self.state.hovered_index == Some(i) && self.is_focused(); // If self is not focused, then do not display hovered target
                 let prefix = match (is_selected, is_hovered) {
-                    (true, true)   => " >[",
-                    (true, false)  => "  [",
-                    (false, true)  => " > ",
+                    (true, true) => " >[",
+                    (true, false) => "  [",
+                    (false, true) => " > ",
                     (false, false) => "   ",
                 };
                 let suffix = if is_selected { "] " } else { "  " };
@@ -473,12 +493,18 @@ impl Drawable for GlyphNavigationBar {
                 if is_hovered {
                     line = line.bg(theme.surface_low_highlight());
                 }
-                if self.state.local_entry_state_ref().unwrap().updated_entries.contains(id) {
+                if self
+                    .state
+                    .local_entry_state_ref()
+                    .unwrap()
+                    .updated_entries
+                    .contains(id)
+                {
                     line.push_span(Span::from(String::from(" (Unsaved)")).italic().not_bold());
                 }
                 line
-            }).collect();
-
+            })
+            .collect();
 
         let inner_area: Rect = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
@@ -495,10 +521,13 @@ impl Drawable for GlyphNavigationBar {
             );
         }
     }
-
 }
 impl Interactable for GlyphNavigationBar {
-    fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> color_eyre::Result<Vec<Command>> {
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        parent_state: Option<&mut dyn Any>,
+    ) -> color_eyre::Result<Vec<Command>> {
         if !self.is_focused() {
             self.set_focus(true);
             Ok(Vec::new())
@@ -517,8 +546,12 @@ impl Interactable for GlyphNavigationBar {
                 if let KeyCode::Enter = key.code {
                     if self.state.hovered_index.is_some() {
                         let index: usize = self.state.hovered_index.unwrap();
-                        let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                        let selected_id: i64 = self.state.local_entry_state_ref().unwrap().ordered_entries[index].0;
+                        let _parent_state = parent_state
+                            .unwrap()
+                            .downcast_mut::<GlyphPageState>()
+                            .unwrap();
+                        let selected_id: i64 =
+                            self.state.local_entry_state_ref().unwrap().ordered_entries[index].0;
                         let mut local_entry_state = self.state.local_entry_state_mut().unwrap();
                         local_entry_state.toggle_active_entry_id(selected_id)
                     }
@@ -527,123 +560,155 @@ impl Interactable for GlyphNavigationBar {
                 if let KeyCode::Char(c) = key.code {
                     match c {
                         'A' => {
-                            return Ok(
-                                vec![
-                                    PageCommand(
-                                        PushDialog(
-                                            TextInputDialog::new( "New Entry Name", "untitled", Box::new(|value|{!value.is_empty()})).on_submit(
-                                                // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
-                                                Box::new(|parent_state, state| {
-                                                    let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                                    let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
-                                                    let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                    local_entry_state.create_default_entry_db(_state.text_input.as_str())?;
-                                                    Ok(vec![])
-                                                })
-                                            ).into()
-                                        )
-                                    )
-                                ]
-                            );
+                            return Ok(vec![PageCommand(PushDialog(
+                                TextInputDialog::new(
+                                    "New Entry Name",
+                                    "untitled",
+                                    Box::new(|value| !value.is_empty()),
+                                )
+                                .on_submit(
+                                    // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
+                                    Box::new(|parent_state, state| {
+                                        let _parent_state = parent_state
+                                            .unwrap()
+                                            .downcast_mut::<GlyphPageState>()
+                                            .unwrap();
+                                        let mut local_entry_state =
+                                            _parent_state.local_entry_state_mut().unwrap();
+                                        let _state = state
+                                            .unwrap()
+                                            .downcast_mut::<TextInputDialogState>()
+                                            .unwrap();
+                                        local_entry_state
+                                            .create_default_entry_db(_state.text_input.as_str())?;
+                                        Ok(vec![])
+                                    }),
+                                )
+                                .into(),
+                            ))]);
                         }
                         'F' => {
-                            return Ok(
-                                vec![
-                                    PageCommand(
-                                        PushDialog(
-                                            TextInputDialog::new( "Filter Entry", "", Box::new(|_value|{true})).on_submit(
-                                                // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
-                                                Box::new(|parent_state, state| {
-                                                    let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                                    let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
-                                                    let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                    local_entry_state.filter_entry_order_by(
-                                                        &|name|{
-                                                            name.contains(_state.text_input.as_str())
-                                                        }
-                                                    );
-                                                    Ok(vec![])
-                                                })
-                                            ).into()
-                                        )
+                            return Ok(vec![PageCommand(PushDialog(
+                                TextInputDialog::new("Filter Entry", "", Box::new(|_value| true))
+                                    .on_submit(
+                                        // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
+                                        Box::new(|parent_state, state| {
+                                            let _parent_state = parent_state
+                                                .unwrap()
+                                                .downcast_mut::<GlyphPageState>()
+                                                .unwrap();
+                                            let mut local_entry_state: RefMut<LocalEntryState> =
+                                                _parent_state.local_entry_state_mut().unwrap();
+                                            let _state = state
+                                                .unwrap()
+                                                .downcast_mut::<TextInputDialogState>()
+                                                .unwrap();
+                                            local_entry_state.filter_entry_order_by(&|name| {
+                                                name.contains(_state.text_input.as_str())
+                                            });
+                                            Ok(vec![])
+                                        }),
                                     )
-                                ]
-                            );
+                                    .into(),
+                            ))]);
                         }
                         'R' => {
-                            let active_entry_name: String = self.get_focused_entry_ref().unwrap().entry_name.clone();
-                            return Ok(
-                                vec![
-                                    PageCommand(
-                                        PushDialog(
-                                            TextInputDialog::new( "Rename Entry", active_entry_name.as_str(), Box::new(|value|{!value.is_empty()})).on_submit(
-                                                // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
-                                                Box::new(|parent_state, state| {
-                                                    let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                                    let mut local_entry_state: RefMut<LocalEntryState> = _parent_state.local_entry_state_mut().unwrap();
-                                                    let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-                                                    let new_entry_name: &str = _state.text_input.as_str();
-                                                    let eid: i64 = local_entry_state.active_entry_id.unwrap();
-                                                    local_entry_state.update_entry_name_db(&eid, new_entry_name)?;
-                                                    Ok(vec![])
-                                                })
-                                            ).into()
-                                        )
-                                    )
-                                ]
-                            );
+                            let active_entry_name: String =
+                                self.get_focused_entry_ref().unwrap().entry_name.clone();
+                            return Ok(vec![PageCommand(PushDialog(
+                                TextInputDialog::new(
+                                    "Rename Entry",
+                                    active_entry_name.as_str(),
+                                    Box::new(|value| !value.is_empty()),
+                                )
+                                .on_submit(
+                                    // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
+                                    Box::new(|parent_state, state| {
+                                        let _parent_state = parent_state
+                                            .unwrap()
+                                            .downcast_mut::<GlyphPageState>()
+                                            .unwrap();
+                                        let mut local_entry_state: RefMut<LocalEntryState> =
+                                            _parent_state.local_entry_state_mut().unwrap();
+                                        let _state = state
+                                            .unwrap()
+                                            .downcast_mut::<TextInputDialogState>()
+                                            .unwrap();
+                                        let new_entry_name: &str = _state.text_input.as_str();
+                                        let eid: i64 = local_entry_state.active_entry_id.unwrap();
+                                        local_entry_state
+                                            .update_entry_name_db(&eid, new_entry_name)?;
+                                        Ok(vec![])
+                                    }),
+                                )
+                                .into(),
+                            ))]);
                         }
                         // Clone Entry
                         'D' => {
-                            if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
+                            if self
+                                .state
+                                .entry_state
+                                .try_borrow_mut()?
+                                .active_entry_id
+                                .is_none()
+                            {
                                 return Ok(Vec::new());
                             }
-                            let mut local_entry_state: RefMut<LocalEntryState> = self.state.local_entry_state_mut().unwrap();
-                            let active_entry: Entry = local_entry_state.get_active_entry_ref().unwrap().clone();
-                            let cloned_eid = local_entry_state.insert_entry(active_entry.clone())?;
+                            let mut local_entry_state: RefMut<LocalEntryState> =
+                                self.state.local_entry_state_mut().unwrap();
+                            let active_entry: Entry =
+                                local_entry_state.get_active_entry_ref().unwrap().clone();
+                            let cloned_eid =
+                                local_entry_state.insert_entry(active_entry.clone())?;
                             for (sid, section) in active_entry.sections {
                                 local_entry_state.insert_section(&cloned_eid, section)?;
                             }
-                            return Ok(Vec::new())
+                            return Ok(Vec::new());
                         }
                         'x' => {
-                            if self.state.entry_state.try_borrow_mut()?.active_entry_id.is_none() {
+                            if self
+                                .state
+                                .entry_state
+                                .try_borrow_mut()?
+                                .active_entry_id
+                                .is_none()
+                            {
                                 return Ok(Vec::new());
                             }
-                            return Ok(
-                                vec![
-                                    PageCommand(
-                                        PushDialog(
-                                            ConfirmDialog::new( "Delete Selected Entry?", ).on_submit(
-                                                // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
-                                                Box::new(|parent_state, _state| {
-                                                    let _parent_state = parent_state.unwrap().downcast_mut::<GlyphPageState>().unwrap();
-                                                    let mut local_entry_state = _parent_state.local_entry_state_mut().unwrap();
-                                                    local_entry_state.delete_active_entry_db()?;
-                                                    Ok(vec![])
-                                                })
-                                            ).into()
-                                        )
+                            return Ok(vec![PageCommand(PushDialog(
+                                ConfirmDialog::new("Delete Selected Entry?")
+                                    .on_submit(
+                                        // Since it is bubbling a PushDialog command up, its parent state is actually GlyphPageState
+                                        Box::new(|parent_state, _state| {
+                                            let _parent_state = parent_state
+                                                .unwrap()
+                                                .downcast_mut::<GlyphPageState>()
+                                                .unwrap();
+                                            let mut local_entry_state =
+                                                _parent_state.local_entry_state_mut().unwrap();
+                                            local_entry_state.delete_active_entry_db()?;
+                                            Ok(vec![])
+                                        }),
                                     )
-                                ]
-                            );
-
+                                    .into(),
+                            ))]);
                         }
-                        _ => {
-                        }
+                        _ => {}
                     }
-                } 
+                }
             }
             Ok(Vec::new())
         }
     }
     fn keymap(&self) -> Vec<(&str, &str)> {
         [
-            ("R","Rename Active Entry"),
-            ("A","Create Entry"),
-            ("D","Duplicate Active Entry"),
-            ("Enter","Open Entry"),
-        ].into()
+            ("R", "Rename Active Entry"),
+            ("A", "Create Entry"),
+            ("D", "Duplicate Active Entry"),
+            ("Enter", "Open Entry"),
+        ]
+        .into()
     }
 }
 impl Focusable for GlyphNavigationBar {

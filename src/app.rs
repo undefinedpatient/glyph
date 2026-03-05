@@ -12,10 +12,10 @@ use rusqlite::Connection;
 use std::any::Any;
 use std::path::PathBuf;
 
-pub mod popup;
 pub mod dialog;
-pub mod widget;
 pub mod page;
+pub mod popup;
+pub mod widget;
 
 pub enum Command {
     AppCommand(AppCommand),
@@ -29,10 +29,9 @@ pub enum AppCommand {
     PopPage,
     PushPopup(Box<dyn Container>),
     PopPopup,
-
 }
 pub enum GlyphCommand {
-    OpenGlyph(PathBuf), // Path to Glyph DB
+    OpenGlyph(PathBuf),           // Path to Glyph DB
     CreateGlyph(PathBuf, String), // Path to directory, name of DB
     CreateEntry(String),
     SetEntryUnsavedState(i64, bool),
@@ -48,15 +47,15 @@ pub enum PageCommand {
 macro_rules! block {
     ($title: expr, $flag: expr, $theme: expr) => {
         match $flag {
-            DrawFlag::DEFAULT => {
-                Block::bordered().title($title).style($theme.on_surface())
-            }
-            DrawFlag::HIGHLIGHTING => {
-                Block::bordered().title(Line::from($title).bold()).border_type(BorderType::Double).style($theme.on_surface())
-            }
-            DrawFlag::FOCUSED => {
-                Block::bordered().title(Line::from($title).bold()).border_type(BorderType::Thick).style($theme.on_surface())
-            }
+            DrawFlag::DEFAULT => Block::bordered().title($title).style($theme.on_surface()),
+            DrawFlag::HIGHLIGHTING => Block::bordered()
+                .title(Line::from($title).bold())
+                .border_type(BorderType::Double)
+                .style($theme.on_surface()),
+            DrawFlag::FOCUSED => Block::bordered()
+                .title(Line::from($title).bold())
+                .border_type(BorderType::Thick)
+                .style($theme.on_surface()),
         }
     };
 }
@@ -73,9 +72,10 @@ pub(crate) fn get_draw_flag(
     focused: Option<bool>,
 ) -> DrawFlag {
     if let Some(should_focus) = focused
-        && should_focus {
-            return DrawFlag::FOCUSED;
-        }
+        && should_focus
+    {
+        return DrawFlag::FOCUSED;
+    }
     if let Some(index) = current_hover_index {
         if index == widget_index {
             DrawFlag::HIGHLIGHTING
@@ -97,13 +97,11 @@ pub trait Interactable: Convertible {
         parent_state: Option<&mut dyn Any>,
     ) -> color_eyre::Result<Vec<Command>>;
 
-
     /// Get a descriptive key bindings action, default to none,
     /// It does nothing but telling users the key available.
-    fn keymap(&self) -> Vec<(&str, &str)>{
+    fn keymap(&self) -> Vec<(&str, &str)> {
         Vec::new()
     }
-
 }
 pub trait Focusable {
     fn is_focused(&self) -> bool;
@@ -214,17 +212,22 @@ impl Application {
             popup_states: Vec::new(),
             state: AppState {
                 theme: Iceberg,
-                should_quit: false},
+                should_quit: false,
+            },
             q_commands: Vec::new(),
         }
     }
     pub fn from(connection: Connection) -> Application {
         Application {
-            page_states: vec![EntrancePage::new().into(), GlyphPage::new(connection).into()],
+            page_states: vec![
+                EntrancePage::new().into(),
+                GlyphPage::new(connection).into(),
+            ],
             popup_states: Vec::new(),
             state: AppState {
                 theme: Iceberg,
-                should_quit: false},
+                should_quit: false,
+            },
             q_commands: Vec::new(),
         }
     }
@@ -250,13 +253,13 @@ impl Application {
         if !self.popup_states.is_empty() {
             return None;
         }
-        Some(self.page_states.len()-1)
+        Some(self.page_states.len() - 1)
     }
     pub(crate) fn focused_popup_index(&self) -> Option<usize> {
         if self.popup_states.is_empty() {
             return None;
         }
-        Some(self.popup_states.len()-1)
+        Some(self.popup_states.len() - 1)
     }
 
     /// Recursively find the bottom container user is interacting.
@@ -275,9 +278,11 @@ pub fn draw(frame: &mut Frame, app: &mut Application) {
     let background: Block = Block::default().bg(app.state.theme.background());
     frame.render_widget(background, frame.area());
     let vertical_constraints = Layout::vertical([Constraint::Fill(1), Constraint::Length(1)]);
-    let [app_area, info_area]: [Rect;2] = vertical_constraints.areas(frame.area());
+    let [app_area, info_area]: [Rect; 2] = vertical_constraints.areas(frame.area());
     let latest_page = (*app.page_states).last().unwrap();
-    latest_page.as_drawable_ref().render(frame, app_area, DrawFlag::DEFAULT, &app.state.theme);
+    latest_page
+        .as_drawable_ref()
+        .render(frame, app_area, DrawFlag::DEFAULT, &app.state.theme);
     if let Some(focused_container) = app.focused_container_ref() {
         keymap_to_line(focused_container.keymap()).render(info_area, frame.buffer_mut());
     }
@@ -306,19 +311,21 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) {
     // Retrieve the Command from Page/Popup
     let mut commands: Vec<Command> = Vec::new();
     if let Some(popup_index) = (*app).focused_popup_index() {
-        commands = app.popup_states[popup_index].handle(key, Some(&mut app.state)).unwrap_or_else(
-            |report|{
+        commands = app.popup_states[popup_index]
+            .handle(key, Some(&mut app.state))
+            .unwrap_or_else(|report| {
                 vec![Command::AppCommand(AppCommand::PushPopup(
-                    MessagePopup::new( report.to_string().as_str(), Color::Red).into()
-                ))]}
-        );
+                    MessagePopup::new(report.to_string().as_str(), Color::Red).into(),
+                ))]
+            });
     } else if let Some(page_index) = (*app).focused_page_index() {
-        commands = app.page_states[page_index].handle(key, Some(&mut app.state)).unwrap_or_else(
-            |report|{
+        commands = app.page_states[page_index]
+            .handle(key, Some(&mut app.state))
+            .unwrap_or_else(|report| {
                 vec![Command::AppCommand(AppCommand::PushPopup(
-                    MessagePopup::new( report.to_string().as_str(), Color::Red).into()
-                ))]}
-        );
+                    MessagePopup::new(report.to_string().as_str(), Color::Red).into(),
+                ))]
+            });
     }
     app.q_commands.append(&mut commands);
 
@@ -327,36 +334,30 @@ pub fn handle_key_events(key: &KeyEvent, app: &mut Application) {
 fn process_command(app: &mut Application) {
     // Process the Command
     while let Some(command) = app.q_commands.pop() {
-        
         match command {
-            Command::AppCommand(app_command)=> {
-                match app_command {
-                    AppCommand::PushPage(view) => {
-                        app.page_states.push(view);
-                    }
-                    AppCommand::PopPage => {
-                        app.page_states.pop();
-                    }
-                    AppCommand::PushPopup(popup) => {
-                        app.popup_states.push(popup);
-                    }
-                    AppCommand::PopPopup => {
-                        app.popup_states.pop();
-                    }
-                    AppCommand::Quit => {
-                        app.state.should_quit = true;
-                    }
+            Command::AppCommand(app_command) => match app_command {
+                AppCommand::PushPage(view) => {
+                    app.page_states.push(view);
                 }
-            }
+                AppCommand::PopPage => {
+                    app.page_states.pop();
+                }
+                AppCommand::PushPopup(popup) => {
+                    app.popup_states.push(popup);
+                }
+                AppCommand::PopPopup => {
+                    app.popup_states.pop();
+                }
+                AppCommand::Quit => {
+                    app.state.should_quit = true;
+                }
+            },
             _ => {
-                app.popup_states.push(
-                    MessagePopup::new( "Unexpected Command!", Color::Red).into()
-                );
-
+                app.popup_states
+                    .push(MessagePopup::new("Unexpected Command!", Color::Red).into());
             }
         }
     }
-
 }
 fn handle_global_events(key: &KeyEvent, app: &mut Application) {
     if key.kind == KeyEventKind::Press {
@@ -374,14 +375,14 @@ fn handle_global_events(key: &KeyEvent, app: &mut Application) {
 }
 
 /*
-    Helper Function
- */
+   Helper Function
+*/
 pub fn is_cycle_forward_hover_key(key_event: &KeyEvent) -> bool {
     if let KeyCode::Char(c) = key_event.code {
         return match c {
             'j' => true,
-            _ => false
-        }
+            _ => false,
+        };
     }
     if let KeyCode::Down = key_event.code {
         return true;
@@ -399,8 +400,8 @@ pub fn is_cycle_backward_hover_key(key_event: &KeyEvent) -> bool {
     if let KeyCode::Char(c) = key_event.code {
         return match c {
             'k' => true,
-            _ => false
-        }
+            _ => false,
+        };
     }
     if let KeyCode::Up = key_event.code {
         return true;

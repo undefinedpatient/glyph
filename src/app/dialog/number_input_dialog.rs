@@ -3,11 +3,13 @@ use crate::app::widget::number_field::NumberField;
 use crate::app::widget::text_field::TextFieldState;
 use crate::app::Command::PageCommand;
 use crate::app::PageCommand::PopDialog;
-use crate::app::{get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable};
+use crate::app::{
+    get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable,
+    Focusable, Interactable,
+};
 use crate::theme::Theme;
 use crate::utils::cycle_offset;
-use color_eyre::eyre::Result;
-use color_eyre::Report;
+use color_eyre::{Report, Result};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::Stylize;
@@ -25,48 +27,61 @@ pub struct NumberInputDialog {
     pub components: Vec<Box<dyn Component>>,
     pub state: NumberInputDialogState,
 
-    pub on_submit: Option<Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+    pub on_submit:
+        Option<Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 impl NumberInputDialog {
-    pub fn new(field_title: &str, default: i16, validate: Box<dyn Fn(&str)->bool>) -> Self {
+    pub fn new(field_title: &str, default: i16, validate: Box<dyn Fn(&str) -> bool>) -> Self {
         Self {
             containers: vec![
-                NumberField::new(
-                    field_title,
-                    default,
-                    validate
-                )
-                    .on_exit(
-                        Box::new(
-                            |parent_state, state| {
-                                let _parent_state = parent_state.unwrap().downcast_mut::<NumberInputDialog>().unwrap();
-                                let _state = state.unwrap().downcast_mut::<TextFieldState>().unwrap();
-                                _parent_state.state.number_input =  _state.chars.iter().collect::<String>().parse::<i16>().unwrap();
-                                Ok(Vec::new())
-                            }
-                        )
-                    )
-                    .into()
+                NumberField::new(field_title, default, validate)
+                    .on_exit(Box::new(|parent_state, state| {
+                        let _parent_state = parent_state
+                            .unwrap()
+                            .downcast_mut::<NumberInputDialog>()
+                            .unwrap();
+                        let _state = state.unwrap().downcast_mut::<TextFieldState>().unwrap();
+                        _parent_state.state.number_input = _state
+                            .chars
+                            .iter()
+                            .collect::<String>()
+                            .parse::<i16>()
+                            .unwrap();
+                        Ok(Vec::new())
+                    }))
+                    .into(),
             ],
             components: vec![
-                LineButton::new("Back").on_interact(Box::new(|_| Ok(vec![PageCommand(PopDialog)]))).into(),
+                LineButton::new("Back")
+                    .on_interact(Box::new(|_| Ok(vec![PageCommand(PopDialog)])))
+                    .into(),
                 LineButton::new("Confirm").into(),
             ],
             state: NumberInputDialogState {
                 is_focused: false,
                 hovered_index: None,
-                number_input: default
+                number_input: default,
             },
             on_submit: None,
         }
     }
 
-    pub fn on_submit(mut self, on_submit:Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>) ->Self {
+    pub fn on_submit(
+        mut self,
+        on_submit: Box<
+            dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>,
+        >,
+    ) -> Self {
         self.on_submit = Some(on_submit);
         self
     }
     pub fn is_valid_input(&self) -> bool {
-        (*self.containers[0]).as_any().downcast_ref::<NumberField>().unwrap().state.is_valid
+        (*self.containers[0])
+            .as_any()
+            .downcast_ref::<NumberField>()
+            .unwrap()
+            .state
+            .is_valid
     }
 
     pub(crate) fn cycle_hover(&mut self, offset: i16) {
@@ -87,20 +102,18 @@ impl From<NumberInputDialog> for Box<dyn Container> {
 impl Drawable for NumberInputDialog {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let dialog_area: Rect = area.centered(Constraint::Length(42), Constraint::Length(5));
-        let back_button =
-            (*self.components[0])
-                .as_any()
-                .downcast_ref::<LineButton>()
-                .unwrap()
-                .as_line(get_draw_flag(self.state.hovered_index, 1, None))
-                .right_aligned();
-        let mut submit_button =
-            (*self.components[1])
-                .as_any()
-                .downcast_ref::<LineButton>()
-                .unwrap()
-                .as_line(get_draw_flag(self.state.hovered_index, 2, None))
-                .right_aligned();
+        let back_button = (*self.components[0])
+            .as_any()
+            .downcast_ref::<LineButton>()
+            .unwrap()
+            .as_line(get_draw_flag(self.state.hovered_index, 1, None))
+            .right_aligned();
+        let mut submit_button = (*self.components[1])
+            .as_any()
+            .downcast_ref::<LineButton>()
+            .unwrap()
+            .as_line(get_draw_flag(self.state.hovered_index, 2, None))
+            .right_aligned();
 
         if !self.is_valid_input() {
             submit_button = submit_button.dim();
@@ -115,12 +128,8 @@ impl Drawable for NumberInputDialog {
             .style(theme.on_surface())
             .bg(theme.surface_low())
             .title("Number Input Dialog")
-            .title_bottom(
-                back_button
-            )
-            .title_bottom(
-                submit_button
-            );
+            .title_bottom(back_button)
+            .title_bottom(submit_button);
         let inner_dialog_area = dialog_frame.inner(dialog_area);
         Clear.render(dialog_area, frame.buffer_mut());
         dialog_frame.render(dialog_area, frame.buffer_mut());
@@ -132,11 +141,10 @@ impl Drawable for NumberInputDialog {
                 0,
                 Some(self.containers[0].is_focused()),
             ),
-            theme
+            theme,
         );
     }
 }
-
 
 impl Interactable for NumberInputDialog {
     fn handle(
@@ -157,55 +165,57 @@ impl Interactable for NumberInputDialog {
                         self.cycle_hover(-1);
                     }
                     if let KeyCode::Enter = key.code
-                        && let Some(index) = self.state.hovered_index {
-                            return match index {
-                                0 => {
-                                    // Text Field
-                                    self.containers[0].set_focus(true);
-                                    Ok(Vec::new())
+                        && let Some(index) = self.state.hovered_index
+                    {
+                        return match index {
+                            0 => {
+                                // Text Field
+                                self.containers[0].set_focus(true);
+                                Ok(Vec::new())
+                            }
+                            1 => {
+                                // Back Button
+                                self.components[0].handle(key, None)
+                            }
+                            2 => {
+                                // Confirm Button
+                                if !self.is_valid_input() {
+                                    return Ok(Vec::new());
                                 }
-                                1 => {
-                                    // Back Button
-                                    self.components[0].handle(key, None)
-                                }
-                                2 => {
-                                    // Confirm Button
-                                    if ! self.is_valid_input() {
-                                        return Ok(Vec::new());
-                                    }
-                                    if let Some(on_submit) = self.on_submit.take() {
-                                        let callback_result = on_submit(parent_state, Some(&mut self.state));
-                                        if callback_result.is_err() {
-                                            callback_result
-                                        } else {
-                                            let mut commands = callback_result?;
-                                            commands.push(PageCommand(PopDialog));
-                                            Ok(commands)
-                                        }
+                                if let Some(on_submit) = self.on_submit.take() {
+                                    let callback_result =
+                                        on_submit(parent_state, Some(&mut self.state));
+                                    if callback_result.is_err() {
+                                        callback_result
                                     } else {
-                                        Err(Report::msg("Submit has already been called!"))
+                                        let mut commands = callback_result?;
+                                        commands.push(PageCommand(PopDialog));
+                                        Ok(commands)
                                     }
+                                } else {
+                                    Err(Report::msg("Submit has already been called!"))
                                 }
-                                _ => Ok(Vec::new()),
-                            };
-                        }
+                            }
+                            _ => Ok(Vec::new()),
+                        };
+                    }
                     Ok(Vec::new())
                 }
                 _ => Ok(Vec::new()),
             }
         } else {
             let index: usize = self.focused_child_index().unwrap();
-            
+
             self.containers[index].handle(key, Some(&mut self.state))
         }
     }
-    fn keymap(&self) -> Vec<(&str, &str)>{
+    fn keymap(&self) -> Vec<(&str, &str)> {
         [
-            ("j/k/up/down/tab/backtab","Navigate"),
-            ("Enter","Interact"),
-        ].into()
+            ("j/k/up/down/tab/backtab", "Navigate"),
+            ("Enter", "Interact"),
+        ]
+        .into()
     }
-
 }
 
 impl Focusable for NumberInputDialog {

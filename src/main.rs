@@ -13,11 +13,11 @@ use ratatui::Terminal;
 use rusqlite::Connection;
 
 mod app;
-mod utils;
-mod models;
-mod theme;
-mod services;
 mod db;
+mod models;
+mod services;
+mod theme;
+mod utils;
 
 use crate::app::{draw, handle_key_events};
 use crate::db::GlyphRepository;
@@ -79,8 +79,11 @@ fn handle_cli(args: &Vec<String>) -> Result<(bool, Option<Connection>)> {
     if let Some(arg) = args.get(1) {
         match arg.as_str() {
             "new" => {
-                let new_glyph_name: String = args.get(2).unwrap_or(&String::from("untitled_glyph")).clone();
-                GlyphRepository::init_glyph_db(&PathBuf::from(new_glyph_name+".glyph"))?;
+                let new_glyph_name: String = args
+                    .get(2)
+                    .unwrap_or(&String::from("untitled_glyph"))
+                    .clone();
+                GlyphRepository::init_glyph_db(&PathBuf::from(new_glyph_name + ".glyph"))?;
                 return Ok((true, None));
             }
             "delete" => {

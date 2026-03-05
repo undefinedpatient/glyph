@@ -1,11 +1,13 @@
 use crate::app::widget::line_button::LineButton;
 use crate::app::Command::PageCommand;
 use crate::app::PageCommand::PopDialog;
-use crate::app::{get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable};
+use crate::app::{
+    get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable,
+    Focusable, Interactable,
+};
 use crate::theme::Theme;
 use crate::utils::cycle_offset;
-use color_eyre::eyre::Result;
-use color_eyre::Report;
+use color_eyre::{Report, Result};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::style::Stylize;
@@ -22,13 +24,16 @@ pub struct ConfirmDialog {
     pub state: ConfirmDialogState,
     pub message: String,
 
-    pub on_submit: Option<Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+    pub on_submit:
+        Option<Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 impl ConfirmDialog {
     pub fn new(message: &str) -> Self {
         Self {
             components: vec![
-                LineButton::new("Back").on_interact(Box::new(|_| Ok(vec![PageCommand(PopDialog)]))).into(),
+                LineButton::new("Back")
+                    .on_interact(Box::new(|_| Ok(vec![PageCommand(PopDialog)])))
+                    .into(),
                 LineButton::new("Confirm").into(),
             ],
             state: ConfirmDialogState {
@@ -40,7 +45,12 @@ impl ConfirmDialog {
         }
     }
 
-    pub fn on_submit(mut self, on_submit:Box<dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>) ->Self {
+    pub fn on_submit(
+        mut self,
+        on_submit: Box<
+            dyn FnOnce(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>,
+        >,
+    ) -> Self {
         self.on_submit = Some(on_submit);
         self
     }
@@ -113,41 +123,44 @@ impl Interactable for ConfirmDialog {
                     self.cycle_hover(-1);
                 }
                 if let KeyCode::Enter = key.code
-                    && let Some(index) = self.state.hovered_index {
-                        return match index {
-                            0 => {
-                                // Back Button
-                                self.components[0].handle(key, None)
-                            }
-                            1 => {
-                                // Confirm Button
-                                if let Some(on_submit) = self.on_submit.take() {
-                                    let callback_result = on_submit(parent_state, Some(&mut self.state));
-                                    if callback_result.is_err() {
-                                        callback_result
-                                    } else {
-                                        let mut commands = callback_result?;
-                                        commands.push(PageCommand(PopDialog));
-                                        Ok(commands)
-                                    }
+                    && let Some(index) = self.state.hovered_index
+                {
+                    return match index {
+                        0 => {
+                            // Back Button
+                            self.components[0].handle(key, None)
+                        }
+                        1 => {
+                            // Confirm Button
+                            if let Some(on_submit) = self.on_submit.take() {
+                                let callback_result =
+                                    on_submit(parent_state, Some(&mut self.state));
+                                if callback_result.is_err() {
+                                    callback_result
                                 } else {
-                                    Err(Report::msg("Submit has already been called!"))
+                                    let mut commands = callback_result?;
+                                    commands.push(PageCommand(PopDialog));
+                                    Ok(commands)
                                 }
+                            } else {
+                                Err(Report::msg("Submit has already been called!"))
                             }
-                            _ => Ok(Vec::new()),
-                        };
-                    }
+                        }
+                        _ => Ok(Vec::new()),
+                    };
+                }
                 Ok(Vec::new())
             }
             _ => Ok(Vec::new()),
         }
     }
 
-    fn keymap(&self) -> Vec<(&str, &str)>{
+    fn keymap(&self) -> Vec<(&str, &str)> {
         [
-            ("j/k/up/down/tab/backtab","Navigate"),
-            ("Enter","Interact"),
-        ].into()
+            ("j/k/up/down/tab/backtab", "Navigate"),
+            ("Enter", "Interact"),
+        ]
+        .into()
     }
 }
 impl Focusable for ConfirmDialog {

@@ -16,7 +16,6 @@ pub struct ConfirmPopup {
     pub focus_index: usize,
     pub message: String,
 
-
     pub on_confirm: Option<Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 impl ConfirmPopup {
@@ -29,12 +28,15 @@ impl ConfirmPopup {
             on_confirm: None,
         }
     }
-    pub fn on_confirm(mut self, on_confirm: Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>) -> Self {
+    pub fn on_confirm(
+        mut self,
+        on_confirm: Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>,
+    ) -> Self {
         self.on_confirm = Some(on_confirm);
         self
     }
 }
-impl From<ConfirmPopup> for Box<dyn Container>{
+impl From<ConfirmPopup> for Box<dyn Container> {
     fn from(container: ConfirmPopup) -> Self {
         Box::new(container)
     }
@@ -55,7 +57,7 @@ impl Drawable for ConfirmPopup {
                         } else {
                             vec![Span::from(" Cancel "), Span::from("[Confirm]").bold()]
                         })
-                            .centered(),
+                        .centered(),
                     )
                     .border_type(BorderType::Double)
                     .border_style(theme.on_surface())
@@ -71,7 +73,7 @@ impl Drawable for ConfirmPopup {
                         } else {
                             vec![Span::from(" Cancel "), Span::from("[Confirm]").bold()]
                         })
-                            .centered(),
+                        .centered(),
                     )
                     .border_style(theme.on_surface())
                     .style(theme.on_surface())
@@ -119,11 +121,12 @@ impl Interactable for ConfirmPopup {
             _ => Ok(Vec::new()),
         }
     }
-    fn keymap(&self) -> Vec<(&str, &str)>{
+    fn keymap(&self) -> Vec<(&str, &str)> {
         [
-            ("j/k/up/down/tab/backtab","Navigate"),
-            ("Enter","Interact"),
-        ].into()
+            ("j/k/up/down/tab/backtab", "Navigate"),
+            ("Enter", "Interact"),
+        ]
+        .into()
     }
 }
 impl Focusable for ConfirmPopup {

@@ -27,21 +27,26 @@ impl MessagePopup {
             on_exit: None,
         }
     }
-    pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>) -> Self {
+    pub fn on_exit(
+        mut self,
+        on_exit: Box<dyn FnMut(Option<&mut dyn Any>) -> Result<Vec<Command>>>,
+    ) -> Self {
         self.on_exit = Some(on_exit);
         self
     }
 }
-impl From<MessagePopup> for Box<dyn Container>{
+impl From<MessagePopup> for Box<dyn Container> {
     fn from(container: MessagePopup) -> Self {
         Box::new(container)
     }
 }
 impl Drawable for MessagePopup {
     fn render(&self, frame: &mut Frame, area: Rect, _draw_flag: DrawFlag, theme: &dyn Theme) {
-        let ratio: f64 = 1.0/2.0;
-        let width: u16 =  (((self.message.len().isqrt() as f64 + 1f64)  / ratio) as u16).clamp(42, area.width)+6;
-        let height: u16 =  (((self.message.len().isqrt() as f64 + 1f64) * ratio) as u16).clamp(6, area.height)+6;
+        let ratio: f64 = 1.0 / 2.0;
+        let width: u16 =
+            (((self.message.len().isqrt() as f64 + 1f64) / ratio) as u16).clamp(42, area.width) + 6;
+        let height: u16 =
+            (((self.message.len().isqrt() as f64 + 1f64) * ratio) as u16).clamp(6, area.height) + 6;
         let popup_area: Rect = area.centered(Constraint::Length(width), Constraint::Length(height));
         let paragraph_message: Paragraph = Paragraph::new(self.message.clone())
             .wrap(Wrap { trim: true })
@@ -88,11 +93,12 @@ impl Interactable for MessagePopup {
             _ => Ok(Vec::new()),
         }
     }
-    fn keymap(&self) -> Vec<(&str, &str)>{
+    fn keymap(&self) -> Vec<(&str, &str)> {
         [
-            ("j/k/up/down/tab/backtab","Navigate"),
-            ("Enter","Interact"),
-        ].into()
+            ("j/k/up/down/tab/backtab", "Navigate"),
+            ("Enter", "Interact"),
+        ]
+        .into()
     }
 }
 impl Focusable for MessagePopup {

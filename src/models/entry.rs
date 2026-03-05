@@ -1,6 +1,6 @@
 /*
-    Entry
- */
+   Entry
+*/
 use crate::models::layout::Layout;
 use crate::models::section::Section;
 

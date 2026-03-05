@@ -3,11 +3,15 @@ use crate::app::widget::button::Button;
 use crate::app::widget::directory_list::{DirectoryList, DirectoryListState};
 use crate::app::AppCommand::{PopPage, PushPage};
 use crate::app::Command::AppCommand;
-use crate::app::{get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable};
+use crate::app::{
+    get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable,
+    Focusable, Interactable,
+};
 use crate::block;
 use crate::db::GlyphRepository;
 use crate::theme::Theme;
 use crate::utils::cycle_offset;
+use color_eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::prelude::Stylize;
@@ -32,40 +36,38 @@ pub struct GlyphOpenPage {
 impl GlyphOpenPage {
     pub fn new() -> Self {
         Self {
-            containers: vec![Box::new(DirectoryList::new("Directory", true,false)
-                .on_exit(
-                    Box::new(
-                        |parent_state, state| {
-                            let _parent_state = parent_state.unwrap().downcast_mut::<GlyphOpenPageState>().unwrap();
-                            let _state = state.unwrap().downcast_mut::<DirectoryListState>().unwrap();
-                            _parent_state.path_to_open = _state.selected_file_path.clone().unwrap();
-                            Ok(Vec::new())
-                        }
-                    )
-                ))],
+            containers: vec![Box::new(
+                DirectoryList::new("Directory", true, false).on_exit(Box::new(
+                    |parent_state, state| {
+                        let _parent_state = parent_state
+                            .unwrap()
+                            .downcast_mut::<GlyphOpenPageState>()
+                            .unwrap();
+                        let _state = state.unwrap().downcast_mut::<DirectoryListState>().unwrap();
+                        _parent_state.path_to_open = _state.selected_file_path.clone().unwrap();
+                        Ok(Vec::new())
+                    },
+                )),
+            )],
 
             components: vec![
                 Button::new("Back")
-                    .on_interact(Box::new(|_| Ok(vec![AppCommand(PopPage)]))).into(),
-                Button::new("Open").on_interact(Box::new(
-                    |parent_state|
-                        {
-                            let _parent_state = parent_state
-                                .unwrap()
-                                .downcast_mut::<GlyphOpenPageState>()
-                                .unwrap();
-                            let connection = GlyphRepository::init_glyph_db(&_parent_state.path_to_open)?;
-                            Ok(vec![
-                                AppCommand(PushPage(
-                                    Box::new(
-                                        GlyphPage::new(connection)
-                                    )
-                                )),
-                                AppCommand(PopPage)
-                            ])
-                        }
-                ),
-                ).into(),
+                    .on_interact(Box::new(|_| Ok(vec![AppCommand(PopPage)])))
+                    .into(),
+                Button::new("Open")
+                    .on_interact(Box::new(|parent_state| {
+                        let _parent_state = parent_state
+                            .unwrap()
+                            .downcast_mut::<GlyphOpenPageState>()
+                            .unwrap();
+                        let connection =
+                            GlyphRepository::init_glyph_db(&_parent_state.path_to_open)?;
+                        Ok(vec![
+                            AppCommand(PushPage(Box::new(GlyphPage::new(connection)))),
+                            AppCommand(PopPage),
+                        ])
+                    }))
+                    .into(),
             ],
             state: GlyphOpenPageState {
                 is_focused: true,
@@ -117,19 +119,19 @@ impl Drawable for GlyphOpenPage {
                 0,
                 Some(self.containers[0].is_focused()),
             ),
-            theme
+            theme,
         );
         self.components[0].render(
             frame,
             button_areas[0],
             get_draw_flag(self.state.hovered_index, 1, None),
-            theme
+            theme,
         );
         self.components[1].render(
             frame,
             button_areas[1],
             get_draw_flag(self.state.hovered_index, 2, None),
-            theme
+            theme,
         );
     }
 }
@@ -138,7 +140,7 @@ impl Interactable for GlyphOpenPage {
         &mut self,
         key: &KeyEvent,
         _parent_state: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>> {
+    ) -> Result<Vec<Command>> {
         if self.focused_child_ref().is_none() {
             if key.kind == KeyEventKind::Press {
                 if is_cycle_forward_hover_key(key) {
@@ -151,36 +153,38 @@ impl Interactable for GlyphOpenPage {
                     return Ok(vec![AppCommand(PopPage)]);
                 }
                 if let KeyCode::Enter = key.code
-                    && let Some(index) = self.state.hovered_index {
-                        match index {
-                            0 => {
-                                // Directory List
-                                self.containers[index].set_focus(true);
-                            }
-                            1 => {
-                                // Back Button
-                                return self.components[0].handle(key, None);
-                            }
-                            2 => {
-                                // Open Button
-                                return self.components[1].handle(key, Some(&mut self.state));
-                            }
-                            _ => {}
+                    && let Some(index) = self.state.hovered_index
+                {
+                    match index {
+                        0 => {
+                            // Directory List
+                            self.containers[index].set_focus(true);
                         }
+                        1 => {
+                            // Back Button
+                            return self.components[0].handle(key, None);
+                        }
+                        2 => {
+                            // Open Button
+                            return self.components[1].handle(key, Some(&mut self.state));
+                        }
+                        _ => {}
                     }
+                }
             }
             Ok(Vec::new())
         } else {
             let index: usize = self.focused_child_index().unwrap();
-            
+
             self.containers[index].handle(key, Some(&mut self.state))
         }
     }
-    fn keymap(&self) -> Vec<(&str, &str)>{
+    fn keymap(&self) -> Vec<(&str, &str)> {
         [
-            ("j/k/up/down/tab/backtab","Navigate"),
-            ("Enter","Interact"),
-        ].into()
+            ("j/k/up/down/tab/backtab", "Navigate"),
+            ("Enter", "Interact"),
+        ]
+        .into()
     }
 }
 impl Focusable for GlyphOpenPage {

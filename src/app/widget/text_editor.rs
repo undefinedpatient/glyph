@@ -6,17 +6,16 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Offset, Position, Rect, Rows};
 use ratatui::prelude::{Line, Span, Widget};
 use ratatui::style::{Color, Stylize};
-use ratatui::widgets::{Block, Clear};
 use ratatui::widgets::BorderType;
+use ratatui::widgets::{Block, Clear};
 use ratatui::Frame;
 use std::any::Any;
-use color_eyre::Report;
 
 pub enum EditMode {
     Normal,
     Insert,
     Visual,
-    VisualLine
+    VisualLine,
 }
 pub enum Operation {
     Delete,
@@ -27,7 +26,7 @@ pub struct TextEditorState {
 
     pub mode: EditMode,
     pub lines: Vec<Vec<char>>,
-    pub scroll_offset: (usize,usize),
+    pub scroll_offset: usize,
     pub cursor_index: usize,
     pub cursor_line_index: usize,
     /// Typical Vim Operations.
@@ -42,51 +41,59 @@ pub struct TextEditorState {
 pub struct TextEditor {
     pub state: TextEditorState,
 
-    pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+    pub on_exit:
+        Option<Box<dyn FnMut(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
-impl TextEditor { pub fn new(label: &str) -> Self {
-    Self {
-        state: TextEditorState {
-            is_focused: false,
-            label: label.to_string(),
+impl TextEditor {
+    pub fn new(label: &str) -> Self {
+        Self {
+            state: TextEditorState {
+                is_focused: false,
+                label: label.to_string(),
 
-            mode: EditMode::Normal,
-            lines: Vec::new(),
-            scroll_offset: (0, 0),
-            cursor_index: 0,
-            cursor_line_index: 0,
-            operation: None,
-            multiple: None,
+                mode: EditMode::Normal,
+                lines: Vec::new(),
+                scroll_offset: 0,
+                cursor_index: 0,
+                cursor_line_index: 0,
+                operation: None,
+                multiple: None,
 
-            anchor: (0,0),
+                anchor: (0, 0),
 
-            copy_buffer: Vec::new(), // First line insert char, the rest directly insert line.
-
-        },
-        on_exit: None,
+                copy_buffer: Vec::new(), // First line insert char, the rest directly insert line.
+            },
+            on_exit: None,
+        }
     }
-}
-    pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>) -> Self {
+    /// Called upon user leave focus.
+    pub fn on_exit(
+        mut self,
+        on_exit: Box<dyn FnMut(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>,
+    ) -> Self {
         self.on_exit = Some(on_exit);
         self
     }
-    pub fn to_raw_string(&self) -> String {
+    /// Convert the content of the text editor to String.
+    pub fn to_string(&self) -> String {
         let mut lines = self.state.lines.clone();
-        for line in &mut lines[0..self.state.lines.len()-1] {
+        for line in &mut lines[0..self.state.lines.len() - 1] {
             line.push('\n');
         }
         self.state.lines.concat().iter().collect::<String>()
     }
-
+    /// Replace the whole content of the text editor.
     pub fn replace(&mut self, content: String) {
         let parsed_content_0: Vec<&str> = content.split('\n').collect::<Vec<&str>>();
-        let parsed_content_1: Vec<Vec<char>> = parsed_content_0.iter().map(
-            |line| line.chars().collect::<Vec<char>>(),
-        ).collect::<Vec<Vec<char>>>();
+        let parsed_content_1: Vec<Vec<char>> = parsed_content_0
+            .iter()
+            .map(|line| line.chars().collect::<Vec<char>>())
+            .collect::<Vec<Vec<char>>>();
         self.state.lines = parsed_content_1;
         self.state.cursor_index = 0;
     }
     // Getters
+    /// Get the current cursor position as (x, y)
     pub fn get_cursor_position(&self) -> (usize, usize) {
         (self.state.cursor_index, self.state.cursor_line_index)
     }
@@ -101,21 +108,28 @@ impl TextEditor { pub fn new(label: &str) -> Self {
         [
             match self.state.multiple {
                 None => "".to_string(),
-                Some(x) => x.to_string()
+                Some(x) => x.to_string(),
             },
             match self.state.operation {
                 Some(Operation::Delete) => "[delete]".to_string(),
-                _ => "".to_string()
-            }
-        ].join(" ")
+                _ => "".to_string(),
+            },
+        ]
+        .join(" ")
     }
+
     pub fn has_multiple(&self) -> bool {
         self.state.multiple.is_some()
     }
     // Setters
+
+    /// Switch to either NORMAL|INSERT|VISUAL|VISUAL LINE
     pub fn switch_mode(&mut self, mode: EditMode) {
         self.state.mode = mode;
     }
+    /// Multiply the original multiple by 10 and add input digit, clamped at 255.
+    /// e.g. 12, input digit: 3, result: 123
+    /// e.g. 2, input digit: 1, result: 21
     pub fn push_multiple(&mut self, digit: u8) {
         if self.state.operation.is_some() {
             return;
@@ -124,51 +138,42 @@ impl TextEditor { pub fn new(label: &str) -> Self {
             self.state.multiple = Some(digit);
             return;
         }
-        self.state.multiple = self.state.multiple.map(|v| v.saturating_mul(10).saturating_add(digit));
+        self.state.multiple = self
+            .state
+            .multiple
+            .map(|v| v.saturating_mul(10).saturating_add(digit));
     }
-    pub fn reset_multiple(&mut self) { self.state.multiple = None; }
+    pub fn reset_multiple(&mut self) {
+        self.state.multiple = None;
+    }
 
     pub fn scroll_vertical_offset(&mut self, offset: i16) {
         if offset.is_positive() {
-            self.state.scroll_offset =
-                (
-                    self.state.scroll_offset.0,
-                    self.state.scroll_offset.1.saturating_add(offset.unsigned_abs() as usize)
-                );
+            self.state.cursor_line_index = self.state.cursor_line_index.saturating_add(offset.unsigned_abs() as usize).clamp(0, self.state.lines.len()-1);
+            self.state.scroll_offset = self.state .scroll_offset .saturating_add(offset.unsigned_abs() as usize);
         } else {
+            self.state.cursor_line_index = self.state.cursor_line_index.saturating_sub(offset.unsigned_abs() as usize);
             self.state.scroll_offset =
-                (
-                    self.state.scroll_offset.0,
-                    self.state.scroll_offset.1.saturating_sub(offset.unsigned_abs() as usize)
-                );
-        }
-    }
-    pub fn scroll_horizontal_offset(&mut self, offset: i16) {
-        if offset.is_positive() {
-            self.state.scroll_offset =
-                (
-                    self.state.scroll_offset.0.saturating_add(offset.unsigned_abs() as usize),
-                    self.state.scroll_offset.1
-                );
-        } else {
-            self.state.scroll_offset =
-                (
-                    self.state.scroll_offset.0.saturating_sub(offset.unsigned_abs() as usize),
-                    self.state.scroll_offset.1
-                );
+                self.state.scroll_offset .saturating_sub(offset.unsigned_abs() as usize);
         }
     }
 
     pub fn move_to_next_line(&mut self) {
         for i in 0..self.state.multiple.unwrap_or(1) {
-            self.state.cursor_line_index = self.state.cursor_line_index.saturating_add(1)
+            self.state.cursor_line_index = self
+                .state
+                .cursor_line_index
+                .saturating_add(1)
                 .clamp(0, self.state.lines.len().saturating_sub(1));
         }
         self.reset_multiple();
     }
     pub fn move_to_previous_line(&mut self) {
         for i in 0..self.state.multiple.unwrap_or(1) {
-            self.state.cursor_line_index = self.state.cursor_line_index.saturating_sub(1)
+            self.state.cursor_line_index = self
+                .state
+                .cursor_line_index
+                .saturating_sub(1)
                 .clamp(0, self.state.lines.len().saturating_sub(1));
         }
         self.reset_multiple();
@@ -176,7 +181,11 @@ impl TextEditor { pub fn new(label: &str) -> Self {
     pub fn move_to_next_char(&mut self) {
         for i in 0..self.state.multiple.unwrap_or(1) {
             if let Some(current_line) = self.state.lines.get(self.state.cursor_line_index) {
-                self.state.cursor_index = self.state.cursor_index.saturating_add(1).clamp(0, current_line.len());
+                self.state.cursor_index = self
+                    .state
+                    .cursor_index
+                    .saturating_add(1)
+                    .clamp(0, current_line.len());
             }
         }
         self.reset_multiple();
@@ -184,7 +193,11 @@ impl TextEditor { pub fn new(label: &str) -> Self {
     pub fn move_to_previous_char(&mut self) {
         for i in 0..self.state.multiple.unwrap_or(1) {
             if let Some(current_line) = self.state.lines.get(self.state.cursor_line_index) {
-                self.state.cursor_index = self.state.cursor_index.clamp(0, current_line.len()).saturating_sub(1);
+                self.state.cursor_index = self
+                    .state
+                    .cursor_index
+                    .clamp(0, current_line.len())
+                    .saturating_sub(1);
             }
         }
         self.reset_multiple();
@@ -193,7 +206,10 @@ impl TextEditor { pub fn new(label: &str) -> Self {
         for i in 0..self.state.multiple.unwrap_or(1) {
             self.move_to_next_char();
             let current_y: usize = self.state.cursor_line_index;
-            let current_x: usize = self.state.cursor_index.clamp(0, self.state.lines[current_y].len().saturating_sub(1));
+            let current_x: usize = self
+                .state
+                .cursor_index
+                .clamp(0, self.state.lines[current_y].len().saturating_sub(1));
             if let Some((x, _y)) = self.find_next(current_x, current_y, ' ') {
                 self.state.cursor_index = x;
             } else {
@@ -207,7 +223,10 @@ impl TextEditor { pub fn new(label: &str) -> Self {
         for i in 0..self.state.multiple.unwrap_or(1) {
             self.move_to_previous_char();
             let current_y: usize = self.state.cursor_line_index;
-            let current_x: usize = self.state.cursor_index.clamp(0, self.state.lines[current_y].len().saturating_sub(1));
+            let current_x: usize = self
+                .state
+                .cursor_index
+                .clamp(0, self.state.lines[current_y].len().saturating_sub(1));
             if let Some((x, _y)) = self.find_previous(current_x.saturating_sub(1), current_y, ' ') {
                 self.state.cursor_index = x;
                 self.move_to_next_char();
@@ -230,13 +249,15 @@ impl TextEditor { pub fn new(label: &str) -> Self {
         }
     }
 
-    pub fn insert_char(&mut self, char: char){
+    pub fn insert_char(&mut self, char: char) {
         if let Some(current_line) = self.state.lines.get_mut(self.state.cursor_line_index) {
             self.state.cursor_index = self.state.cursor_index.clamp(0, current_line.len());
             current_line.insert(self.state.cursor_index, char);
         }
         self.move_to_next_char();
     }
+
+    /// Delete the char under the cursor without moving it.
     pub fn delete_char(&mut self) {
         for i in 0..self.state.multiple.unwrap_or(1) {
             if let Some(current_line) = self.state.lines.get_mut(self.state.cursor_line_index) {
@@ -244,7 +265,7 @@ impl TextEditor { pub fn new(label: &str) -> Self {
                     return;
                 }
                 if self.state.cursor_index >= current_line.len() {
-                    return
+                    return;
                 }
                 self.state.cursor_index = self.state.cursor_index.clamp(0, current_line.len());
                 current_line.remove(self.state.cursor_index);
@@ -253,19 +274,31 @@ impl TextEditor { pub fn new(label: &str) -> Self {
         self.reset_multiple();
     }
     pub fn insert_new_line_below(&mut self) {
-        self.state.lines.insert(self.state.cursor_line_index+1, Vec::new());
+        self.state
+            .lines
+            .insert(self.state.cursor_line_index + 1, Vec::new());
     }
-    pub fn insert_new_line_above(&mut self){
-        self.state.lines.insert(self.state.cursor_line_index, Vec::new());
+    pub fn insert_new_line_above(&mut self) {
+        self.state
+            .lines
+            .insert(self.state.cursor_line_index, Vec::new());
     }
-    pub fn merge_with_next_line(&mut self){
+    pub fn merge_with_next_line(&mut self) {
         if self.state.lines.get(self.state.cursor_line_index).is_none() {
             return;
         }
-        if self.state.lines.get(self.state.cursor_line_index+1).is_none() {
+        if self
+            .state
+            .lines
+            .get(self.state.cursor_line_index + 1)
+            .is_none()
+        {
             return;
         }
-        self.merge_line(self.state.cursor_line_index+1, self.state.cursor_line_index);
+        self.merge_line(
+            self.state.cursor_line_index + 1,
+            self.state.cursor_line_index,
+        );
     }
     pub fn cut_into_next_newline(&mut self) {
         let line_index = self.state.cursor_line_index;
@@ -274,39 +307,21 @@ impl TextEditor { pub fn new(label: &str) -> Self {
             let to = current_line.len().saturating_sub(1);
             let mut portion = self.remove_line_portion(from, to);
             self.insert_new_line_below();
-            if let Some(next_line) = self.state.lines.get_mut(line_index+1) {
+            if let Some(next_line) = self.state.lines.get_mut(line_index + 1) {
                 next_line.append(&mut portion);
             }
             self.move_to_next_line();
             self.move_to_start_of_line();
-
-        }
-
-    }
-    pub fn auto_horizontal_offset(&mut self) {
-        let cursor_screen_location: (usize, usize) =
-            (
-                self.state.cursor_index.saturating_sub(self.state.scroll_offset.0),
-                self.state.cursor_line_index.saturating_sub(self.state.scroll_offset.1)
-            );
-
-        // Scroll the Vertical offset (1)
-        if cursor_screen_location.1 < 7 {
-            self.state.scroll_offset = (self.state.scroll_offset.0, self.state.cursor_line_index.saturating_sub(7));
-        }
-        if 42 - cursor_screen_location.1 < 7 {
-            self.state.scroll_offset = (self.state.scroll_offset.0, self.state.cursor_line_index.saturating_add(7));
         }
     }
-
     // Helper functions
-    fn remove_line_portion(&mut self, from:usize, to:usize) -> Vec<char> {
+    fn remove_line_portion(&mut self, from: usize, to: usize) -> Vec<char> {
         if from == to {
             return vec![];
         }
         if let Some(current_line) = self.state.lines.get_mut(self.state.cursor_line_index) {
             let captured: Vec<char> = current_line[from..=to].to_vec();
-            for _i in from..=to{
+            for _i in from..=to {
                 current_line.remove(from);
             }
             return captured;
@@ -336,7 +351,7 @@ impl TextEditor { pub fn new(label: &str) -> Self {
             }
             for (i, c) in (*current_line)[x..len].iter().enumerate() {
                 if (*c) == character {
-                    return Some((i+x, y));
+                    return Some((i + x, y));
                 }
             }
             None
@@ -369,29 +384,22 @@ impl From<TextEditor> for Box<dyn Container> {
 }
 impl Drawable for TextEditor {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
-        let mut border: Block = block!(self.state.label.as_str(),draw_flag,theme).bg(theme.surface_low());
+        let mut border: Block =
+            block!(self.state.label.as_str(), draw_flag, theme).bg(theme.surface_low());
         match self.state.mode {
-            EditMode::Normal => {
-                border = border.title(Line::from("NORMAL").bold())
-            },
-            EditMode::Insert => {
-                border = border.title(Line::from("INSERT").bold()).yellow()
-            },
-            EditMode::Visual => {
-                border = border.title(Line::from("VISUAL").bold()).blue()
-            }
-            EditMode::VisualLine => {
-                border = border.title(Line::from("VISUAL LINE").bold()).cyan()
-            }
-
+            EditMode::Normal => border = border.title(Line::from("NORMAL").bold()),
+            EditMode::Insert => border = border.title(Line::from("INSERT").bold()).yellow(),
+            EditMode::Visual => border = border.title(Line::from("VISUAL").bold()).blue(),
+            EditMode::VisualLine => border = border.title(Line::from("VISUAL LINE").bold()).cyan(),
         }
         let inner_area = border.inner(area);
         let line_rows: Rows = inner_area.rows();
-        let horizontal_offset = if self.state.cursor_index > inner_area.width.saturating_sub(7) as usize {
-            self.state.cursor_index - inner_area.width.saturating_sub(7) as usize
-        } else {
-            0
-        };
+        let horizontal_offset =
+            if self.state.cursor_index > inner_area.width.saturating_sub(7) as usize {
+                self.state.cursor_index - inner_area.width.saturating_sub(7) as usize
+            } else {
+                0
+            };
         // Set Cursor Position
         if self.is_focused() {
             let (_x, _y) = self.get_cursor_position();
@@ -401,7 +409,7 @@ impl Drawable for TextEditor {
                 _x.saturating_sub(horizontal_offset)
             };
 
-            let y = _y.saturating_sub(self.state.scroll_offset.1);
+            let y = _y.saturating_sub(self.state.scroll_offset);
             let cursor_position: Position = inner_area.as_position().offset(Offset {
                 x: 4 + x as i32,
                 y: y as i32,
@@ -413,73 +421,63 @@ impl Drawable for TextEditor {
             frame.set_cursor_position(cursor_position);
         }
 
-
-
-
         border.render(area, frame.buffer_mut());
-        let lines: Vec<Line> = self.state.lines.iter().enumerate().skip_while(
-            |(line_number, _line)| {
-                *line_number < self.state.scroll_offset.1
-            }
-        ).map(
-            |(line_number, line)| {
-
-                let mut line = Line::from(
-                    vec![
-                        Span::from(format!("{:<4}", line_number.to_string())).dim(),
-                        Span::from(line.iter().skip(horizontal_offset).collect::<String>())
-                    ]);
+        let lines: Vec<Line> = self
+            .state
+            .lines
+            .iter()
+            .enumerate()
+            .skip_while(|(line_number, _line)| *line_number < self.state.scroll_offset)
+            .map(|(line_number, line)| {
+                let mut line = Line::from(vec![
+                    Span::from(format!("{:<4}", line_number.to_string())).dim(),
+                    Span::from(line.iter().skip(horizontal_offset).collect::<String>()),
+                ]);
                 if line_number == self.state.cursor_line_index {
                     line = line.bg(theme.surface_low_highlight());
                 } else {
                     line = line.bg(theme.surface_low());
                 }
                 line
-            }
-        ).collect();
+            })
+            .collect();
         for (line_number, line_row) in line_rows.into_iter().enumerate() {
             lines.get(line_number).render(line_row, frame.buffer_mut());
         }
         // Bottom status bar
         if self.is_focused() {
-            let status_bar_area: Rect = Rect::new(area.x, area.y+area.height-1, area.width, 1);
+            let status_bar_area: Rect = Rect::new(area.x, area.y + area.height - 1, area.width, 1);
             Clear.render(status_bar_area, frame.buffer_mut());
-            Line::from(self.get_info()).bg(
-                match self.state.mode {
-                    EditMode::Normal => {
-                        theme.on_surface()
-                    }
-                    EditMode::Insert => {
-                        Color::Yellow
-                    }
-                    _ => {
-                        theme.on_surface()
-                    }
-                }
-            ).render(status_bar_area, frame.buffer_mut());
+            Line::from(self.get_info())
+                .bg(match self.state.mode {
+                    EditMode::Normal => theme.on_surface(),
+                    EditMode::Insert => Color::Yellow,
+                    _ => theme.on_surface(),
+                })
+                .render(status_bar_area, frame.buffer_mut());
         }
     }
 }
 
 impl Interactable for TextEditor {
-    fn handle(&mut self, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
+    fn handle(
+        &mut self,
+        key: &KeyEvent,
+        parent_state: Option<&mut dyn Any>,
+    ) -> Result<Vec<Command>> {
         match self.state.mode {
-            EditMode::Normal => {
-                handle_normal_mode(self, key, parent_state)
-            }
-            EditMode::Insert => {
-                handle_insert_mode(self, key)
-            }
-            EditMode::Visual => {
-                handle_visual_mode(self, key)
-            }
-            EditMode::VisualLine => {
-                handle_visual_line_mode(self, key)
-            }
+            EditMode::Normal => handle_normal_mode(self, key, parent_state),
+            EditMode::Insert => handle_insert_mode(self, key),
+            EditMode::Visual => handle_visual_mode(self, key),
+            EditMode::VisualLine => handle_visual_line_mode(self, key),
         }
     }
 }
-fn handle_normal_mode(me: &mut TextEditor, key: &KeyEvent, parent_state: Option<&mut dyn Any>) -> Result<Vec<Command>> {
+fn handle_normal_mode(
+    me: &mut TextEditor,
+    key: &KeyEvent,
+    parent_state: Option<&mut dyn Any>,
+) -> Result<Vec<Command>> {
     match key.kind {
         KeyEventKind::Press => {
             if let KeyCode::Esc = key.code {
@@ -575,9 +573,7 @@ fn handle_normal_mode(me: &mut TextEditor, key: &KeyEvent, parent_state: Option<
                     // 'V' => {
                     //     me.switch_mode(EditMode::VisualLine);
                     // }
-                    _ => {
-
-                    }
+                    _ => {}
                 }
             }
             if let KeyCode::Left = key.code {
@@ -637,8 +633,7 @@ fn handle_insert_mode(me: &mut TextEditor, key: &KeyEvent) -> Result<Vec<Command
                     me.move_to_previous_line();
                     me.move_to_end_of_line();
                     me.merge_with_next_line();
-                }
-                else {
+                } else {
                     me.move_to_previous_char();
                     me.delete_char();
                 }
@@ -650,7 +645,6 @@ fn handle_insert_mode(me: &mut TextEditor, key: &KeyEvent) -> Result<Vec<Command
         }
         _ => Ok(Vec::new()),
     }
-
 }
 fn handle_visual_mode(me: &mut TextEditor, key: &KeyEvent) -> Result<Vec<Command>> {
     match key.kind {
@@ -675,9 +669,7 @@ fn handle_visual_mode(me: &mut TextEditor, key: &KeyEvent) -> Result<Vec<Command
                     'i' => {
                         me.switch_mode(EditMode::Insert);
                     }
-                    _ => {
-
-                    }
+                    _ => {}
                 }
             }
             if let KeyCode::Left = key.code {
@@ -699,7 +691,6 @@ fn handle_visual_mode(me: &mut TextEditor, key: &KeyEvent) -> Result<Vec<Command
         }
         _ => Ok(Vec::new()),
     }
-
 }
 fn handle_visual_line_mode(me: &mut TextEditor, key: &KeyEvent) -> Result<Vec<Command>> {
     match key.kind {
@@ -724,9 +715,7 @@ fn handle_visual_line_mode(me: &mut TextEditor, key: &KeyEvent) -> Result<Vec<Co
                     'i' => {
                         me.switch_mode(EditMode::Insert);
                     }
-                    _ => {
-
-                    }
+                    _ => {}
                 }
             }
             if let KeyCode::Left = key.code {
@@ -748,7 +737,6 @@ fn handle_visual_line_mode(me: &mut TextEditor, key: &KeyEvent) -> Result<Vec<Co
         }
         _ => Ok(Vec::new()),
     }
-
 }
 impl Focusable for TextEditor {
     fn is_focused(&self) -> bool {

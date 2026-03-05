@@ -11,11 +11,12 @@ use std::any::Any;
 
 pub struct OptionMenuState {
     pub current_index: u8,
-    pub options: Vec<(String, u8)>
+    pub options: Vec<(String, u8)>,
 }
 pub struct OptionMenu {
     pub state: OptionMenuState,
-    pub on_update: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+    pub on_update:
+        Option<Box<dyn FnMut(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 
 impl OptionMenu {
@@ -25,7 +26,7 @@ impl OptionMenu {
                 current_index: default,
                 options,
             },
-            on_update: None
+            on_update: None,
         }
     }
     pub fn on_interact(
@@ -74,7 +75,6 @@ impl Interactable for OptionMenu {
     ) -> Result<Vec<Command>> {
         let len: u8 = self.state.options.len() as u8;
         self.state.current_index = (self.state.current_index + 1) % len;
-
 
         let Some(mut f) = self.on_update.take() else {
             return Ok(Vec::new());

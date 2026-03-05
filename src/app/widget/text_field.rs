@@ -20,13 +20,15 @@ pub struct TextFieldState {
 }
 pub struct TextField {
     pub state: TextFieldState,
-    pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
-    pub on_update: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
-    pub validate: Box<dyn Fn(&str) -> bool>
+    pub on_exit:
+        Option<Box<dyn FnMut(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+    pub on_update:
+        Option<Box<dyn FnMut(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+    pub validate: Box<dyn Fn(&str) -> bool>,
 }
 
 impl TextField {
-    pub fn new(label: &str, default: &str, validate: Box<dyn Fn(&str)->bool>) -> Self {
+    pub fn new(label: &str, default: &str, validate: Box<dyn Fn(&str) -> bool>) -> Self {
         Self {
             state: TextFieldState {
                 is_focused: false,
@@ -37,18 +39,26 @@ impl TextField {
             },
             on_exit: None,
             on_update: None,
-            validate
+            validate,
         }
     }
     pub fn replace(&mut self, content: String) {
         self.state.chars = content.chars().collect();
         self.state.cursor_index = self.state.chars.len();
     }
-    pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
+    pub fn on_exit(
+        mut self,
+        on_exit: Box<dyn FnMut(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>,
+    ) -> Self {
         self.on_exit = Some(on_exit);
         self
     }
-    pub fn on_update(mut self, on_update: Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
+    pub fn on_update(
+        mut self,
+        on_update: Box<
+            dyn FnMut(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>,
+        >,
+    ) -> Self {
         self.on_update = Some(on_update);
         self
     }
@@ -80,16 +90,21 @@ impl From<TextField> for Box<dyn Container> {
 impl Drawable for TextField {
     fn render(&self, frame: &mut Frame, area: Rect, draw_flag: DrawFlag, theme: &dyn Theme) {
         let content = self.state.chars.iter().collect::<String>();
-        let content_paragraph: Paragraph = Paragraph::new(Line::from(content)).wrap(Wrap{trim: true});
-        let mut text_field_block: Block = block!(self.state.label.as_str(),draw_flag,theme).bg(theme.surface_low());
+        let content_paragraph: Paragraph =
+            Paragraph::new(Line::from(content)).wrap(Wrap { trim: true });
+        let mut text_field_block: Block =
+            block!(self.state.label.as_str(), draw_flag, theme).bg(theme.surface_low());
         if !self.state.is_valid {
-            text_field_block = text_field_block.red().title_bottom("Invalid Input").bg(theme.surface_low());
+            text_field_block = text_field_block
+                .red()
+                .title_bottom("Invalid Input")
+                .bg(theme.surface_low());
         }
         let content_area: Rect = text_field_block.inner(area);
         if self.is_focused() {
             let cursor_position: Position = area.as_position().offset(Offset {
                 x: 1 + (self.state.cursor_index % content_area.width as usize) as i32,
-                y: 1 + (self.state.cursor_index /content_area.width as usize) as i32 ,
+                y: 1 + (self.state.cursor_index / content_area.width as usize) as i32,
             });
             frame.set_cursor_position(cursor_position);
         }
@@ -144,7 +159,8 @@ impl Interactable for TextField {
                         };
                     }
                     // Validation
-                    self.state.is_valid = (*self.validate)(self.state.chars.iter().collect::<String>().as_str());
+                    self.state.is_valid =
+                        (*self.validate)(self.state.chars.iter().collect::<String>().as_str());
                     Ok(Vec::new())
                 }
                 _ => Ok(Vec::new()),

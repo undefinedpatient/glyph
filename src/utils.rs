@@ -1,17 +1,17 @@
-use color_eyre::eyre::Result;
+use color_eyre::Result;
 use std::fs;
 use std::fs::DirEntry;
 use std::path::{Path, PathBuf};
 
 pub mod markdown_renderer;
 
-pub fn cycle_add(value:u16, offset: u16, max: u16) -> u16 {
+pub fn cycle_add(value: u16, offset: u16, max: u16) -> u16 {
     if max == 0 {
         return 0;
     }
-    ((value as u32 + offset as u32)%max as u32) as u16
+    ((value as u32 + offset as u32) % max as u32) as u16
 }
-pub fn cycle_sub(value:u16, offset: u16, max: u16) -> u16 {
+pub fn cycle_sub(value: u16, offset: u16, max: u16) -> u16 {
     if max == 0 {
         return 0;
     }
@@ -22,7 +22,7 @@ pub fn cycle_sub(value:u16, offset: u16, max: u16) -> u16 {
         value - offset
     }
 }
-pub fn cycle_offset(value:u16, offset: i16, max: u16) -> u16 {
+pub fn cycle_offset(value: u16, offset: i16, max: u16) -> u16 {
     if offset.is_negative() {
         cycle_sub(value, offset.unsigned_abs(), max)
     } else {
@@ -39,9 +39,10 @@ pub fn get_file_names(path: &Path) -> Result<Vec<String>> {
             continue;
         }
         if let Some(file_name) = path.file_name()
-            && let Some(name) = file_name.to_str() {
-                file_names.push(name.to_string());
-            }
+            && let Some(name) = file_name.to_str()
+        {
+            file_names.push(name.to_string());
+        }
     }
 
     Ok(file_names)
@@ -57,9 +58,10 @@ pub fn get_dir_names(path: &Path) -> Result<Vec<String>> {
             continue;
         }
         if let Some(file_name) = path.file_name()
-            && let Some(name) = file_name.to_str() {
-                file_names.push(name.to_string());
-            }
+            && let Some(name) = file_name.to_str()
+        {
+            file_names.push(name.to_string());
+        }
     }
 
     Ok(file_names)
@@ -72,7 +74,7 @@ pub fn number_to_roman(mut num: u16) -> String {
     }
     let mut roman: Vec<String> = Vec::new();
     while num > 0 {
-         if num / 10 == 0 {
+        if num / 10 == 0 {
             match num {
                 1 => roman.push("I".to_string()),
                 2 => roman.push("II".to_string()),
@@ -85,9 +87,8 @@ pub fn number_to_roman(mut num: u16) -> String {
                 9 => roman.push("IX".to_string()),
                 _ => return "E".to_string(),
             }
-             return roman.join("");
-        }
-        else if num / 100 == 0 {
+            return roman.join("");
+        } else if num / 100 == 0 {
             match num / 10 {
                 1 => roman.push("X".to_string()),
                 2 => roman.push("XX".to_string()),
@@ -102,7 +103,7 @@ pub fn number_to_roman(mut num: u16) -> String {
             }
             num %= 10;
         } else if num / 1000 == 0 {
-            match num/100 {
+            match num / 100 {
                 1 => roman.push("C".to_string()),
                 2 => roman.push("CC".to_string()),
                 3 => roman.push("CCC".to_string()),
@@ -116,7 +117,7 @@ pub fn number_to_roman(mut num: u16) -> String {
             }
             num %= 100;
         } else {
-            match num/1000 {
+            match num / 1000 {
                 1 => roman.push("M".to_string()),
                 2 => roman.push("MM".to_string()),
                 3 => roman.push("MMM".to_string()),
@@ -137,7 +138,7 @@ pub fn auto_increment_name(name: &str, existing_names: &[&str]) -> String {
     let mut count: u16 = 0;
     while existing_names.contains(&new_name.as_str()) {
         count += 1;
-        new_name = format!("{0}.{1:0>num_digit$}",raw_name, count, num_digit = 3);
+        new_name = format!("{0}.{1:0>num_digit$}", raw_name, count, num_digit = 3);
     }
     new_name
 }
@@ -159,15 +160,11 @@ mod test {
     }
     #[test]
     fn test_auto_increment_name() {
+        assert_eq!(auto_increment_name("name", &["name"]), "name.001");
         assert_eq!(
-            auto_increment_name("name", &["name"]), "name.001"
+            auto_increment_name("name", &["name", "name.001"]),
+            "name.002"
         );
-        assert_eq!(
-            auto_increment_name("name", &["name", "name.001"]), "name.002"
-        );
-        assert_eq!(
-            auto_increment_name("name", &[]), "name"
-        );
-
+        assert_eq!(auto_increment_name("name", &[]), "name");
     }
 }

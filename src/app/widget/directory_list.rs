@@ -1,8 +1,11 @@
-use crate::app::{is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Container, DrawFlag, Drawable, Focusable, Interactable};
+use crate::app::{
+    is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Container, DrawFlag, Drawable, Focusable,
+    Interactable,
+};
 use crate::block;
 use crate::theme::Theme;
 use crate::utils::{cycle_offset, get_dir_names, get_file_names};
-use color_eyre::eyre::Result;
+use color_eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Offset, Rect};
 use ratatui::prelude::Stylize;
@@ -27,7 +30,8 @@ pub struct DirectoryListState {
 }
 pub struct DirectoryList {
     pub state: DirectoryListState,
-    pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+    pub on_exit:
+        Option<Box<dyn FnMut(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
 }
 impl DirectoryList {
     pub(crate) fn new(label: &str, show_files: bool, select_dir: bool) -> Self {
@@ -47,16 +51,23 @@ impl DirectoryList {
             on_exit: None,
         }
     }
-    pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
+    pub fn on_exit(
+        mut self,
+        on_exit: Box<dyn FnMut(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>,
+    ) -> Self {
         self.on_exit = Some(on_exit);
         self
     }
+
+    /// Retrieve the num of files in the current directory.
     pub fn get_num_files(&self) -> usize {
         get_file_names(&self.state.current_path).unwrap().len()
     }
+    /// Retrieve the num of dirs in the current directory.
     pub fn get_num_dirs(&self) -> usize {
         get_dir_names(&self.state.current_path).unwrap().len()
     }
+    /// Retrieve the num of files + dirs in the current directory.
     pub fn get_num_entries(&self) -> usize {
         if self.state.show_files {
             self.get_num_files() + self.get_num_dirs()
@@ -67,7 +78,8 @@ impl DirectoryList {
     pub fn next_entry(&mut self) {
         if let Some(index) = self.state.hovered_index {
             let num_entries = self.get_num_entries();
-            self.state.hovered_index = Some(cycle_offset(index as u16, 1, num_entries as u16) as usize);
+            self.state.hovered_index =
+                Some(cycle_offset(index as u16, 1, num_entries as u16) as usize);
         } else {
             self.state.hovered_index = Some(0);
         }
@@ -75,16 +87,24 @@ impl DirectoryList {
     pub fn previous_entry(&mut self) {
         let num_entries = self.get_num_entries();
         if let Some(index) = self.state.hovered_index {
-            self.state.hovered_index = Some(cycle_offset(index as u16, -1, num_entries as u16) as usize);
+            self.state.hovered_index =
+                Some(cycle_offset(index as u16, -1, num_entries as u16) as usize);
         } else {
             self.state.hovered_index = Some(num_entries - 1usize);
         }
     }
     pub fn page_up(&mut self) {
         self.state.offset = self.state.offset.saturating_sub(4);
+        if let Some(index) = self.state.hovered_index {
+            self.state.hovered_index = Some(index.saturating_sub(4));
+        }
     }
     pub fn page_down(&mut self) {
         self.state.offset += 4;
+        let num_entries = self.get_num_entries();
+        if let Some(index) = self.state.hovered_index {
+            self.state.hovered_index = Some(index.saturating_add(4).clamp(0, num_entries));
+        }
     }
 }
 
@@ -98,34 +118,39 @@ impl Drawable for DirectoryList {
         /*
            Container Frame
         */
-        let current_path: String = self.state.current_path
+        let current_path: String = self
+            .state
+            .current_path
             .clone()
             .to_str()
             .unwrap_or("Invalid Path")
             .to_string();
-        let widget_frame: Block = block!(self.state.label.as_str(),draw_flag,theme)
-            .title_top(Span::from(current_path.as_str()).into_right_aligned_line()).bg(theme.surface_low());
+        let widget_frame: Block = block!(self.state.label.as_str(), draw_flag, theme)
+            .title_top(Span::from(current_path.as_str()).into_right_aligned_line())
+            .bg(theme.surface_low());
 
         /*
            Directory Widget
         */
         let inner_area: Rect = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
-        let mut directory_entries: Vec<String> = get_dir_names(&self.state.current_path).unwrap_or_default();
+        let mut directory_entries: Vec<String> =
+            get_dir_names(&self.state.current_path).unwrap_or_default();
         if self.state.show_files {
-            directory_entries.append(&mut get_file_names(&self.state.current_path).unwrap_or_default())
+            directory_entries
+                .append(&mut get_file_names(&self.state.current_path).unwrap_or_default())
         }
         let list_items: Vec<Line> = directory_entries
             .iter()
             .enumerate()
             .map(|(i, item)| {
                 let is_selected = self.state.selected_index == Some(i);
-                let is_hovered   = self.state.hovered_index == Some(i);
+                let is_hovered = self.state.hovered_index == Some(i);
 
                 let prefix = match (is_selected, is_hovered) {
-                    (true, true)   => ">[",
-                    (true, false)  => " [",
-                    (false, true)  => "> ",
+                    (true, true) => ">[",
+                    (true, false) => " [",
+                    (false, true) => "> ",
                     (false, false) => "  ",
                 };
 
@@ -194,11 +219,13 @@ impl Interactable for DirectoryList {
                             ' ' => {
                                 if let Some(hovered_index) = self.state.hovered_index {
                                     if let Some(selected_index) = self.state.selected_index
-                                        && selected_index == hovered_index {
-                                            self.state.selected_index = None;
-                                            return Ok(Vec::new());
-                                        }
-                                    if self.state.select_dir || hovered_index >= self.get_num_dirs() {
+                                        && selected_index == hovered_index
+                                    {
+                                        self.state.selected_index = None;
+                                        return Ok(Vec::new());
+                                    }
+                                    if self.state.select_dir || hovered_index >= self.get_num_dirs()
+                                    {
                                         self.state.selected_index = self.state.hovered_index;
                                     }
                                 }
@@ -209,9 +236,17 @@ impl Interactable for DirectoryList {
                     }
                     if let KeyCode::Esc = key.code {
                         if let Some(selected_index) = self.state.selected_index {
-                            let mut entries = get_dir_names(self.state.current_path.as_path()).unwrap_or_default();
-                            entries.append(&mut get_file_names(self.state.current_path.as_path()).unwrap_or_default());
-                            self.state.selected_file_path = Some(self.state.current_path.join(entries[selected_index].clone()));
+                            let mut entries = get_dir_names(self.state.current_path.as_path())
+                                .unwrap_or_default();
+                            entries.append(
+                                &mut get_file_names(self.state.current_path.as_path())
+                                    .unwrap_or_default(),
+                            );
+                            self.state.selected_file_path = Some(
+                                self.state
+                                    .current_path
+                                    .join(entries[selected_index].clone()),
+                            );
                         } else {
                             self.state.selected_file_path = Some(self.state.current_path.clone());
                         }
@@ -224,25 +259,30 @@ impl Interactable for DirectoryList {
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Enter = key.code
-                        && let Some(index) = self.state.hovered_index {
-                            // "cd .."
-                            if index == 0 {
-                                if let Some(path_buf) = self.state.current_path.parent() {
-                                    self.state.current_path = path_buf.to_path_buf().clone();
-                                    self.state.offset = 0;
-                                }
-                                return Ok(Vec::new());
-                            }
-                            if index < get_dir_names(&self.state.current_path).unwrap_or_default().len() {
-                                self.state.current_path = self.state.current_path.join(PathBuf::from(
-                                    get_dir_names(&self.state.current_path)?[index].to_string(),
-                                ));
+                        && let Some(index) = self.state.hovered_index
+                    {
+                        // "cd .."
+                        if index == 0 {
+                            if let Some(path_buf) = self.state.current_path.parent() {
+                                self.state.current_path = path_buf.to_path_buf().clone();
                                 self.state.offset = 0;
-                                self.state.selected_index = None;
-                                self.state.hovered_index = Some(0);
                             }
                             return Ok(Vec::new());
                         }
+                        if index
+                            < get_dir_names(&self.state.current_path)
+                                .unwrap_or_default()
+                                .len()
+                        {
+                            self.state.current_path = self.state.current_path.join(PathBuf::from(
+                                get_dir_names(&self.state.current_path)?[index].to_string(),
+                            ));
+                            self.state.offset = 0;
+                            self.state.selected_index = None;
+                            self.state.hovered_index = Some(0);
+                        }
+                        return Ok(Vec::new());
+                    }
                     Ok(Vec::new())
                 }
                 _ => Ok(Vec::new()),
@@ -251,9 +291,10 @@ impl Interactable for DirectoryList {
     }
     fn keymap(&self) -> Vec<(&str, &str)> {
         [
-            ("Enter","Change Directory"),
-            ("Space","Select File/Directory"),
-        ].into()
+            ("Enter", "Change Directory"),
+            ("Space", "Select File/Directory"),
+        ]
+        .into()
     }
 }
 

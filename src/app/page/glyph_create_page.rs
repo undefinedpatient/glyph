@@ -5,11 +5,15 @@ use crate::app::widget::directory_list::{DirectoryList, DirectoryListState};
 use crate::app::AppCommand::{PopPage, PushPage};
 use crate::app::Command::{AppCommand, PageCommand};
 use crate::app::PageCommand::{PopDialog, PushDialog};
-use crate::app::{get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable, Focusable, Interactable};
+use crate::app::{
+    get_draw_flag, is_cycle_backward_hover_key, is_cycle_forward_hover_key, Command, Component, Container, DrawFlag, Drawable,
+    Focusable, Interactable,
+};
 use crate::block;
 use crate::db::GlyphRepository;
 use crate::theme::Theme;
 use crate::utils::cycle_offset;
+use color_eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::prelude::Stylize;
@@ -37,22 +41,25 @@ impl GlyphCreatePage {
         Self {
             dialogs: Vec::new(),
             containers: vec![
-                DirectoryList::new("Directory", false,true)
-                    .on_exit(
-                        Box::new(
-                            |parent_state, state| {
-                                let _parent_state = parent_state.unwrap().downcast_mut::<GlyphCreatePageState>().unwrap();
-                                let _state = state.unwrap().downcast_mut::<DirectoryListState>().unwrap();
-                                _parent_state.path_to_create = _state.selected_file_path.clone().unwrap();
-                                Ok(Vec::new())
-                            }
-                        )
-                    )
-                    .into()
+                DirectoryList::new("Directory", false, true)
+                    .on_exit(Box::new(|parent_state, state| {
+                        let _parent_state = parent_state
+                            .unwrap()
+                            .downcast_mut::<GlyphCreatePageState>()
+                            .unwrap();
+                        let _state = state.unwrap().downcast_mut::<DirectoryListState>().unwrap();
+                        _parent_state.path_to_create = _state.selected_file_path.clone().unwrap();
+                        Ok(Vec::new())
+                    }))
+                    .into(),
             ],
             components: vec![
-                Button::new("Back").on_interact(Box::new(|_| Ok(vec![AppCommand(PopPage)]))).into(),
-                Button::new("Create").on_interact(Box::new(|_| { Ok(Vec::new()) } )).into(),
+                Button::new("Back")
+                    .on_interact(Box::new(|_| Ok(vec![AppCommand(PopPage)])))
+                    .into(),
+                Button::new("Create")
+                    .on_interact(Box::new(|_| Ok(Vec::new())))
+                    .into(),
             ],
             state: GlyphCreatePageState {
                 is_focused: true,
@@ -104,23 +111,23 @@ impl Drawable for GlyphCreatePage {
                 0,
                 Some(self.containers[0].is_focused()),
             ),
-            theme
+            theme,
         );
         self.components[0].render(
             frame,
             button_areas[0],
             get_draw_flag(self.state.hovered_index, 1, None),
-            theme
+            theme,
         );
         self.components[1].render(
             frame,
             button_areas[1],
             get_draw_flag(self.state.hovered_index, 2, None),
-            theme
+            theme,
         );
         /*
-            Dialog
-         */
+           Dialog
+        */
         if !self.dialogs.is_empty() {
             for (i, dialog) in self.dialogs.iter().enumerate() {
                 if i == self.dialogs.len() - 1 {
@@ -137,12 +144,16 @@ impl Interactable for GlyphCreatePage {
         &mut self,
         key: &KeyEvent,
         _parent_state: Option<&mut dyn Any>,
-    ) -> color_eyre::Result<Vec<Command>> {
+    ) -> Result<Vec<Command>> {
         /*
-            Page's Dialog
-         */
+           Page's Dialog
+        */
         if !self.dialogs.is_empty() {
-            let result = self.dialogs.last_mut().unwrap().handle(key, Some(&mut self.state));
+            let result = self
+                .dialogs
+                .last_mut()
+                .unwrap()
+                .handle(key, Some(&mut self.state));
             return if result.is_err() {
                 result
             } else {
@@ -150,27 +161,25 @@ impl Interactable for GlyphCreatePage {
                 let mut commands = result?;
                 while let Some(command) = commands.pop() {
                     match command {
-                        PageCommand(page_command) => {
-                            match page_command {
-                                PopDialog => {
-                                    self.dialogs.pop();
-                                }
-                                PushDialog(dialog) => {
-                                    self.dialogs.push(dialog);
-                                }
+                        PageCommand(page_command) => match page_command {
+                            PopDialog => {
+                                self.dialogs.pop();
                             }
-                        }
+                            PushDialog(dialog) => {
+                                self.dialogs.push(dialog);
+                            }
+                        },
                         _ => {
                             processed_commands.insert(0, command);
                         }
                     }
                 }
                 Ok(processed_commands)
-            }
+            };
         }
         /*
-            Page
-         */
+           Page
+        */
         if self.focused_child_ref().is_none() {
             if key.kind == KeyEventKind::Press {
                 if is_cycle_forward_hover_key(key) {
@@ -183,56 +192,69 @@ impl Interactable for GlyphCreatePage {
                     return Ok(vec![AppCommand(PopPage)]);
                 }
                 if let KeyCode::Enter = key.code
-                    && let Some(index) = self.state.hovered_index {
-                        match index {
-                            0 => {
-                                // Directory List
-                                self.containers[index].set_focus(true);
-                            }
-                            1 => {
-                                // Back Button
-                                return self.components[0].handle(key, None);
-                            }
-                            2 => {
-                                // Create Button
-                                self.dialogs.push(
-                                    TextInputDialog::new( "Glyph Name", "untitled_glyph", Box::new(|value|{!value.is_empty()}))
-                                        .on_submit( Box::new(|parent_state, state| {
-
-                                            let _parent_state = parent_state.unwrap().downcast_mut::<GlyphCreatePageState>().unwrap();
-                                            let _state = state.unwrap().downcast_mut::<TextInputDialogState>().unwrap();
-
-                                            let connection = GlyphRepository::init_glyph_db(&_parent_state.path_to_create.join(_state.text_input.clone()+".glyph"));
-                                            Ok(
-                                                vec![
-                                                    PageCommand(PopDialog),
-                                                    AppCommand(PushPage(
-                                                        GlyphPage::new(connection.unwrap()).into()
-                                                    )),
-                                                    AppCommand(PopPage)
-                                                ]
-                                            )
-                                        }
-                                        )
-                                        ).into());
-                                return Ok(Vec::new());
-                            }
-                            _ => {}
+                    && let Some(index) = self.state.hovered_index
+                {
+                    match index {
+                        0 => {
+                            // Directory List
+                            self.containers[index].set_focus(true);
                         }
+                        1 => {
+                            // Back Button
+                            return self.components[0].handle(key, None);
+                        }
+                        2 => {
+                            // Create Button
+                            self.dialogs.push(
+                                TextInputDialog::new(
+                                    "Glyph Name",
+                                    "untitled_glyph",
+                                    Box::new(|value| !value.is_empty()),
+                                )
+                                .on_submit(Box::new(|parent_state, state| {
+                                    let _parent_state = parent_state
+                                        .unwrap()
+                                        .downcast_mut::<GlyphCreatePageState>()
+                                        .unwrap();
+                                    let _state = state
+                                        .unwrap()
+                                        .downcast_mut::<TextInputDialogState>()
+                                        .unwrap();
+
+                                    let connection = GlyphRepository::init_glyph_db(
+                                        &_parent_state
+                                            .path_to_create
+                                            .join(_state.text_input.clone() + ".glyph"),
+                                    );
+                                    Ok(vec![
+                                        PageCommand(PopDialog),
+                                        AppCommand(PushPage(
+                                            GlyphPage::new(connection.unwrap()).into(),
+                                        )),
+                                        AppCommand(PopPage),
+                                    ])
+                                }))
+                                .into(),
+                            );
+                            return Ok(Vec::new());
+                        }
+                        _ => {}
                     }
+                }
             }
             Ok(Vec::new())
         } else {
             let index: usize = self.focused_child_index().unwrap();
-            
+
             self.containers[index].handle(key, Some(&mut self.state))
         }
     }
-    fn keymap(&self) -> Vec<(&str, &str)>{
+    fn keymap(&self) -> Vec<(&str, &str)> {
         [
-            ("j/k/up/down/tab/backtab","Navigate"),
-            ("Enter","Interact"),
-        ].into()
+            ("j/k/up/down/tab/backtab", "Navigate"),
+            ("Enter", "Interact"),
+        ]
+        .into()
     }
 }
 impl Focusable for GlyphCreatePage {

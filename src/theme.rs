@@ -57,7 +57,7 @@ impl Theme for Iceberg {
     fn surface_high_highlight(&self) -> Color {
         Color::Rgb(127, 161, 191)
     }
-    fn bold(&self) -> Style{
+    fn bold(&self) -> Style {
         Style::default().add_modifier(Modifier::BOLD)
     }
     fn italic(&self) -> Style {

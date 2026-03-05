@@ -20,12 +20,13 @@ pub struct NumberFieldState {
 }
 pub struct NumberField {
     pub state: NumberFieldState,
-    pub on_exit: Option<Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
-    pub validate: Box<dyn Fn(&str) -> bool>
+    pub on_exit:
+        Option<Box<dyn FnMut(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>>,
+    pub validate: Box<dyn Fn(&str) -> bool>,
 }
 
 impl NumberField {
-    pub fn new(label: &str, default: i16, validate: Box<dyn Fn(&str)->bool>) -> Self {
+    pub fn new(label: &str, default: i16, validate: Box<dyn Fn(&str) -> bool>) -> Self {
         Self {
             state: NumberFieldState {
                 is_focused: false,
@@ -42,7 +43,10 @@ impl NumberField {
         self.state.chars = content.to_string().chars().collect();
         self.state.cursor_index = self.state.chars.len();
     }
-    pub fn on_exit(mut self, on_exit: Box<dyn FnMut(Option<&mut dyn Any>,Option<&mut dyn Any>)-> Result<Vec<Command>>>) -> Self {
+    pub fn on_exit(
+        mut self,
+        on_exit: Box<dyn FnMut(Option<&mut dyn Any>, Option<&mut dyn Any>) -> Result<Vec<Command>>>,
+    ) -> Self {
         self.on_exit = Some(on_exit);
         self
     }
@@ -77,7 +81,7 @@ impl Drawable for NumberField {
         let text_field_area = area.centered(Constraint::Min(18), Constraint::Min(3));
         let text = self.state.chars.iter().collect::<String>();
         let text_line: Line = Line::from(text);
-        let mut number_field_block: Block = block!(self.state.label.as_str(),draw_flag,theme);
+        let mut number_field_block: Block = block!(self.state.label.as_str(), draw_flag, theme);
         if !self.state.is_valid {
             number_field_block = number_field_block.red().title_bottom("Invalid Input");
         }
@@ -115,10 +119,11 @@ impl Interactable for NumberField {
                         return Ok(Vec::new());
                     }
                     if let KeyCode::Char(c) = key.code
-                        && c.is_numeric() {
-                            self.insert_char(c);
-                            self.move_to_next_char();
-                        }
+                        && c.is_numeric()
+                    {
+                        self.insert_char(c);
+                        self.move_to_next_char();
+                    }
                     if let KeyCode::Left = key.code {
                         self.move_to_previous_char();
                     }
@@ -130,7 +135,8 @@ impl Interactable for NumberField {
                         self.delete_char();
                     }
                     // Validation
-                    self.state.is_valid = (*self.validate)(self.state.chars.iter().collect::<String>().as_str());
+                    self.state.is_valid =
+                        (*self.validate)(self.state.chars.iter().collect::<String>().as_str());
                     Ok(Vec::new())
                 }
                 _ => Ok(Vec::new()),

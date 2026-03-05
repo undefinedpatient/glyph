@@ -1,7 +1,7 @@
 use crate::models::entry::Entry;
 use crate::models::layout::Layout;
 use crate::models::section::Section;
-use color_eyre::Report;
+use color_eyre::{Report, Result};
 use rusqlite::{params, Connection, Row, Rows, Statement};
 use std::path::PathBuf;
 
@@ -10,7 +10,7 @@ pub struct GlyphRepository {}
 pub(crate) struct EntryRepository {}
 
 impl GlyphRepository {
-    pub fn init_glyph_db(path_to_db: &PathBuf) -> color_eyre::Result<Connection> {
+    pub fn init_glyph_db(path_to_db: &PathBuf) -> Result<Connection> {
         let c = Connection::open(path_to_db)?;
         c.execute(
             "
@@ -19,8 +19,9 @@ impl GlyphRepository {
             entry_name  TEXT NOT NULL UNIQUE,
             layout      TEXT NOT NULL DEFAULT ''
         )
-        "
-            , ())?;
+        ",
+            (),
+        )?;
         c.execute(
             "
         CREATE TABLE IF NOT EXISTS sections (
@@ -30,9 +31,9 @@ impl GlyphRepository {
             title       TEXT NOT NULL DEFAULT '',
             content     TEXT NOT NULL DEFAULT ''
         )
-        "
-            // UNIQUE (entry_id, position)
-            , ())?;
+        ", // UNIQUE (entry_id, position)
+            (),
+        )?;
         Ok(c)
     }
 }
@@ -51,7 +52,7 @@ impl EntryRepository {
     pub fn insert(c: &Connection, entry: &Entry) -> color_eyre::Result<i64> {
         c.execute(
             "INSERT INTO entries (entry_name, layout) VALUES (?1, ?2)",
-            params![entry.entry_name, serde_json::to_string(&entry.layout)?]
+            params![entry.entry_name, serde_json::to_string(&entry.layout)?],
         )?;
         let eid: i64 = c.last_insert_rowid();
         Ok(eid)
@@ -83,16 +84,15 @@ impl EntryRepository {
                 WHERE id = ?1
             ",
             params![eid, new_name],
-        )? != 1 {
+        )? != 1
+        {
             return Err(Report::msg("Tried to update name but there is no entry"));
         }
         Ok(())
     }
 
     pub fn delete(c: &Connection, eid: &i64) -> color_eyre::Result<usize> {
-        let num_of_row_deleted = c.execute( "DELETE FROM entries WHERE id = ?1",
-                                            params![eid],
-        )?;
+        let num_of_row_deleted = c.execute("DELETE FROM entries WHERE id = ?1", params![eid])?;
         Ok(num_of_row_deleted)
     }
 
@@ -113,7 +113,6 @@ impl EntryRepository {
         Ok(entries)
     }
 
-
     // Returning (eid, entry_name, layout)
     fn map_row(c: &Connection, row: &Row) -> color_eyre::Result<(i64, Entry)> {
         let id: i64 = row.get(0)?;
@@ -124,14 +123,13 @@ impl EntryRepository {
                 entry_name: row.get(1)?,
                 sections: SectionRepository::read_all_by_eid(c, &id)?,
                 layout: serde_json::from_str(layout_string.as_str()).unwrap_or(Layout::new("")),
-            }
-        )
-        )
+            },
+        ))
     }
 }
 pub(crate) struct SectionRepository {}
 impl SectionRepository {
-    pub fn insert(c: &Connection, eid:&i64, section: &Section) -> color_eyre::Result<i64> {
+    pub fn insert(c: &Connection, eid: &i64, section: &Section) -> color_eyre::Result<i64> {
         c.execute(
             "
                 INSERT INTO sections (entry_id, position, title, content) VALUES (?1, ?2, ?3, ?4)
@@ -150,7 +148,8 @@ impl SectionRepository {
                 WHERE id = ?1
             ",
             params![sid, new_name],
-        )? != 1 {
+        )? != 1
+        {
             return Err(Report::msg("Tried to update name but there is no entry"));
         }
         Ok(())
@@ -172,24 +171,25 @@ impl SectionRepository {
     }
 
     pub fn delete(c: &Connection, sid: &i64) -> color_eyre::Result<usize> {
-        let num_of_row_deleted = c.execute( "DELETE FROM sections WHERE id = ?1",
-                                            params![sid],
-        )?;
-
+        let num_of_row_deleted = c.execute("DELETE FROM sections WHERE id = ?1", params![sid])?;
 
         Ok(num_of_row_deleted)
     }
 
     /*
-        Return (eid, sid, section)
-     */
+       Return (eid, sid, section)
+    */
     pub fn read_by_id(c: &Connection, id: &i64) -> color_eyre::Result<Option<(i64, i64, Section)>> {
-        let mut stmt = c.prepare("SELECT id, entry_id, position, title, content FROM sections WHERE id = ?1")?;
+        let mut stmt =
+            c.prepare("SELECT id, entry_id, position, title, content FROM sections WHERE id = ?1")?;
         let mut rows: Rows = stmt.query(params![*id])?;
-        rows.next()?.map(|row| {Self::map_row(row)}).transpose()
+        rows.next()?.map(|row| Self::map_row(row)).transpose()
     }
     /// Read a Section by corresponding Entry ID.
-    pub fn read_all_by_eid(c: &Connection, entry_id: &i64) -> color_eyre::Result<Vec<(i64, Section)>> {
+    pub fn read_all_by_eid(
+        c: &Connection,
+        entry_id: &i64,
+    ) -> color_eyre::Result<Vec<(i64, Section)>> {
         let mut stmt = c.prepare("SELECT id, entry_id, position, title, content FROM sections WHERE entry_id = ?1 ORDER BY position ASC")?;
         let mut rows: Rows = stmt.query(params![*entry_id])?;
         let mut sections: Vec<(i64, Section)> = Vec::new();
@@ -204,17 +204,14 @@ impl SectionRepository {
     pub fn map_row(row: &Row) -> color_eyre::Result<(i64, i64, Section)> {
         let eid: i64 = row.get(1)?;
         let sid: i64 = row.get(0)?;
-        Ok(
-            (
-                eid,
-                sid,
-                Section {
-                    position: row.get(2)?,
-                    title: row.get(3)?,
-                    content: row.get(4)?,
-                }
-            )
-        )
+        Ok((
+            eid,
+            sid,
+            Section {
+                position: row.get(2)?,
+                title: row.get(3)?,
+                content: row.get(4)?,
+            },
+        ))
     }
 }
-
