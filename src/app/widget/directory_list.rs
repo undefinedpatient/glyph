@@ -75,6 +75,15 @@ impl DirectoryList {
             self.get_num_dirs()
         }
     }
+    pub fn get_entries(&self) -> Vec<String> {
+        let mut directory_entries: Vec<String> =
+            get_dir_names(&self.state.current_path).unwrap_or_default();
+        if self.state.show_files {
+            directory_entries
+                .append(&mut get_file_names(&self.state.current_path).unwrap_or_default())
+        }
+        directory_entries
+    }
     pub fn next_entry(&mut self) {
         if let Some(index) = self.state.hovered_index {
             let num_entries = self.get_num_entries();
@@ -134,13 +143,7 @@ impl Drawable for DirectoryList {
         */
         let inner_area: Rect = widget_frame.inner(area);
         widget_frame.render(area, frame.buffer_mut());
-        let mut directory_entries: Vec<String> =
-            get_dir_names(&self.state.current_path).unwrap_or_default();
-        if self.state.show_files {
-            directory_entries
-                .append(&mut get_file_names(&self.state.current_path).unwrap_or_default())
-        }
-        let list_items: Vec<Line> = directory_entries
+        let list_items: Vec<Line> = self.get_entries()
             .iter()
             .enumerate()
             .map(|(i, item)| {
@@ -236,12 +239,7 @@ impl Interactable for DirectoryList {
                     }
                     if let KeyCode::Esc = key.code {
                         if let Some(selected_index) = self.state.selected_index {
-                            let mut entries = get_dir_names(self.state.current_path.as_path())
-                                .unwrap_or_default();
-                            entries.append(
-                                &mut get_file_names(self.state.current_path.as_path())
-                                    .unwrap_or_default(),
-                            );
+                            let entries = self.get_entries();
                             self.state.selected_file_path = Some(
                                 self.state
                                     .current_path

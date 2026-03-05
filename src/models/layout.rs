@@ -50,19 +50,33 @@ impl Layout {
             None
         }
     }
-    pub fn update_layout_at(&mut self, layout: &Layout, coordinates: &Vec<usize>) {
+    pub fn update_layout_at(&mut self, layout: &Layout, coordinates: &Vec<usize>) -> Result<()> {
         if let Some(target) = self.get_layout_at_mut(coordinates) {
             target.label = layout.label.clone();
             target.details = layout.details.clone();
+            Ok(())
+        } else {
+            Err(Report::msg(format!(
+                "Could not find sub layout. At {:?}",
+                coordinates
+            )))
         }
     }
-    pub fn insert_sublayout_under(&mut self, layout: Layout, coordinates: &Vec<usize>) {
+    /// Insert a layout under the parent layout targeted at input coordinates.
+    pub fn insert_sublayout_under(&mut self, layout: Layout, coordinates: &Vec<usize>) -> Result<()> {
         if coordinates.is_empty() {
             self.sub_layouts.push(layout);
+            Ok(())
         } else {
             let coor = coordinates.clone();
             if let Some(target) = self.get_layout_at_mut(&coor) {
                 target.sub_layouts.push(layout);
+                Ok(())
+            } else {
+                Err(Report::msg(format!(
+                    "Could not find sub layout. At {:?}",
+                    coor
+                )))
             }
         }
     }

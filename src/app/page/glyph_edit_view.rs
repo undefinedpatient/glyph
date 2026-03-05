@@ -515,7 +515,7 @@ impl Interactable for GlyphEditOrderView {
                             }
                             let sid = *self.state.active_sid.borrow().as_ref().unwrap();
                             let eid = local_entry_state.active_entry_id.unwrap();
-                            let active_section_name: String = local_entry_state
+                            let old_section_name: String = local_entry_state
                                 .get_section_ref(&eid, &sid)
                                 .unwrap()
                                 .title
@@ -523,7 +523,7 @@ impl Interactable for GlyphEditOrderView {
                             Ok(vec![PageCommand(PushDialog(
                                 TextInputDialog::new(
                                     "Rename Section Title",
-                                    active_section_name.as_str(),
+                                    old_section_name.as_str(),
                                     Box::new(|_value| true),
                                 )
                                 .on_submit(
